@@ -29,8 +29,32 @@ end
         return true
     end
 
+    @testset "UniformGrid" begin
+        uniform = Grid.Uniform{Float64, 4}(0.0, 1.0, (true, true))
+        @test floor(uniform, 0.0) == 1
+        @test floor(uniform, uniform[1]) == 1
 
-    @testset "Tau" begin
+        δ = 1.0e-12
+        check(uniform, 2:uniform.size-1, δ, 0)
+        check(uniform, 2:uniform.size-1, -δ, -1)
+
+        @test floor(uniform, uniform[end]) == uniform.size - 1
+        @test floor(uniform, 1.0) == uniform.size - 1
+
+        uniform = Grid.Uniform{Float64, 2}(0.0, 1.0, (true, true))
+        @test floor(uniform, 0.0) == 1
+        @test floor(uniform, uniform[1]) == 1
+
+        δ = 1.0e-12
+        check(uniform, 2:uniform.size-1, δ, 0)
+        check(uniform, 2:uniform.size-1, -δ, -1)
+
+        @test floor(uniform, uniform[end]) == uniform.size - 1
+        @test floor(uniform, 1.0) == uniform.size - 1
+    end
+
+
+    @testset "Log Grid for Tau" begin
         β = 10.0
         tau = Grid.tau(β, 0.2β, 8)
         @test floor(tau, 0.0) == 1
@@ -44,7 +68,7 @@ end
         @test floor(tau, β) == tau.size - 1
     end
 
-    @testset "fermiK" begin
+    @testset "Log Grid for fermiK" begin
         kF, maxK, halfLife=1.0, 3.0, 0.5
         K=Grid.fermiK(kF, maxK, halfLife, 16)
         # println(K.grid)
@@ -60,7 +84,7 @@ end
         @test floor(K, maxK)==K.size-1
     end
 
-    @testset "boseK" begin
+    @testset "Log Grid for boseK" begin
         kF, maxK, halfLife=1.0, 3.0, 0.5
         K=Grid.boseK(kF, maxK, halfLife, 16)
         # println(K.grid)

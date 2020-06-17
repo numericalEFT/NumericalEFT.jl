@@ -43,6 +43,8 @@ end
 struct Log{T,SIZE,SEG} # create a log grid of the type T with SIZE grids and SEG of segments
     grid::MVector{SIZE,T}
     size::Int
+    head::T
+    tail::T
     segment::SVector{SEG,Int} # ends of each segments
     coeff::SVector{SEG,Coeff{T}}
     isopen::SVector{2,Bool}
@@ -62,14 +64,16 @@ struct Log{T,SIZE,SEG} # create a log grid of the type T with SIZE grids and SEG
                 push!(grid, _grid(coeff[s], idx))
             end
         end
+        head, tail=grid[1], grid[end]
         isopen[1] && (grid[1] += eps(T))
         isopen[2] && (grid[end] -= eps(T))
         checkOrder(grid)
-        return new{T,SIZE,SEG}(grid, SIZE, segment, coeff, isopen)
+        return new{T,SIZE,SEG}(grid, SIZE, head, tail, segment, coeff, isopen)
     end
 end
 
 function Base.floor(grid::Log{T,SIZE,2}, x) where {T,SIZE}
+    (grid.head<=x<=grid.tail)||error("$x is out of the uniform grid range!")
     segment = grid.segment
     if x < grid[2]
         return 1
@@ -85,6 +89,7 @@ function Base.floor(grid::Log{T,SIZE,2}, x) where {T,SIZE}
 end
 
 function Base.floor(grid::Log{T,SIZE,3}, x) where {T,SIZE}
+    (grid.head<=x<=grid.tail)||error("$x is out of the uniform grid range!")
     segment = grid.segment
     if x < grid[2]
         return 1
@@ -110,19 +115,33 @@ Base.lastindex(grid::Log) = grid.size
 struct Uniform{T,SIZE}
     grid::SVector{SIZE,T}
     size::Int
+    head::T
+    tail::T
     δ::T
     isopen::SVector{2,Bool}
 
     function Uniform{T,SIZE}(head, tail, isopen) where {T<:AbstractFloat,SIZE}
         @assert SIZE > 1 "Size must be large than 1"
-        grid = LinRange(T(head), T(tail), SIZE)
+        grid = Array(LinRange(T(head), T(tail), SIZE))
         isopen[1] && (grid[1] += eps(T))
         isopen[2] && (grid[end] -= eps(T))
-        return new{T,SIZE}(grid, SIZE, (tail - head) / SIZE, isopen)
+        return new{T,SIZE}(grid, SIZE, head, tail, (tail - head) / (SIZE-1), isopen)
     end
 end
 
-Base.floor(grid::Uniform, x) = floor(Int, (x - head) / δ)
+function Base.floor(grid::Uniform, x) 
+
+    (grid.head<=x<=grid.tail)||error("$x is out of the uniform grid range!")
+
+    if grid[2]<=x<grid[end-1]
+        return floor(Int, (x - grid.head) / grid.δ+1)
+    elseif x<grid[2]
+        return 1
+    else
+        return grid.size-1
+    end
+end
+
 Base.getindex(grid::Uniform, i) = grid.grid[i]
 Base.firstindex(grid::Uniform) = 1
 Base.lastindex(grid::Uniform) = grid.size
