@@ -4,6 +4,8 @@ module Grid
 
 using StaticArrays: SVector, MVector
 
+@enum GridType LOG UNIFORM
+
 struct Coeff{T<:AbstractFloat}
     bound::SVector{2,T}
     idx::SVector{2,T}
