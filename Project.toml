@@ -1,0 +1,8 @@
+name = "QuantumStatistics"
+uuid = "08acf9d9-9812-4184-bb82-ed7be26454cb"
+authors = ["Kun Chen <chenkun@mail.ustc.edu.cn>"]
+version = "0.1.0"
+
+[deps]
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

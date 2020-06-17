@@ -1,0 +1,18 @@
+language: julia
+os:
+  - linux
+julia:
+  - 1.4
+  - nightly
+matrix:
+  allow_failures:
+    - julia: nightly
+notifications:
+  email: chenkun0228@gmail.com
+env:
+   - PYTHON=""
+after_success:
+- julia -e 'using Pkg;
+            Pkg.add("Coverage");
+            using Coverage;
+            Codecov.submit(Codecov.process_folder())'
