@@ -6,6 +6,9 @@ module Green
 
 Compute the bare fermionic Green's function. Assume ħ=1
 
+g(τ>0) = exp(-ετ)/(1+exp(-βε))
+g(τ≤0) = -exp(-ετ)/(1+exp(βε))
+
 # Arguments
 - `β`: the inverse temperature 
 - `τ`: the imaginary time, must be (-β, β]
@@ -14,7 +17,7 @@ Compute the bare fermionic Green's function. Assume ħ=1
 @inline function bareFermi(β::T, τ::T, ε::T) where {T<:AbstractFloat}
     (-β < τ <= β) || error("τ must be (-β, β]")
     if τ == T(0.0)
-        τ = -prevfloat(T(0.0))
+        τ = -eps(T)
     end
     G = sign(τ)
     if τ < T(0.0)

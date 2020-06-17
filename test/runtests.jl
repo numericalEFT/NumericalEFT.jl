@@ -7,7 +7,10 @@ using QuantumStatistics, Test
 
     @test Green.bareFermi(β, τ, 0.0) ≈ n(0.0)
     @test Green.bareFermi(β, eps(0.0), ε) ≈ 1.0 - n(ε)
+
+    @test Green.bareFermi(β, 0.0, ε) ≈ -n(ε) #τ=0.0 should be treated as the 0⁻
     @test Green.bareFermi(β, -eps(0.0), ε) ≈ -n(ε)
+
     @test Green.bareFermi(β, -τ, ε) ≈ -Green.bareFermi(β, β - τ, ε)
     @test Green.bareFermi(β, -eps(0.0), 1000.0) ≈ 0.0
     @test Green.bareFermi(β, -eps(0.0), -1000.0) ≈ -1.0
