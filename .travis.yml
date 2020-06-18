@@ -9,14 +9,14 @@ matrix:
     - julia: nightly
 notifications:
   email: chenkun0228@gmail.com
-env:
-   - PYTHON=""
+# env:
+#    - PYTHON=""
 
 jobs:
+  allow_failures:
+    - julia: nightly
   include:
     - stage: "Documentation"
-      julia: 1.4
-      os: linux
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
                                                Pkg.build("QuantumStatistics")
