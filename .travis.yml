@@ -17,10 +17,6 @@ after_success:
             Pkg.add("Coverage");
             using Coverage;
             Codecov.submit(Codecov.process_folder())'
-  julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
-                                          Pkg.build("QuantumStatistics")
-                                          Pkg.instantiate()'
-  julia --project=docs/ docs/make.jl
 
 # jobs:
 #   allow_failures:
