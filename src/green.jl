@@ -4,15 +4,15 @@ module Green
 """
     bareFermi(β, τ, ε, [, scale])
 
-Compute the bare fermionic Green's function. Assume ħ=1
-
-g(τ>0) = exp(-ετ)/(1+exp(-βε))
-g(τ≤0) = -exp(-ετ)/(1+exp(βε))
+Compute the bare fermionic Green's function. Assume ``k_B=\\hbar=1``
+```math
+g(τ>0) = e^{-ετ}/(1+e^{-βε}), g(τ≤0) = -e^{-ετ}/(1+e^{βε})
+```
 
 # Arguments
 - `β`: the inverse temperature 
 - `τ`: the imaginary time, must be (-β, β]
-- `ε`: Eₖ-μ
+- `ε`: dispersion minus chemical potential: ``E_k-μ``
 """
 @inline function bareFermi(β::T, τ::T, ε::T) where {T<:AbstractFloat}
     (-β < τ <= β) || error("τ must be (-β, β]")
