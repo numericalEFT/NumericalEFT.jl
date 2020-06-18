@@ -1,3 +1,5 @@
+# This package is forked from https://github.com/JuliaMath/Yeppp.jl
+# Please go to this link for instructions
 module Yeppp
 
 # @unix_only    const libyeppp = "libyeppp"

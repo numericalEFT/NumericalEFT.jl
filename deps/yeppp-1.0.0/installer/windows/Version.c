@@ -1,7 +1,0 @@
-#include <yepVersion.h>
-<Include>
-	<?define MajorVersion=YEP_PREPROCESSOR_NUMBER_AS_STRING(YEP_MAJOR_VERSION) ?>
-	<?define MinorVersion=YEP_PREPROCESSOR_NUMBER_AS_STRING(YEP_MINOR_VERSION) ?>
-	<?define PatchVersion=YEP_PREPROCESSOR_NUMBER_AS_STRING(YEP_PATCH_VERSION) ?>
-	<?define BuildVersion=YEP_PREPROCESSOR_NUMBER_AS_STRING(YEP_BUILD_VERSION) ?>
-</Include>
