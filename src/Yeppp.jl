@@ -1,5 +1,7 @@
-# This package is forked from https://github.com/JuliaMath/Yeppp.jl
-# Please go to this link for instructions
+"""
+This package is forked from https://github.com/JuliaMath/Yeppp.jl
+Please go to this link for instructions
+"""
 module Yeppp
 
 # @unix_only    const libyeppp = "libyeppp"
@@ -248,6 +250,11 @@ tan!(x) = tan!(x, x)
 
 #################### Add By Kun Chen 06.17.2020
 
+"""
+    dot(x::MVector{N, Float64}, y::MVector{N, Float64})
+
+Compute the dot product of x and y.
+"""
 function dot(x::MVector{N, Float64}, y::MVector{N, Float64}) where{N}
     @assert(N == length(y))
     dotproduct = Ref{Float64}()
@@ -256,7 +263,12 @@ function dot(x::MVector{N, Float64}, y::MVector{N, Float64}) where{N}
     dotproduct[]
 end
 
-function dot(x::SVector{N, Float32}, y::MVector{N, Float32}) where{N}
+"""
+    dot(x::MVector{N, Float32}, y::MVector{N, Float32})
+
+Compute the dot product of x and y.
+"""
+function dot(x::MVector{N, Float32}, y::MVector{N, Float32}) where{N}
     @assert(N == length(y))
     dotproduct = Ref{Float32}()
     status = ccall( (:yepCore_DotProduct_V32fV32f_S64f, libyeppp), Cint, (Ptr{Float32}, Ptr{Float32}, Ptr{Float32}, Culong), x, y, dotproduct, N)
