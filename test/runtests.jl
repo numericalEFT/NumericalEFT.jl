@@ -101,3 +101,23 @@ end
     end
 
 end
+
+include("yeppp.jl")
+
+@testset "Fast Math" begin
+    x=3.0
+    @test FastMath.invsqrt(x)≈1.0/sqrt(x) rtol=1.0e-5
+    x=1.0/3.0
+    @test FastMath.invsqrt(x)≈1.0/sqrt(x) rtol=1.0e-5
+    x=3.0f0
+    @test FastMath.invsqrt(x)≈1.0/sqrt(x) rtol=1.0e-5
+    x=1.0f0/3.0f0
+    @test FastMath.invsqrt(x)≈1.0/sqrt(x) rtol=1.0e-5
+
+    using StaticArrays, LinearAlgebra
+    k=MVector{3, Float64}([1.0, 2.0, 3.0])
+    q=MVector{3, Float64}([3.0, 1.0, 4.0])
+    @test FastMath.dot(k, q)≈LinearAlgebra.dot(k, q)
+    @test FastMath.norm(k)≈LinearAlgebra.norm(k)
+    @test FastMath.squaredNorm(k)≈LinearAlgebra.dot(k, k)
+end
