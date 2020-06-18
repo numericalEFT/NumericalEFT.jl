@@ -15,7 +15,7 @@ using .Yeppp
     invsqrt(x)
 
 The Legendary Fast Inverse Square Root
-See this link: https://en.wikipedia.org/wiki/Fast_inverse_square_root and https://cs.uwaterloo.ca/~m32rober/rsqrt.pdf
+See the following links: [wikipedia](https://en.wikipedia.org/wiki/Fast_inverse_square_root) and [thesis](https://cs.uwaterloo.ca/~m32rober/rsqrt.pdf)
 """
 @inline function invsqrt(x::Float64)
     #   y = x
