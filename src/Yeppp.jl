@@ -1,5 +1,5 @@
 """
-This package is forked from https://github.com/JuliaMath/Yeppp.jl
+Forked from [Yeppp.jl](https://github.com/JuliaMath/Yeppp.jl)
 Please go to this link for instructions
 """
 module Yeppp
