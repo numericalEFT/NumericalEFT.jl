@@ -12,12 +12,6 @@ notifications:
 env:
    - PYTHON=""
 
-after_success:
-- julia -e 'using Pkg;
-            Pkg.add("Coverage");
-            using Coverage;
-            Codecov.submit(Codecov.process_folder())'
-
 jobs:
   include:
     - stage: "Documentation"
@@ -29,3 +23,9 @@ jobs:
                                                Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       after_success: skip
+
+after_success:
+- julia -e 'using Pkg;
+            Pkg.add("Coverage");
+            using Coverage;
+            Codecov.submit(Codecov.process_folder())'
