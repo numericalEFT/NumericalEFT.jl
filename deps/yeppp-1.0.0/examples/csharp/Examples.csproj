@@ -1,0 +1,73 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+		<BuildDirectory>binaries</BuildDirectory>
+	</PropertyGroup>
+	<ItemGroup>
+		<EntropySource Include="sources\Entropy.cs" />
+		<PolynomialSource Include="sources\Polynomial.cs" />
+		<PolynomialFSource Include="sources\PolynomialF.cs" />
+		<CpuInfoSource Include="sources\CpuInfo.cs" />
+		<CpuCyclesSource Include="sources\CpuCycles.cs" />
+	</ItemGroup>
+	<ItemGroup> 
+		<YepppReference Include="$(YEPROOT)\binaries\clr-2.0\yeppp-clr.dll" />
+	</ItemGroup> 
+	<Target Name="CreateBuildDirectory">
+		<MakeDir Directories="$(BuildDirectory)" />
+	</Target>
+	<Target Name="CopyYepppAssembly">
+		<Copy SourceFiles="$(YEPROOT)\binaries\clr-2.0\yeppp-clr.dll"
+			DestinationFolder="$(BuildDirectory)" />
+	</Target>
+	<Target Name="Entropy" DependsOnTargets="CreateBuildDirectory;CopyYepppAssembly">
+		<Csc Sources="@(EntropySource)"
+			TargetType="exe"
+			OutputAssembly="$(BuildDirectory)\Entropy.exe"
+			References="@(YepppReference)"
+			NoLogo="true"
+			AllowUnsafeBlocks="true"
+			Optimize="true" />
+	</Target>
+	<Target Name="Polynomial" DependsOnTargets="CreateBuildDirectory;CopyYepppAssembly">
+		<Csc Sources="@(PolynomialSource)"
+			TargetType="exe"
+			OutputAssembly="$(BuildDirectory)\Polynomial.exe"
+			References="@(YepppReference)"
+			NoLogo="true"
+			AllowUnsafeBlocks="true"
+			Optimize="true" />
+	</Target>
+	<Target Name="PolynomialF" DependsOnTargets="CreateBuildDirectory;CopyYepppAssembly">
+		<Csc Sources="@(PolynomialFSource)"
+			TargetType="exe"
+			OutputAssembly="$(BuildDirectory)\PolynomialF.exe"
+			References="@(YepppReference)"
+			NoLogo="true"
+			AllowUnsafeBlocks="true"
+			Optimize="true" />
+	</Target>
+	<Target Name="CpuInfo" DependsOnTargets="CreateBuildDirectory;CopyYepppAssembly">
+		<Csc Sources="@(CpuInfoSource)"
+			TargetType="exe"
+			OutputAssembly="$(BuildDirectory)\CpuInfo.exe"
+			References="@(YepppReference)"
+			NoLogo="true"
+			AllowUnsafeBlocks="true"
+			Optimize="true" />
+	</Target>
+	<Target Name="CpuCycles" DependsOnTargets="CreateBuildDirectory;CopyYepppAssembly">
+		<Csc Sources="@(CpuCyclesSource)"
+			TargetType="exe"
+			OutputAssembly="$(BuildDirectory)\CpuCycles.exe"
+			References="@(YepppReference)"
+			NoLogo="true"
+			AllowUnsafeBlocks="true"
+			Optimize="true" />
+	</Target>
+	<Target Name="Clean" >
+		<RemoveDir Directories="$(BuildDirectory)" />
+	</Target>
+	<Target Name="Rebuild" DependsOnTargets="Clean;Build" />
+	<Target Name="Build" DependsOnTargets="Entropy;Polynomial;PolynomialF;CpuInfo;CpuCycles" />
+</Project>

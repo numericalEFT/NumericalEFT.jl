@@ -1,0 +1,6 @@
+The list is formatted to allow easy grepping and parsing by scripts.
+The fields are: name (N), email (E), web-address (W), description (D).
+
+N: Marat Dukhan
+W: http://www.cc.gatech.edu/grads/m/mdukhan3/
+D: The primary author of Yeppp! library runtime infrastructure

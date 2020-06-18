@@ -1,0 +1,43 @@
+Copyright (C) 2010-2013 by the contributors listed in CREDITS.TXT
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished
+to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+Third-Party Software Licenses
+
+This software uses some parts of LLVM compiler-rt library. These parts
+are dual-licensed with University of Illinois/NCSA Open Source License
+and MIT License. Details on license are provided on the top of those files:
+
+	runtime/sources/arm/aeabi_dadd.c
+	runtime/sources/arm/aeabi_dsub.c
+	runtime/sources/arm/aeabi_dmul.c
+	runtime/sources/arm/aeabi_fadd.c
+	runtime/sources/arm/aeabi_fsub.c
+	runtime/sources/arm/fp_lib.h
+	runtime/sources/arm/int_endianness.h
+	runtime/sources/arm/int_lib.h
+	runtime/sources/arm/int_types.h
+	runtime/sources/arm/int_util.h
+	runtime/sources/mips/floatdidf.c
+	runtime/sources/mips/udivdi3.c
+	runtime/sources/mips/int_endianness.h
+	runtime/sources/mips/int_lib.h
+	runtime/sources/mips/int_types.h
+	runtime/sources/mips/int_util.h

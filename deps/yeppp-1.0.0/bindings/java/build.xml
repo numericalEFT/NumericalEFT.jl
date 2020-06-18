@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<project name="yeppp" default="package">
+	<target name="clean" description="Delete all class and jar files">
+		<delete dir="binaries/java-1.5" />
+	</target>
+	<target name="build" description="Build yeppp.jar from Java source files">
+		<mkdir dir="binaries" />
+		<mkdir dir="binaries/java-1.5" />
+		<javac srcdir="sources-java" classpath="sources-java" destdir="binaries/java-1.5" target="1.5" includeAntRuntime="false" />
+		<jar destfile="binaries/java-1.5/yeppp.jar" level="9">
+			<fileset dir="binaries/java-1.5" includes="**/*.class" />
+		</jar>
+		<jar destfile="binaries/java-1.5/yeppp-bundle.jar" level="9">
+			<fileset dir="binaries/java-1.5" includes="**/*.class" />
+			<fileset dir="../../binaries" includes="windows/x86/yeppp.dll" />
+			<fileset dir="../../binaries" includes="windows/amd64/yeppp.dll" />
+			<fileset dir="../../binaries" includes="macosx/x86/libyeppp.dylib" />
+			<fileset dir="../../binaries" includes="macosx/x86_64/libyeppp.dylib" />
+			<fileset dir="../../binaries" includes="linux/i586/libyeppp.so" />
+			<fileset dir="../../binaries" includes="linux/x86_64/libyeppp.so" />
+			<fileset dir="../../binaries" includes="linux/armel/libyeppp.so" />
+			<fileset dir="../../binaries" includes="linux/armhf/libyeppp.so" />
+		</jar>
+	</target>
+	<target name="rebuild" description="Recompile all source files and build yeppp.jar" depends="clean,build" />
+	<target name="package" description="Rebuild yeppp.jar and copy it to the binaries directory" depends="rebuild" >
+		<copy file="binaries/java-1.5/yeppp.jar" todir="../../binaries/java-1.5" />
+		<copy file="binaries/java-1.5/yeppp-bundle.jar" todir="../../binaries/java-1.5" />
+	</target>
+</project>

@@ -1,0 +1,8 @@
+yepCore_*
+yepMath_*
+yepAtomic_*
+yepRandom_*
+yepLibrary_*
+JNI_OnLoad
+JNI_OnUnload
+Java_info_yeppp_*

@@ -1,0 +1,145 @@
+/**
+
+@mainpage Yeppp! library documentation for Java programmers
+
+@section Introduction	Introduction
+
+Yeppp! is a high-performance SIMD-optimized mathematical library for x86, ARM, and MIPS processors on Windows, Android, Mac OS X, and GNU/Linux systems.
+Yeppp! functions are presented in several versions with optimizations for different processor microarchitectures.
+During initialization @Yeppp library detects the processor it is running on, and chooses the optimal function implementations.
+
+Additionally, the library provides information about the CPU, such as processor vendor and microarchitecture,
+and an OS- and hardware-independent interface to processor cycle counters, and high-resolution timers.
+
+@section FileStructure	File structure
+
+Releases of @Yeppp library contain the following files relevant to Java programming:
+
+<table>
+	<tr><th>Location</th><th>Description</th></tr>
+	<tr><td>binaries/java-1.5/yeppp.jar</td><td>Pre-built JAR archive with Java bindings for @Yeppp (Java classes only). With this JAR you may write @Yeppp powered applications for all supported platforms. You will also need some of the platform-specific @Yeppp binaries to run your application.</td></tr>
+	<tr><td>binaries/java-1.5/yeppp-bundle.jar</td><td>Pre-built JAR archive with Java bindings for @Yeppp (Java classes and platform-specific binaries for Windows, Linux, and Mac OS X). With this JAR you may write @Yeppp powered applications for all supported platforms except Android. On start-up the Java code in this class will detect the platform it is running on and extract the proper platform-specific binaries (which are packed in this JAR). No additional DLLs/shared objects/shared libraries is needed when you use this JAR.</td></tr>
+	<tr><td>binaries/windows/amd64/</td><td>Pre-built @Yeppp DLL and debug information files for x64 (64-bit) Windows</td></tr>
+	<tr><td>binaries/windows/x86/</td><td>Pre-built @Yeppp DLL and debug information files for x86 (32-bit) Windows</td></tr>
+	<tr><td>binaries/android/armeabi/</td><td>Pre-built @Yeppp shared object and debug symbols for Android ("armeabi" ABI)</td></tr>
+	<tr><td>binaries/android/armeabi-v7a/</td><td>Pre-built @Yeppp shared object and debug symbols for Android ("armeabi-v7a" ABI)</td></tr>
+	<tr><td>binaries/android/x86/</td><td>Pre-built @Yeppp shared object and debug symbols for Android ("x86" ABI)</td></tr>
+	<tr><td>binaries/android/mips/</td><td>Pre-built @Yeppp shared object and debug symbols for Android ("mips" ABI)</td></tr>
+	<tr><td>binaries/linux/i586/</td><td>Pre-built @Yeppp shared object and debug symbols for GNU/Linux on x86 architecture</td></tr>
+	<tr><td>binaries/linux/x86_64/</td><td>Pre-built @Yeppp shared object and debug symbols for GNU/Linux on x86-64 (aka AMD64, x64, or Intel64) architecture</td></tr>
+	<tr><td>binaries/linux/armel/</td><td>Pre-built @Yeppp shared object and debug symbols for GNU/Linux on ARM architecture with armel ABI (ARM EABI Little-Endian Soft-Float)</td></tr>
+	<tr><td>binaries/linux/armhf/</td><td>Pre-built @Yeppp shared object and debug symbols for GNU/Linux on ARM architecture with armhf ABI (ARM EABI Little-Endian Hard-Float)</td></tr>
+	<tr><td>binaries/macosx/x86/</td><td>Pre-built @Yeppp dynamic library and debug symbols for Mac OS X on x86 architecture</td></tr>
+	<tr><td>binaries/macosx/x86_64/</td><td>Pre-built @Yeppp dynamic library and debug symbols for Mac OS X on x86-64 (aka AMD64, x64, or Intel64) architecture</td></tr>
+	<tr><td>bindings/java/sources-java/</td><td>Source code of @Yeppp binaries for Java (Java classes only)</td></tr>
+	<tr><td>bindings/java/sources-jni/</td><td>Source code of @Yeppp binaries for Java (C/JNI functions only)</td></tr>
+	<tr><td>examples/java/</td><td>Examples of calling @Yeppp functions in Java code</td></tr>
+	<tr><td>docs/java/</td><td>@Yeppp documentation for Java programmers</td></tr>
+	<tr><td>SetVars.cmd</td><td>Windows batch script to setup environment variables for @Yeppp</td></tr>
+	<tr><td>set-vars.sh</td><td>POSIX shell script to setup environemnt variables for @Yeppp. Compatible with bash/dash/ksh/zsh on Linux and Mac OS X.</td></tr>
+</table>
+
+@section GettingStarted	Getting Started
+
+@subsection GettingStartedIDEAJavaSE	Using Yeppp! with IntelliJ IDEA (Java SE applications)
+
+Download the recent release of @Yeppp from <a href="http://www.yeppp.info/downloads.html">the official website</a>.
+
+Open the IDEA project where you want to use @Yeppp. Choose File->Project Structure in the main menu. The Project Structure diallog will appear on the screen.
+
+Select the "Libraries" option group, click on New Project Library ("+") button in the top of the window, and choose "Java". @image html intellij-idea-new-project-library.png
+
+In the "Select Library Files" diallog choose either @c yeppp.jar or @c yeppp-bundle.jar from <tt>binaries/java-1.5/</tt> directory @Yeppp tree. @c yeppp.jar contains only Java classes, so you will have to specify which platform-specific binary of @Yeppp library to use when you run your Java application. @c yeppp-bundle.jar already includes platform-specific binaries for all supported platforms inside the JAR and chooses the right binary on start-up. However, this comes at the cost of larger JAR file and probably higher start-up time. @image html intellij-idea-select-library-files.png
+
+Press OK in the Project Structure diallog to confirm addition of @Yeppp to the project. @image html intellij-idea-project-structure.png
+
+If you decided to use yeppp.jar library (as opposed to yeppp-bundle.jar) you will need to specify platform-specific @Yeppp binaries for use when you run your application. Choose Run->Edit Configurations in the main menu. The Run/Debug Configurations diallog will appear on the screen. In the "VM Options" textbox add <tt>-Djava.library.path=&lt;platform-specific-binaries-directory&gt;</tt> where &lt;platform-specific-binaries-directory&gt; matches the platform of your Java VM (e.g. if you use 32-bit Java VM on 64-bit Windows you will have to specify the path to binaries/windows/x86/ directory in @Yeppp tree). See \ref FileStructure "Yeppp! file structure" for a list of platform-specific binaries directories. @image html intellij-idea-run-configurations.png
+
+Now you are ready to use @Yeppp
+
+@subsection GettingStartedIDEAAndroid	Using Yeppp! with IntelliJ IDEA (Android applications)
+
+Download the recent release of @Yeppp from <a href="http://www.yeppp.info/downloads.html">the official website</a>.
+
+Open the IDEA project where you want to use @Yeppp. Choose File->Project Structure in the main menu. The Project Structure diallog will appear on the screen.
+
+Select the "Libraries" option group, click on New Project Library ("+") button in the top of the window, and choose "Java". @image html intellij-idea-new-project-library.png
+
+In the "Select Library Files" diallog choose either @c yeppp.jar from <tt>binaries/java-1.5/</tt> directory @Yeppp tree. @image html intellij-idea-select-library-files.png
+
+Select the "Facets" option group, and click on Android facet for your project. In the "Native libs directory" specify the full path to the <tt>binaries/android/</tt> directory in @Yeppp tree. Press OK in the Project Structure diallog to confirm changes to Project Structure. @image html intellij-idea-project-structure-facets-android.png
+
+Now you are ready to use @Yeppp
+
+@subsection GettingStartedEclipseJavaSE	Using Yeppp! with Eclipse (Java SE applications)
+
+Download the recent release of @Yeppp from <a href="http://www.yeppp.info/downloads.html">the official website</a>.
+
+Open the Eclipse project where you want to use @Yeppp. Choose Project->Properties in the main menu. In the project properties diallog select the "Java Build Path" option group, and switch "Libraries" tab. Click on "Add External JARs" button and specify the path to either @c yeppp.jar or @c yeppp-bundle.jar from <tt>binaries/java-1.5/</tt> directory @Yeppp tree. @c yeppp.jar contains only Java classes, so you will have to specify which platform-specific binary of @Yeppp library to use when you run your Java application. @c yeppp-bundle.jar already includes platform-specific binaries for all supported platforms inside the JAR and chooses the right binary on start-up. However, this comes at the cost of larger JAR file and probably higher start-up time. If you choose to use @c yeppp.jar also specify the path to platform-specific @Yeppp binaries in "Native library location". You should specify the path to platform-specific binaries for the platform of your Java VM (e.g. if you use 32-bit Java VM on 64-bit Windows you will have to specify the path to binaries/windows/x86/ directory in @Yeppp tree). See \ref FileStructure "Yeppp! file structure" for a list of platform-specific binaries directories.@image html eclipse-project-properties.png
+
+Now you are ready to use @Yeppp
+
+@subsection GettingStartedUnixJavaSE	Using Yeppp! with command-line tools on Unix (Java SE applications)
+
+Download the recent release of @Yeppp from <a href="http://www.yeppp.info/downloads.html">the official website</a>.
+
+Open a terminal window where you plan to build your project. With @Yeppp we provide a shell script to set up environment variables. Navigate to @Yeppp directory and execute command
+\code{.bash}
+source set-vars.sh <arch>
+\endcode
+If your shell does not support \c source command, use the equivalent command
+\code{.bash}
+. ./set-vars.sh <arch>
+\endcode
+<tt>&lt;arch&gt;</tt> should specify the architecture/ABI of your Java VM. The following values are accepted:
+<ul>
+	<li>\c x86 to set variables for x86 (32-bit x86) JVM</li>
+	<li>\c x86_64 to set variables for x86-64 (64-bit x86) JVM</li>
+	<li>\c armel to set variables for ARM Soft-Float EABI JVM (Linux only)</li>
+	<li>\c armhf to set variables for ARM Hard-Float EABI JVM (Linux only)</li>
+</ul>
+You can also omit the &lt;arch&gt; parameter. This case the setup script will setup the environment according to your operating system architecture.
+
+The set-vars.sh script adds the @Yeppp java bindings library @c yeppp.jar to CLASSPATH. It also sets environment variables to let the dynamic linker find @Yeppp when you execute a program which makes use of this library. Additionally, the script sets environment variable $YEPROOT to contain the path to @Yeppp installation directory, and $YEPBINARIES variable to contain the path to platform-specific @Yeppp binaries. You may use this variable to specify the search path for native library when running a @Yeppp powered Java application with JVM parameter <tt>-Djava.library.path=$YEPBINARIES</tt>.
+
+Alternatively, you may use the JAR file @c yeppp-bundle.jar from <tt>$YEPROOT/binaries/java-1.5/</tt> directory. yeppp-bundle.jar already includes platform-specific binaries for all supported platforms inside the JAR and chooses the right binary on start-up. However, this comes at the cost of larger JAR file and probably higher start-up time. 
+
+Now you are ready to use @Yeppp
+
+@subsection GettingStartedWindowsJavaSE	Using Yeppp! with command-line tools on Windows (Java SE applications)
+
+Download the recent release of @Yeppp from <a href="http://www.yeppp.info/downloads.html">the official website</a>. On Windows we recommend that you use the MSI installer for Yeppp! SDK. The installer will install the library components, and also set YEPROOT environment variable.
+
+Open a command prompt window where you plan to build your project. With @Yeppp we provide a batch script to set up environment variables. In the Command Prompt window execute the command
+\code{.batch}
+"%YEPROOT%\SetVars.bat" <arch>
+\endcode
+where <tt>&lt;arch&gt;</tt> should specify the architecture/ABI of your Java VM. The following values are accepted:
+<ul>
+	<li>\c x86 to set variables for x86 (32-bit x86) JVM</li>
+	<li>\c x64 to set variables for x86-64 (64-bit x86 aka AMD64 aka x64) JVM</li>
+</ul>
+You can also omit the &lt;arch&gt; parameter. This case the setup script will setup the environment according to your operating system architecture.
+
+The set-vars.sh script adds the @Yeppp java bindings library @c yeppp.jar to CLASSPATH. It also sets environment variables to let the operating system find @Yeppp when you execute a program which makes use of this library. Additionally, the script sets environment variable %YEPROOT% to contain the path to @Yeppp installation directory, and %YEPBINARIES% variable to contain the path to platform-specific @Yeppp binaries. You may use this variable to specify the search path for native library when running a @Yeppp powered Java application with JVM parameter <tt>-Djava.library.path=%YEPBINARIES%</tt>.
+
+Alternatively, you may use the JAR file @c yeppp-bundle.jar from <tt>%YEPROOT%/binaries/java-1.5/</tt> directory. yeppp-bundle.jar already includes platform-specific binaries for all supported platforms inside the JAR and chooses the right binary on start-up. However, this comes at the cost of larger JAR file and probably higher start-up time. 
+
+Now you are ready to use @Yeppp
+
+@example Entropy.java
+This example shows how to use @Yeppp library to compute the entropy of a distribution given by its probabilities:
+
+@example Polynomial.java
+This example demonstrates the use of @Yeppp library to evaluate a polynomial on an array:
+
+@example CpuInfo.java
+This example shows how to use @Yeppp library to get information about processor and supported instruction extensions:
+
+@example SystemTimer.java
+This example shows how to use @Yeppp library to do cross-platform measurements of execution time using high-frequency system timer:
+
+@example CpuCycles.java
+This example shows how to use @Yeppp library to measure the execution time in CPU cycles:
+
+*/

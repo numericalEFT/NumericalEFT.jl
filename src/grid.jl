@@ -149,7 +149,7 @@ Base.firstindex(grid::Uniform) = 1
 Base.lastindex(grid::Uniform) = grid.size
 
 
-@inline function tau(β, halfLife, size, type = Float64)
+@inline function tau(β, halfLife, size::Int, type = Float64)
     size = Int(size)
     c1 = Grid.Coeff{type}([0.0, 0.5β], [1.0, 0.5size + 0.5], 1.0 / halfLife, true)
     r1 = 1:Int(0.5size)
@@ -160,7 +160,7 @@ Base.lastindex(grid::Uniform) = grid.size
     return tau
 end
 
-@inline function fermiK(Kf, maxK, halfLife, size, kFi = floor(Int, 0.5size), type = Float64)
+@inline function fermiK(Kf, maxK, halfLife, size::Int, kFi = floor(Int, 0.5size), type = Float64)
     size = Int(size)
     c1 = Grid.Coeff{type}([0.0, Kf], [1.0, kFi], 1.0 / halfLife, false)
     r1 = 1:kFi
@@ -175,7 +175,7 @@ end
     Kf,
     maxK,
     halfLife,
-    size,
+    size::Int,
     kFi = floor(Int, size / 3),
     twokFi = floor(Int, 2size / 3),
     type = Float64,

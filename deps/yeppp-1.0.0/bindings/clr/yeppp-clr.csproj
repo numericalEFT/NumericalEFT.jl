@@ -1,0 +1,35 @@
+<Project DefaultTargets="Package" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+		<BuildDirectory>binaries</BuildDirectory>
+	</PropertyGroup>
+	<ItemGroup>
+		<CSFile Include="sources-csharp\core\*.cs" />
+		<CSFile Include="sources-csharp\math\*.cs" />
+		<CSFile Include="sources-csharp\library\*.cs" />
+	</ItemGroup>
+	<Target Name="CompileResources" Inputs="sources-csharp/Version.rc" Outputs="$(BuildDirectory)\Version.res">
+		<Exec Command="rc.exe /I../../library/headers /Fobinaries/Version.res sources-csharp/Version.rc" />
+	</Target>
+	<Target Name="Build" DependsOnTargets="CompileResources">
+		<Csc Sources="@(CSFile)"
+			Win32Resource="$(BuildDirectory)\Version.res"
+			TargetType="library"
+			OutputAssembly="$(BuildDirectory)\$(MSBuildProjectName).dll"
+			DocumentationFile="$(BuildDirectory)\$(MSBuildProjectName).xml"
+			NoLogo="true"
+			AllowUnsafeBlocks="true"
+			Optimize="true" />
+		<Exec Command="InjectModuleInitializer.exe /moduleinitializer:Yeppp.Library::Init $(BuildDirectory)\$(MSBuildProjectName).dll" />
+	</Target>
+	<Target Name="Clean" >
+		<Delete Files="$(BuildDirectory)\Version.res;$(BuildDirectory)\$(MSBuildProjectName).dll" />
+	</Target>
+	<Target Name="Rebuild" DependsOnTargets="Clean;Build" />
+	<Target Name="Package" DependsOnTargets="Rebuild">
+		<Copy SourceFiles="$(BuildDirectory)\$(MSBuildProjectName).dll"
+			DestinationFolder="..\..\binaries\clr-2.0\" />
+		<Copy SourceFiles="$(BuildDirectory)\$(MSBuildProjectName).xml"
+			DestinationFolder="..\..\binaries\clr-2.0\" />
+	</Target>
+</Project>
