@@ -1,3 +1,6 @@
+"""
+Provide a set of fast math functions
+"""
 module FastMath
 export dot, squaredNorm, norm
 
@@ -8,7 +11,12 @@ using .Yeppp
 @inline squaredNorm(x)=Yeppp.dot(x, x)
 @inline norm(x)=sqrt(Yeppp.dot(x, x))
 
-#The Legendary Fast Inverse Square Root
+"""
+    invsqrt(x)
+
+The Legendary Fast Inverse Square Root
+See this link: https://en.wikipedia.org/wiki/Fast_inverse_square_root and https://cs.uwaterloo.ca/~m32rober/rsqrt.pdf
+"""
 @inline function invsqrt(x::Float64)
     #   y = x
       x2::Float64 = x * 0.5

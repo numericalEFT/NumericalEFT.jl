@@ -1,3 +1,6 @@
+"""
+Provide N-body response and correlation functions
+"""
 module Green
     export bareFermi
 
