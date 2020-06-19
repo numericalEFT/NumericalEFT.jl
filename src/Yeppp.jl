@@ -251,11 +251,12 @@ tan!(x) = tan!(x, x)
 #################### Add By Kun Chen 06.17.2020
 
 """
-    dot(x::MVector{N, Float64}, y::MVector{N, Float64})
+    dot(x, y)
 
-Compute the dot product of x and y.
+Compute the dot product of x and y, which are two vectors with the same dimension.
 """
-function dot(x::MVector{N, Float64}, y::MVector{N, Float64}) where{N}
+function dot(x::AbstractVector{T}, y::AbstractVector{T}) where{T<:AbstractFloat}
+    N=length(x)
     @assert(N == length(y))
     dotproduct = Ref{Float64}()
     status = ccall( (:yepCore_DotProduct_V64fV64f_S64f, libyeppp), Cint, (Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Culong), x, y, dotproduct, N)
@@ -263,16 +264,4 @@ function dot(x::MVector{N, Float64}, y::MVector{N, Float64}) where{N}
     dotproduct[]
 end
 
-"""
-    dot(x::MVector{N, Float32}, y::MVector{N, Float32})
-
-Compute the dot product of x and y.
-"""
-function dot(x::MVector{N, Float32}, y::MVector{N, Float32}) where{N}
-    @assert(N == length(y))
-    dotproduct = Ref{Float32}()
-    status = ccall( (:yepCore_DotProduct_V32fV32f_S64f, libyeppp), Cint, (Ptr{Float32}, Ptr{Float32}, Ptr{Float32}, Culong), x, y, dotproduct, N)
-    status != 0 && error("yepCore_DotProduct_V32fV32f_S32f: error: ", status)
-    dotproduct[]
-end
 end # module

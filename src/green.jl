@@ -3,6 +3,8 @@ Provide N-body response and correlation functions
 """
 module Green
     export bareFermi
+    include("fastmath.jl")
+    using .FastMath
 
 """
     bareFermi(β, τ, ε, [, scale])
@@ -36,5 +38,12 @@ g(τ>0) = e^{-ετ}/(1+e^{-βε}), g(τ≤0) = -e^{-ετ}/(1+e^{βε})
         G *= exp(x * (1 - y))
     end
     return G
+end
+
+"""
+calcualte with a given momentum vector and the chemical potential μ, rotation symmetry is assumed.
+"""
+@inline function bareFermi(β::T, τ::T, k::AbstractVector{T}, μ::T) where {T<:AbstractFloat}
+    return bareFermi(β, τ, FastMath.squaredNorm(k)-μ)
 end
 end
