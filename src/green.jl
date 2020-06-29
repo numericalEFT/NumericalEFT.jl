@@ -55,7 +55,7 @@ Compute the bare Green's function for a given Matsubara frequency.
 ```math
 g(τ>0) = -1/(iω_n-ε),
 ```
-where ``ω_n=(2n+1)π/β". The convention here is consist with the book ``Quantum Many-particle Systems" by J. Negele and H. Orland, Page 95
+where ``ω_n=(2n+1)π/β``. The convention here is consist with the book "Quantum Many-particle Systems" by J. Negele and H. Orland, Page 95
 
 # Arguments
 - `β`: the inverse temperature 
@@ -64,8 +64,9 @@ where ``ω_n=(2n+1)π/β". The convention here is consist with the book ``Quantu
        it could also be the real frequency ω if the bare Green's function is used as the kernel in the Lehmann representation 
 """
 @inline function bareFermiMatsubara(β::T, n::Int, ε::T) where {T<:AbstractFloat}
-    ω_n::T=(2*n+1)*π/β
-    G=-1.0/(ω_n*im-ε)
+    #fermionic Matsurbara frequency
+    ω_n = (2*n+1)*π/β 
+    G = -1.0/(ω_n*im-ε)
     return T(G)
 end
 
