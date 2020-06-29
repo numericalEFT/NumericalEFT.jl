@@ -114,6 +114,22 @@ Base.getindex(grid::Log, i) = grid.grid[i]
 Base.firstindex(grid::Log) = 1
 Base.lastindex(grid::Log) = grid.size
 
+"""
+    Uniform{Type,SIZE}
+
+Create a uniform Grid with a given type and size
+
+#Member:
+- `β`: inverse temperature
+- halfLife: the grid is densest in the range (0, halfLife) and (β-halfLife, β)
+- size: the Grid size
+- grid: vector stores the grid
+- size: size of the grid vector
+- head: grid head
+- tail: grid tail
+- δ: distance between two grid elements
+- isopen: if isopen[1]==true, then grid[1] will be slightly larger than the grid head. Same for the tail.
+"""
 struct Uniform{T,SIZE}
     grid::SVector{SIZE,T}
     size::Int
@@ -122,6 +138,16 @@ struct Uniform{T,SIZE}
     δ::T
     isopen::SVector{2,Bool}
 
+"""
+    Uniform{Type,SIZE}(head, tail, isopen)
+
+Create a uniform Grid with a given type and size
+
+#Arguments:
+ - head: the starting point of the grid
+ - tail: the end of the grid
+ - isopen: if isopen[1]==true, then grid[1]=head+eps; If isopen[2]==true, then grid[2]=tail-eps. Otherwise, grid[1]==head / grid[2]==tail
+"""
     function Uniform{T,SIZE}(head, tail, isopen) where {T<:AbstractFloat,SIZE}
         @assert SIZE > 1 "Size must be large than 1"
         grid = Array(LinRange(T(head), T(tail), SIZE))
@@ -149,6 +175,16 @@ Base.firstindex(grid::Uniform) = 1
 Base.lastindex(grid::Uniform) = grid.size
 
 
+"""
+    tau(β, halfLife, size::Int, type = Float64)
+
+Create a logarithmic Grid for the imaginary time, which is densest near the 0 and β
+
+#Arguments:
+- `β`: inverse temperature
+- halfLife: the grid is densest in the range (0, halfLife) and (β-halfLife, β)
+- size: the Grid size
+"""
 @inline function tau(β, halfLife, size::Int, type = Float64)
     size = Int(size)
     c1 = Grid.Coeff{type}([0.0, 0.5β], [1.0, 0.5size + 0.5], 1.0 / halfLife, true)
@@ -160,6 +196,18 @@ Base.lastindex(grid::Uniform) = grid.size
     return tau
 end
 
+"""
+    fermiK(Kf, maxK, halfLife, size::Int, kFi = floor(Int, 0.5size), type = Float64)
+
+Create a logarithmic fermionic K Grid, which is densest near the Fermi momentum ``k_F``
+
+#Arguments:
+- Kf: Fermi momentum
+- maxK: the upper bound of the grid
+- halfLife: the grid is densest in the range (Kf-halfLife, Kf+halfLife)
+- size: the Grid size
+- kFi: index of Kf
+"""
 @inline function fermiK(Kf, maxK, halfLife, size::Int, kFi = floor(Int, 0.5size), type = Float64)
     size = Int(size)
     c1 = Grid.Coeff{type}([0.0, Kf], [1.0, kFi], 1.0 / halfLife, false)
@@ -171,6 +219,19 @@ end
     return K
 end
 
+"""
+    boseK(Kf, maxK, halfLife, size::Int, kFi = floor(Int, 0.5size), twokFi = floor(Int, 2size / 3), type = Float64)
+
+Create a logarithmic bosonic K Grid, which is densest near the momentum `0` and `2k_F`
+
+#Arguments:
+- Kf: Fermi momentum
+- maxK: the upper bound of the grid
+- halfLife: the grid is densest in the range (0, Kf+halfLife) and (2Kf-halfLife, 2Kf+halfLife)
+- size: the Grid size
+- kFi: index of Kf
+- twokFi: index of 2Kf
+"""
 @inline function boseK(
     Kf,
     maxK,
