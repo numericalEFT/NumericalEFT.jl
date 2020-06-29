@@ -119,7 +119,7 @@ Base.lastindex(grid::Log) = grid.size
 
 Create a uniform Grid with a given type and size
 
-#Member:
+# Member:
 - `β`: inverse temperature
 - halfLife: the grid is densest in the range (0, halfLife) and (β-halfLife, β)
 - size: the Grid size
@@ -143,7 +143,7 @@ struct Uniform{T,SIZE}
 
 Create a uniform Grid with a given type and size
 
-#Arguments:
+# Arguments:
  - head: the starting point of the grid
  - tail: the end of the grid
  - isopen: if isopen[1]==true, then grid[1]=head+eps; If isopen[2]==true, then grid[2]=tail-eps. Otherwise, grid[1]==head / grid[2]==tail
