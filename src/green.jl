@@ -53,7 +53,7 @@ end
 
 Compute the bare Green's function for a given Matsubara frequency.
 ```math
-g(τ>0) = -1/(iω_n-ε),
+g(iω_n) = -1/(iω_n-ε),
 ```
 where ``ω_n=(2n+1)π/β``. The convention here is consist with the book "Quantum Many-particle Systems" by J. Negele and H. Orland, Page 95
 
