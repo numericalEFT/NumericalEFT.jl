@@ -28,7 +28,7 @@ julia> import Pkg; Pkg.add("https://github.com/kunyuan/QuantumStatistics.jl")
 
 The package is in development stage. Many components are missing. For now, we have implemented the following utilities:
 
-- Fermionic Green's function in both the imaginary-time and Matsubara frequency.
+- Fermionic Green's function in both the imaginary-time and Matsubara frequency representations.
 - One-dimensional basis for the correlation functions in the imaginary-time, and fermionic/bosonic momentum.
 - Fast elementary math functions. Some of them are adapted from the package [Yeppp.jl](https://github.com/JuliaMath/Yeppp.jl). It supports more generic array types than the original package.
 
