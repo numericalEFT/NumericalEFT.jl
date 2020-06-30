@@ -1,6 +1,6 @@
 # Package QuantumStatistics
 
-A package for numerical experiment in quantum statistics.
+A platform for numerical experiments on quantum statistics.
 
 | Status | Coverage | Document
 | :----: | :----: | :----: |
