@@ -13,11 +13,12 @@ From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 ```
 pkg> add https://github.com/kunyuan/QuantumStatistics.jl
 ```
-
+<!-- 
 Or, equivalently, via the `Pkg` API:
 ```julia
 julia> import Pkg; Pkg.add("https://github.com/kunyuan/QuantumStatistics.jl")
-```
+``` 
+-->
 
 ## Documentation
 <!-- - [**STABLE**][docs-stable-url] &mdash; **documentation of the most recently tagged version.** -->
