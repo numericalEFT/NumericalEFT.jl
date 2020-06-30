@@ -2,22 +2,12 @@
 
 A platform for numerical experiments on quantum statistics.
 
-## Manual Outline
+## Outline
 ```@contents
 Pages = [
-    "green.md",
+    "lib/green.md",
+    "lib/grid.md",
+    "lib/fastmath.md",
 ]
 Depth = 1
-```
-
-```@autodocs
-Modules = [QuantumStatistics.Grid]
-```
-
-```@autodocs
-Modules = [QuantumStatistics.FastMath]
-```
-
-```@autodocs
-Modules = [QuantumStatistics.Yeppp]
 ```
