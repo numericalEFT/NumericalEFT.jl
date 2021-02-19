@@ -1,5 +1,11 @@
 # This file is machine-generated - editing it directly is not advised
 
+[[Artifacts]]
+deps = ["Pkg"]
+git-tree-sha1 = "c30985d8821e0cd73870b17b0ed0ce6dc44cb744"
+uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+version = "1.3.0"
+
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
@@ -8,6 +14,18 @@ deps = ["Libdl", "Pkg", "SHA", "URIParser", "Unicode"]
 git-tree-sha1 = "46cf2c1668ad07aba5a9d331bdeea994a1f13856"
 uuid = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
 version = "1.0.1"
+
+[[Cuba]]
+deps = ["Cuba_jll", "LinearAlgebra"]
+git-tree-sha1 = "8fb163273547563ee7a0906b880b721646bf0f86"
+uuid = "8a292aeb-7a57-582c-b821-06e4c11590b1"
+version = "2.2.0"
+
+[[Cuba_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "50beb435c4a92a6a60c4fc62710520f47ce5770c"
+uuid = "3bed1096-5ab2-53a1-92e2-6c1cc31d0f4b"
+version = "4.2.1+0"
 
 [[Dates]]
 deps = ["Printf"]
@@ -32,6 +50,11 @@ version = "0.24.11"
 [[InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
+[[JLLWrappers]]
+git-tree-sha1 = "a431f5f2ca3f4feef3bd7a5e94b8b8d4f2f647a0"
+uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
+version = "1.2.0"
 
 [[JSON]]
 deps = ["Dates", "Mmap", "Parsers", "Unicode"]
