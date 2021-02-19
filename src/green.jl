@@ -2,7 +2,7 @@
 Provide N-body response and correlation functions
 """
 module Green
-    export bareFermi, bareFermiMatsubara
+    export bareFermi, bareFermiMatsubara, FermiDirac
     include("fastmath.jl")
     using .FastMath
 
