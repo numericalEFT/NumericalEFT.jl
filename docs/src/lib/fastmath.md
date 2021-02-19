@@ -3,7 +3,3 @@
 ```@autodocs
 Modules = [QuantumStatistics.FastMath]
 ```
-
-```@autodocs
-Modules = [QuantumStatistics.Yeppp]
-```
