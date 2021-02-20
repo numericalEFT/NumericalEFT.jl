@@ -1,5 +1,5 @@
 """
-Define diagrams
+Calculator for some simple diagrams
 """
 module Diagram
     include("green.jl")
@@ -7,7 +7,7 @@ module Diagram
     using Cuba
 
 """
-    Polar0(q, n, kF, β=1)
+    Polar0(q, n, kF, β)
 
 Compute the polarization function of free electrons in the Matsubara frequency. Assume ``k_B T=1`` to the energy scale.
 
@@ -17,8 +17,8 @@ Compute the polarization function of free electrons in the Matsubara frequency. 
 - `kF`: the Fermi momentum 
 
 """
-# @inline function Polar0(q::T, n::T, kF::T, β::T, Dim::Int) where {T <: AbstractFloat}
 @inline function Polar0(q, n, kF, β)
+# @inline function Polar0(q::T, n::T, kF::T, β::T, Dim::Int) where {T <: AbstractFloat}
     ω_n = 2 * n * π / β
     kp2(k, θ) = (q + k * cos(θ))^2 + (k * sin(θ))^2
 
