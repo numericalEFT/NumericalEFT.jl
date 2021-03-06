@@ -8,6 +8,7 @@ Pages = [
     "lib/diagram.md",
     "lib/green.md",
     "lib/grid.md",
+    "lib/interpolate.md",
     "lib/fastmath.md",
 ]
 Depth = 1

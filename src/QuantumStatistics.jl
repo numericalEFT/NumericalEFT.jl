@@ -1,5 +1,5 @@
 module QuantumStatistics
-export Green, Grid, FastMath, Diagram
+export Green, Grid, FastMath, Diagram, Interpolate
 import StaticArrays
 # greet() = print("Hello World!")
 include("green.jl")
