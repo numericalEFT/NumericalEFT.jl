@@ -21,14 +21,14 @@ end
 
     # with a shift to the grid element, check if produce the correct floored index
     function check(grid, range, shift, idx_shift)
-        for i in range
-            @test(floor(grid, grid[i] + shift) == i + idx_shift)
+    for i in range
+        @test(floor(grid, grid[i] + shift) == i + idx_shift)
             # if floor(grid, grid[i] + shift) != i + idx_shift
             #     return false
             # end
-        end
-        return true
     end
+    return true
+end
 
     @testset "UniformGrid" begin
         uniform = Grid.Uniform{Float64,4}(0.0, 1.0, (true, true))
@@ -103,22 +103,70 @@ end
 
 end
 
-include("yeppp.jl")
 
-@testset "Fast Math" begin
-    x = 3.0
-    @test FastMath.invsqrt(x) ≈ 1.0 / sqrt(x) rtol = 1.0e-5
-    x = 1.0 / 3.0
-    @test FastMath.invsqrt(x) ≈ 1.0 / sqrt(x) rtol = 1.0e-5
-    x = 3.0f0
-    @test FastMath.invsqrt(x) ≈ 1.0 / sqrt(x) rtol = 1.0e-5
-    x = 1.0f0 / 3.0f0
-    @test FastMath.invsqrt(x) ≈ 1.0 / sqrt(x) rtol = 1.0e-5
+@testset "Interpolate" begin
 
-    using StaticArrays, LinearAlgebra
-    k = MVector{3,Float64}([1.0, 2.0, 3.0])
-    q = MVector{3,Float64}([3.0, 1.0, 4.0])
-    @test FastMath.dot(k, q) ≈ LinearAlgebra.dot(k, q)
-    @test FastMath.norm(k) ≈ LinearAlgebra.norm(k)
-    @test FastMath.squaredNorm(k) ≈ LinearAlgebra.dot(k, k)
+    @testset "Linear2D" begin
+        β, kF, maxK = 10.0, 1.0, 3.0
+        Nt, Nk = 8, 7
+        tgrid = Grid.tau(β, 0.2β, Nt)
+        kgrid = Grid.boseK(kF, maxK, 0.2kF, Nk)
+        # tugrid = Grid.Uniform{Float64,33}(0.0, β, (true, true))
+        # kugrid = Grid.Uniform{Float64,33}(0.0, maxK, (true, true))
+        f(k, t) = k + t
+        data = zeros((Nk, Nt))
+
+        for (ti, t) in enumerate(tgrid.grid)
+        for (ki, k) in enumerate(kgrid.grid)
+            data[ki, ti] = f(k, t)
+        end
+    end
+
+        for ti in 1:tgrid.size - 1
+        for ki in 1:kgrid.size - 1
+            t = tgrid[ti] + 1.e-6
+            k = kgrid[ki] + 1.e-6
+            fbar = Interpolate.linear2D(data, kgrid, tgrid, k, t)
+            @test abs(f(tgrid[ti], kgrid[ki]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            @test f(tgrid[ti], kgrid[ki]) < fbar
+            @test f(tgrid[ti + 1], kgrid[ki]) > fbar
+            @test f(tgrid[ti], kgrid[ki + 1]) > fbar
+            @test f(tgrid[ti + 1], kgrid[ki + 1]) > fbar
+        end
+    end
+
+        for ti in 2:tgrid.size
+        for ki in 2:kgrid.size
+            t = tgrid[ti] - 1.e-6
+            k = kgrid[ki] - 1.e-6
+            fbar = Interpolate.linear2D(data, kgrid, tgrid, k, t)
+            @test abs(f(tgrid[ti], kgrid[ki]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            @test f(tgrid[ti], kgrid[ki]) > fbar
+            @test f(tgrid[ti - 1], kgrid[ki]) < fbar
+            @test f(tgrid[ti], kgrid[ki - 1]) < fbar
+            @test f(tgrid[ti - 1], kgrid[ki - 1]) < fbar
+        end
+    end
+    end
 end
+
+
+# include("yeppp.jl")
+
+# @testset "Fast Math" begin
+#     x = 3.0
+#     @test FastMath.invsqrt(x) ≈ 1.0 / sqrt(x) rtol = 1.0e-5
+#     x = 1.0 / 3.0
+#     @test FastMath.invsqrt(x) ≈ 1.0 / sqrt(x) rtol = 1.0e-5
+#     x = 3.0f0
+#     @test FastMath.invsqrt(x) ≈ 1.0 / sqrt(x) rtol = 1.0e-5
+#     x = 1.0f0 / 3.0f0
+#     @test FastMath.invsqrt(x) ≈ 1.0 / sqrt(x) rtol = 1.0e-5
+
+#     using StaticArrays, LinearAlgebra
+#     k = MVector{3,Float64}([1.0, 2.0, 3.0])
+#     q = MVector{3,Float64}([3.0, 1.0, 4.0])
+#     @test FastMath.dot(k, q) ≈ LinearAlgebra.dot(k, q)
+#     @test FastMath.norm(k) ≈ LinearAlgebra.norm(k)
+#     @test FastMath.squaredNorm(k) ≈ LinearAlgebra.dot(k, k)
+# end
