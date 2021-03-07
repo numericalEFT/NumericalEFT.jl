@@ -2,10 +2,10 @@
 Spectral representation related functions
 """
 module Spectral
-    export fermiKernelT, fermiKernelW, boseKernelT, boseKernelW, fermiDirac
+    export kernelFermiT, kernelFermiW, kernelBoseT, kernelBoseW, fermiDirac
 
 """
-    fermiKernelT(τ, ω)
+    kernelFermiT(τ, ω)
 
 Compute the imaginary-time fermionic kernel. Assume ``k_B T/\\hbar=1``
 ```math
@@ -16,7 +16,7 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
 - `τ`: the imaginary time, must be (-1, 1]
 - `ω`: frequency
 """
-@inline function fermiKernelT(τ::T, ω::T) where {T <: AbstractFloat}
+@inline function kernelFermiT(τ::T, ω::T) where {T <: AbstractFloat}
     (-T(1.0) < τ <= T(1.0)) || error("τ must be (-β, β]")
     if τ == T(0.0)
         τ = -eps(T)

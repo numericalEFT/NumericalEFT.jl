@@ -23,15 +23,15 @@ end
     n(ε) = 1.0 / (1.0 + exp(ε))
     @test Spectral.fermiDirac(ε) ≈ n(ε)
 
-    @test Spectral.fermiKernelT(τ, 0.0) ≈ n(0.0)
-    @test Spectral.fermiKernelT(eps(0.0), ε) ≈ 1.0 - n(ε)
+    @test Spectral.kernelFermiT(τ, 0.0) ≈ n(0.0)
+    @test Spectral.kernelFermiT(eps(0.0), ε) ≈ 1.0 - n(ε)
 
-    @test Spectral.fermiKernelT(0.0, ε) ≈ -n(ε) # τ=0.0 should be treated as the 0⁻
-    @test Spectral.fermiKernelT(-eps(0.0), ε) ≈ -n(ε)
+    @test Spectral.kernelFermiT(0.0, ε) ≈ -n(ε) # τ=0.0 should be treated as the 0⁻
+    @test Spectral.kernelFermiT(-eps(0.0), ε) ≈ -n(ε)
 
-    @test Spectral.fermiKernelT(-τ, ε) ≈ -Spectral.fermiKernelT(1 - τ, ε)
-    @test Spectral.fermiKernelT(-eps(0.0), 1000.0) ≈ 0.0
-    @test Spectral.fermiKernelT(-eps(0.0), -1000.0) ≈ -1.0
+    @test Spectral.kernelFermiT(-τ, ε) ≈ -Spectral.kernelFermiT(1 - τ, ε)
+    @test Spectral.kernelFermiT(-eps(0.0), 1000.0) ≈ 0.0
+    @test Spectral.kernelFermiT(-eps(0.0), -1000.0) ≈ -1.0
 end
 
 @testset "Grids" begin
