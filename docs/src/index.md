@@ -6,6 +6,7 @@ A platform for numerical experiments on quantum statistics.
 ```@contents
 Pages = [
     "lib/diagram.md",
+    "lib/spectral.md",
     "lib/green.md",
     "lib/grid.md",
     "lib/interpolate.md",
