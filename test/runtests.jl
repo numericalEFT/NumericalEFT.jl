@@ -130,7 +130,7 @@ end
         kgrid = Grid.boseK(kF, maxK, 0.2kF, Nk)
         # tugrid = Grid.Uniform{Float64,33}(0.0, β, (true, true))
         # kugrid = Grid.Uniform{Float64,33}(0.0, maxK, (true, true))
-        f(k, t) = k + t
+        f(k, t) = k + t * 1.1
         data = zeros((Nk, Nt))
 
         for (ti, t) in enumerate(tgrid.grid)
@@ -144,11 +144,11 @@ end
             t = tgrid[ti] + 1.e-6
             k = kgrid[ki] + 1.e-6
             fbar = Interpolate.linear2D(data, kgrid, tgrid, k, t)
-            @test abs(f(tgrid[ti], kgrid[ki]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
-            @test f(tgrid[ti], kgrid[ki]) < fbar
-            @test f(tgrid[ti + 1], kgrid[ki]) > fbar
-            @test f(tgrid[ti], kgrid[ki + 1]) > fbar
-            @test f(tgrid[ti + 1], kgrid[ki + 1]) > fbar
+            @test abs(f(kgrid[ki], tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            @test f(kgrid[ki], tgrid[ti]) < fbar
+            @test f(kgrid[ki], tgrid[ti + 1]) > fbar
+            @test f(kgrid[ki + 1], tgrid[ti]) > fbar
+            @test f(kgrid[ki + 1], tgrid[ti + 1]) > fbar
         end
     end
 
@@ -157,11 +157,23 @@ end
             t = tgrid[ti] - 1.e-6
             k = kgrid[ki] - 1.e-6
             fbar = Interpolate.linear2D(data, kgrid, tgrid, k, t)
-            @test abs(f(tgrid[ti], kgrid[ki]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
-            @test f(tgrid[ti], kgrid[ki]) > fbar
-            @test f(tgrid[ti - 1], kgrid[ki]) < fbar
-            @test f(tgrid[ti], kgrid[ki - 1]) < fbar
-            @test f(tgrid[ti - 1], kgrid[ki - 1]) < fbar
+            @test abs(f(kgrid[ki], tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            @test f(kgrid[ki], tgrid[ti]) > fbar
+            @test f(kgrid[ki], tgrid[ti - 1]) < fbar
+            @test f(kgrid[ki - 1], tgrid[ti]) < fbar
+            @test f(kgrid[ki - 1], tgrid[ti - 1]) < fbar
+        end
+    end
+
+        tlist = rand(10) * β
+        klist = rand(10) * maxK
+        # println(tlist)
+
+        for (ti, t) in enumerate(tlist)
+        for (ki, k) in enumerate(klist)
+            fbar = Interpolate.linear2D(data, kgrid, tgrid, k, t)
+            # println("$k, $t, $fbar, ", f(k, t))
+            @test abs(f(k, t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
         end
     end
     end
