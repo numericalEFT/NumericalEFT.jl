@@ -17,6 +17,23 @@ using QuantumStatistics, Test
     @test Green.bareFermi(β, -eps(0.0), -1000.0) ≈ -1.0
 end
 
+
+@testset "Spectral functions" begin
+    τ, ε = 0.1, 10.0
+    n(ε) = 1.0 / (1.0 + exp(ε))
+    @test Spectral.fermiDirac(ε) ≈ n(ε)
+
+    @test Spectral.fermiKernelT(τ, 0.0) ≈ n(0.0)
+    @test Spectral.fermiKernelT(eps(0.0), ε) ≈ 1.0 - n(ε)
+
+    @test Spectral.fermiKernelT(0.0, ε) ≈ -n(ε) # τ=0.0 should be treated as the 0⁻
+    @test Spectral.fermiKernelT(-eps(0.0), ε) ≈ -n(ε)
+
+    @test Spectral.fermiKernelT(-τ, ε) ≈ -Spectral.fermiKernelT(1 - τ, ε)
+    @test Spectral.fermiKernelT(-eps(0.0), 1000.0) ≈ 0.0
+    @test Spectral.fermiKernelT(-eps(0.0), -1000.0) ≈ -1.0
+end
+
 @testset "Grids" begin
 
     # with a shift to the grid element, check if produce the correct floored index
