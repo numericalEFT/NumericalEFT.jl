@@ -2,6 +2,7 @@
 Calculator for some simple diagrams
 """
 module Diagram
+    export bubble
     include("green.jl")
     include("spectral.jl")
     using .Green
@@ -9,7 +10,7 @@ module Diagram
     using Cuba
 
 """
-    Polar0(q, ω, dim, kF, β)
+    bubble(q, ω, dim, kF, β)
 
 Compute the polarization function of free electrons at a given frequency. 
 
@@ -21,7 +22,7 @@ Compute the polarization function of free electrons at a given frequency.
 - `β=1.0`: the inverse temperature
 - `eps=1.0e-6`: the required absolute accuracy
 """
-@inline function Polar0(q::T, ω, dim::Int, kF=T(1.0), β=T(1.0), eps=T(1.0e-6)) where {T <: AbstractFloat} 
+@inline function bubble(q::T, ω, dim::Int, kF=T(1.0), β=T(1.0), eps=T(1.0e-6)) where {T <: AbstractFloat} 
     ω, q = ω * β, q / kF # make everything dimensionless 
     if (ω != 0.0 && imag(ω) < eps)
         println("Im ω>eps is expected unless ω=0!")
@@ -46,17 +47,9 @@ Compute the polarization function of free electrons at a given frequency.
             println("ω=$ω, q=$q, k=$k leads to NaN!")
         end
         # println(p)
-        return p
+    return p
     end
 
-    # if β*q is too small, replace it with (df/dq)/(dϵ/dq)
-    # polar(k, θ) = (FermiDirac(β, k^2 - kF^2) - FermiDirac(β,  kp2(k, θ) - kF^2)) / (ω_n * 1im + k^2 - kp2(k, θ)) / (2.0 * π)^2 * sin(θ) * k^2 
-    # function integrand(x, f)
-    #     # x[1]:k, x[2]: θ
-    #     f[1] = polar(x[1] / (1 - x[1]), x[2] * π) / (1 - x[1])^2 * π
-    # end
-    # println(polar(1.919, 0.0))
-    
     function integrand1(x, f)
         # x[1]:k, x[2]: θ
         phase = (dim == 3 ? π : 2π)
