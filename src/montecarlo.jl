@@ -8,9 +8,9 @@ export createIdx, removeIdx, shiftIdx
 const RNG = Random.GLOBAL_RNG
 
 """
-    createIdx!(newIdx::Int, size::Int, rng=RNG)
+    createIdx!(newIdx::Int, size::Int, rng=GLOBAL_RNG)
 
-Generate new index (uniformly) randomly in [1, size]
+Propose to generate new index (uniformly) randomly in [1, size]
 
 # Arguments
 - `newIdx`:  index ∈ [1, size]
@@ -23,9 +23,9 @@ Generate new index (uniformly) randomly in [1, size]
 end
 
 """
-    removeIdx!(newIdx::Int, size::Int, rng=RNG)
+    removeIdx!(newIdx::Int, size::Int, rng=GLOBAL_RNG)
 
-Remove the old index in [1, size]
+Propose to remove the old index in [1, size]
 
 # Arguments
 - `oldIdx`:  index ∈ [1, size]
@@ -35,9 +35,9 @@ Remove the old index in [1, size]
 @inline removeIdx(oldIdx::Int, size::Int, rng = RNG) = 1.0 / size
 
 """
-    shiftIdx!(oldIdx::Int, newIdx::Int, size::Int, rng=RNG)
+    shiftIdx!(oldIdx::Int, newIdx::Int, size::Int, rng=GLOBAL_RNG)
 
-Shift the old index in [1, size] to a new index
+Propose to shift the old index in [1, size] to a new index
 
 # Arguments
 - `oldIdx`:  old index ∈ [1, size]
@@ -208,23 +208,5 @@ Propose to flip oldK to newK. Work for generic momentum vector
     newK .= oldK .*(-1.0)
     return 1.0
 end
-
-# @inline function shiftK!(oldK, newK, Kf=1.0, rng=RNG)
-# x = rand(rng)
-# if x < 1.0 / 3
-#     dK = Beta > 1.0 ? Kf / Beta * 3.0 : Kf
-#         newK .= oldK .+ (rand(rng, DIM) .- 0.5) .* dK
-# return 1.0
-#     elseif x < 2.0 / 3
-#         λ = 1.5
-#         ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
-#         newK .= oldK .* ratio
-#         return (DIM == 2) ? 1.0 : ratio
-#     else
-#         newK .= oldK .* (-1.0)
-# return 1.0
-#     end
-# end
-
 
 end
