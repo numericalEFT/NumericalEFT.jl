@@ -66,7 +66,7 @@ struct Log{T,SIZE,SEG} # create a log grid of the type T with SIZE grids and SEG
                 push!(grid, _grid(coeff[s], idx))
             end
         end
-        head, tail=grid[1], grid[end]
+        head, tail = grid[1], grid[end]
         isopen[1] && (grid[1] += eps(T))
         isopen[2] && (grid[end] -= eps(T))
         checkOrder(grid)
@@ -75,7 +75,7 @@ struct Log{T,SIZE,SEG} # create a log grid of the type T with SIZE grids and SEG
 end
 
 function Base.floor(grid::Log{T,SIZE,2}, x) where {T,SIZE}
-    (grid.head<=x<=grid.tail)||error("$x is out of the uniform grid range!")
+    (grid.head <= x <= grid.tail) || error("$x is out of the uniform grid range!")
     segment = grid.segment
     if x < grid[2]
         return 1
@@ -91,7 +91,7 @@ function Base.floor(grid::Log{T,SIZE,2}, x) where {T,SIZE}
 end
 
 function Base.floor(grid::Log{T,SIZE,3}, x) where {T,SIZE}
-    (grid.head<=x<=grid.tail)||error("$x is out of the uniform grid range!")
+    (grid.head <= x <= grid.tail) || error("$x is out of the uniform grid range!")
     segment = grid.segment
     if x < grid[2]
         return 1
@@ -138,35 +138,35 @@ struct Uniform{T,SIZE}
     δ::T
     isopen::SVector{2,Bool}
 
-"""
-    Uniform{Type,SIZE}(head, tail, isopen)
+    """
+        Uniform{Type,SIZE}(head, tail, isopen)
 
-Create a uniform Grid with a given type and size
+    Create a uniform Grid with a given type and size
 
-# Arguments:
- - head: the starting point of the grid
- - tail: the end of the grid
- - isopen: if isopen[1]==true, then grid[1]=head+eps; If isopen[2]==true, then grid[2]=tail-eps. Otherwise, grid[1]==head / grid[2]==tail
-"""
+    # Arguments:
+     - head: the starting point of the grid
+     - tail: the end of the grid
+     - isopen: if isopen[1]==true, then grid[1]=head+eps; If isopen[2]==true, then grid[2]=tail-eps. Otherwise, grid[1]==head / grid[2]==tail
+    """
     function Uniform{T,SIZE}(head, tail, isopen) where {T<:AbstractFloat,SIZE}
         @assert SIZE > 1 "Size must be large than 1"
         grid = Array(LinRange(T(head), T(tail), SIZE))
         isopen[1] && (grid[1] += eps(T))
         isopen[2] && (grid[end] -= eps(T))
-        return new{T,SIZE}(grid, SIZE, head, tail, (tail - head) / (SIZE-1), isopen)
+        return new{T,SIZE}(grid, SIZE, head, tail, (tail - head) / (SIZE - 1), isopen)
     end
 end
 
-function Base.floor(grid::Uniform, x) 
+function Base.floor(grid::Uniform, x)
 
-    (grid.head<=x<=grid.tail)||error("$x is out of the uniform grid range!")
+    (grid.head <= x <= grid.tail) || error("$x is out of the uniform grid range!")
 
-    if grid[2]<=x<grid[end-1]
-        return floor(Int, (x - grid.head) / grid.δ+1)
-    elseif x<grid[2]
+    if grid[2] <= x < grid[end-1]
+        return floor(Int, (x - grid.head) / grid.δ + 1)
+    elseif x < grid[2]
         return 1
     else
-        return grid.size-1
+        return grid.size - 1
     end
 end
 
@@ -208,7 +208,14 @@ Create a logarithmic fermionic K Grid, which is densest near the Fermi momentum 
 - size: the Grid size
 - kFi: index of Kf
 """
-@inline function fermiK(Kf, maxK, halfLife, size::Int, kFi = floor(Int, 0.5size), type = Float64)
+@inline function fermiK(
+    Kf,
+    maxK,
+    halfLife,
+    size::Int,
+    kFi = floor(Int, 0.5size),
+    type = Float64,
+)
     size = Int(size)
     c1 = Grid.Coeff{type}([0.0, Kf], [1.0, kFi], 1.0 / halfLife, false)
     r1 = 1:kFi

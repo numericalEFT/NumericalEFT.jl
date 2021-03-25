@@ -16,7 +16,12 @@ linear interpolation of data(x, y)
 
     xarray, yarray = xgrid.grid, ygrid.grid
 
-    if (x <= xarray[firstindex(xgrid)] || x >= xarray[lastindex(xgrid)] || y <= yarray[firstindex(ygrid)] || y >= yarray[lastindex(ygrid)])
+    if (
+        x <= xarray[firstindex(xgrid)] ||
+        x >= xarray[lastindex(xgrid)] ||
+        y <= yarray[firstindex(ygrid)] ||
+        y >= yarray[lastindex(ygrid)]
+    )
         return 0.0
     end
     xi0, yi0 = floor(xgrid, x), floor(ygrid, y)
