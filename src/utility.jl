@@ -1,0 +1,58 @@
+"""
+Utility data structures and functions
+"""
+module Utility
+export StopWatch, check, progressBar
+
+"""
+    StopWatch(start, interval, callback)
+
+Initialize a stopwatch. 
+
+# Arguments
+- `start::Float`: initial time (in seconds)
+- `interval::Float` : interval to click (in seconds)
+- `callback` : callback function after each click (interval seconds)
+"""
+mutable struct StopWatch
+    start::Float
+    interval::Float
+    f::Function
+    StopWatch(_interval, callback) = new(time(), _interval, callback)
+end
+
+"""
+    check(stopwatch)
+
+Check stopwatch. If it clicks, call the callback function
+"""
+function check(watch::StopWatch)
+    now = time()
+    if now - watch.start > watch.interval
+        watch.f()
+        watch.start = now
+    end
+end
+
+"""
+    progressBar(step, total)
+
+Return string of progressBar (step/total*100%)
+"""
+function progressBar(step, total)
+    barWidth = 70
+    percent = round(step / total * 100.0, digits = 2)
+    str = "["
+    pos = barWidth * percent / 100.0
+    for i in 1:barWidth
+        if i <= pos
+            str *= "I"
+        else
+            str *= " "
+        end
+    end
+    str *= "] $step/$total=$percent%"
+    return str
+end
+
+end

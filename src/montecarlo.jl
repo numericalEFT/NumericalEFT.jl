@@ -4,7 +4,6 @@ utility for Monte Carlo
 module MonteCarlo
 using Random
 using LinearAlgebra
-export createIdx, removeIdx, shiftIdx
 const RNG = Random.GLOBAL_RNG
 
 """
