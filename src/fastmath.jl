@@ -26,11 +26,11 @@ See the following links: [wikipedia](https://en.wikipedia.org/wiki/Fast_inverse_
     #   y = x
     x2::Float64 = x * 0.5
     i::Int64 = reinterpret(Int64, x)
-      # The magic number is for doubles is from https://cs.uwaterloo.ca/~m32rober/rsqrt.pdf
+    # The magic number is for doubles is from https://cs.uwaterloo.ca/~m32rober/rsqrt.pdf
     i = 0x5fe6eb50c7b537a9 - (i >> 1)
     y = reinterpret(Float64, i)
     y = y * (1.5 - (x2 * y * y)) # 1st iteration
-    y = y * ( 1.5 - ( x2 * y * y ) );  # 2nd iteration, this can be removed
+    y = y * (1.5 - (x2 * y * y))  # 2nd iteration, this can be removed
     return y
 end
 
@@ -40,7 +40,7 @@ end
     i = 0x5f3759df - (i >> 1)
     y = reinterpret(Float32, i)
     y = y * (1.5f0 - (x2 * y * y)) # 1st iteration
-    y = y * ( 1.5f0 - ( x2 * y * y ) );  # 2nd iteration, this can be removed
+    y = y * (1.5f0 - (x2 * y * y))  # 2nd iteration, this can be removed
     return y
 end
 

@@ -5,11 +5,12 @@ A platform for numerical experiments on quantum statistics.
 ## Outline
 ```@contents
 Pages = [
-    "lib/diagram.md",
-    "lib/spectral.md",
-    "lib/green.md",
     "lib/grid.md",
     "lib/interpolate.md",
+    "lib/spectral.md",
+    "lib/green.md",
+    "lib/diagram.md",
+    "lib/montecarlo.md",
     "lib/fastmath.md",
 ]
 Depth = 1
