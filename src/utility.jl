@@ -10,13 +10,13 @@ export StopWatch, check, progressBar
 Initialize a stopwatch. 
 
 # Arguments
-- `start::Float`: initial time (in seconds)
-- `interval::Float` : interval to click (in seconds)
+- `start::Float64`: initial time (in seconds)
+- `interval::Float64` : interval to click (in seconds)
 - `callback` : callback function after each click (interval seconds)
 """
 mutable struct StopWatch
-    start::Float
-    interval::Float
+    start::Float64
+    interval::Float64
     f::Function
     StopWatch(_interval, callback) = new(time(), _interval, callback)
 end
