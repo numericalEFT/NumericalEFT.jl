@@ -12,6 +12,7 @@ Pages = [
     "lib/diagram.md",
     "lib/montecarlo.md",
     "lib/fastmath.md",
+    "lib/utility.md",
 ]
 Depth = 1
 ```
