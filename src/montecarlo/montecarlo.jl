@@ -4,6 +4,7 @@ utility for Monte Carlo
 module MonteCarlo
 using Random
 using LinearAlgebra
+using StaticArrays
 const RNG = Random.GLOBAL_RNG
 
 include("configuration.jl")

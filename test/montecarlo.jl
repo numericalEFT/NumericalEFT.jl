@@ -44,14 +44,15 @@ end
 
 @testset "MonteCarlo Bubble" begin
     #test bubble diagram of free electron
-    kF, β = 1.0, 1.0
-    external=(1,) #external variable is specified
-    internal=(1, 1) #one momentum, one tau
+    kF, β = 1.0, 25.0
     function eval(group, step)
         return 1.0
     end
-    group1=MonteCarlo.Group(1, internal, external, eval, Float64)
-    group2=MonteCarlo.Group(2, internal, external, eval, Float64)
-    var=([0.0,], [(kF, kF, kF)])
-    config=MonteCarlo.Configuration(var, [group1, group2]; seed=1)
+    K=MonteCarlo.FermiK(3, kF, 0.5*kF, 10.0*kF)
+    T=MonteCarlo.Tau(β, β/2.0)
+    Ext=MonteCarlo.External([1, ]) #external variable is specified
+    group1=MonteCarlo.Group(1, 0, zeros(Float64, Ext.size...), eval)
+    group2=MonteCarlo.Group(2, 1, zeros(Float64, Ext.size...), eval)
+    config=MonteCarlo.Configuration((group1, group2), (K, T), Ext; pid=1)
+
 end
