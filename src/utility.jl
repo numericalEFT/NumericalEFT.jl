@@ -22,14 +22,14 @@ mutable struct StopWatch
 end
 
 """
-    check(stopwatch)
+    check(stopwatch, parameter...)
 
-Check stopwatch. If it clicks, call the callback function
+Check stopwatch. If it clicks, call the callback function with the unpacked parameter
 """
-function check(watch::StopWatch)
+function check(watch::StopWatch, parameter...)
     now = time()
     if now - watch.start > watch.interval
-        watch.f()
+        watch.f(parameter...)
         watch.start = now
     end
 end
@@ -44,7 +44,7 @@ function progressBar(step, total)
     percent = round(step / total * 100.0, digits = 2)
     str = "["
     pos = barWidth * percent / 100.0
-    for i in 1:barWidth
+    for i = 1:barWidth
         if i <= pos
             str *= "I"
         else
