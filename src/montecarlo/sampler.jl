@@ -216,8 +216,8 @@ end
 
 Propose to generate new tau (uniformly) randomly in [0, β), return proposal probability
 """
-@inline function create!(new::Tau, rng = RNG)
-    new.t = rand(rng) * new.β
+@inline function create!(T::Tau, idx::Int, rng = RNG)
+    T.t[idx] = rand(rng) * T.β
     return β
 end
 
@@ -226,7 +226,7 @@ end
 
 Propose to remove old tau in [0, β), return proposal probability
 """
-@inline function removeT(old::Tau, rng = RNG) where {T<:AbstractFloat}
+@inline function remove(T::Tau, idx::Int, ng = RNG)
     return T(1) / β
 end
 
@@ -238,19 +238,22 @@ Propose to shift the old tau to new tau, both in [0, β)
 # Arguments
 - `newT`:  will be modified!
 """
-@inline function shiftT!(
-    oldT::T,
-    newT::T,
-    step::T,
-    β::T = T(1),
-    rng = RNG,
-) where {T<:AbstractFloat}
-    newT = oldT + 2 * step * (rand(rng) - T(0.5))
-    if newT < T(0.0)
-        newT += β
-    elseif newT > β
-        newT -= β
+@inline function shift!(T::Tau, idx::Int, rng = RNG)
+    x=rand(rng)
+    if x<1.0/3
+        T.t[idx] = T.t[idx] + 2 * T.λ * (rand(rng) - T(0.5))
+    elseif x<2.0/3
+        T.t[idx]= T.β - T.t[idx]
+    else
+        T.t[idx] = rand(rng) * T.β
     end
+
+    if T.t[idx] < T(0.0)
+        T.t[idx] += β
+    elseif newT > β
+        T.t[idx] -= β
+    end
+
     return T(1.0)
 end
 
