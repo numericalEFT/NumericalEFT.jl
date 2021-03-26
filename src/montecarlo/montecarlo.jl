@@ -9,32 +9,32 @@ const RNG = Random.GLOBAL_RNG
 include("configuration.jl")
 include("sampler.jl")
 
-# function montecarlo!(totalblock, configuration, measure, timer, updates, rng = RNG)
-#     println("Start Simulation ...")
-#     block = 0
+function montecarlo!(totalblock, config, timer=nothing, updates=nothing, savefile=nothing)
+    println("Start Simulation ...")
+    block = 0
 
-#     # printTimer = StopWatch(PrintTime, Markov.printStatus)
-#     # saveTimer = StopWatch(SaveTime, Markov.save)
-#     # reweightTimer = StopWatch(ReWeightTime, Markov.reweight)
-#     # messageTimer = StopWatch(MessageTime, Markov.save)
+    # printTimer = StopWatch(PrintTime, Markov.printStatus)
+    # saveTimer = StopWatch(SaveTime, Markov.save)
+    # reweightTimer = StopWatch(ReWeightTime, Markov.reweight)
+    # messageTimer = StopWatch(MessageTime, Markov.save)
 
-#     for block = 1:totalblock
-#         for i = 1:1000_000
-#             configuration.step += 1
-#             _update = rand(updates) #randomly select an update
-#             _update(configuration)
-#             i % 10 == 0 && measure(configuration)
-#             if i % 1000 == 0
-#                 for t in timer
-#                     check(t, configuration)
-#                 end
-#             end
-#         end
-#     end
+    for block = 1:totalblock
+        for i = 1:1000_000
+            config.step += 1
+            _update = rand(config.rng, updates) #randomly select an update
+            _update(config)
+            i % 10 == 0 && measure(config)
+            if i % 1000 == 0
+                for t in timer
+                    check(t, config)
+                end
+            end
+        end
+    end
 
-#     # printStatus()
-#     println("End Simulation. ")
-# end
+    # printStatus()
+    println("End Simulation. ")
+end
 
 # const barbar = "====================================================================================="
 # const bar = "-------------------------------------------------------------------------------------"
