@@ -1,12 +1,4 @@
 """
-utility for Monte Carlo
-"""
-module MonteCarlo
-using Random
-using LinearAlgebra
-const RNG = Random.GLOBAL_RNG
-
-"""
     createIdx!(newIdx::Int, size::Int, rng=GLOBAL_RNG)
 
 Propose to generate new index (uniformly) randomly in [1, size]
@@ -58,8 +50,8 @@ Propose to generate new tau (uniformly) randomly in [0, β)
 - `newT`:  index ∈ [0, β)
 - `β=1.0`:  inverse temperature
 """
-@inline function createT!(newT::T, β::T = T(1), rng = RNG)  where {T<:AbstractFloat}
-    newT=rand(rng) * β
+@inline function createT!(newT::T, β::T = T(1), rng = RNG) where {T<:AbstractFloat}
+    newT = rand(rng) * β
     return β
 end
 
@@ -68,7 +60,7 @@ end
 
 Propose to remove old tau in [0, β)
 """
-@inline function removeT(oldT::T, β::T = T(1), rng = RNG) where {T<:AbstractFloat} 
+@inline function removeT(oldT::T, β::T = T(1), rng = RNG) where {T<:AbstractFloat}
     return T(1) / β
 end
 
@@ -80,7 +72,13 @@ Propose to shift the old tau to new tau, both in [0, β)
 # Arguments
 - `newT`:  will be modified!
 """
-@inline function shiftT!(oldT::T, newT::T, step::T, β::T = T(1), rng = RNG) where {T<:AbstractFloat}
+@inline function shiftT!(
+    oldT::T,
+    newT::T,
+    step::T,
+    β::T = T(1),
+    rng = RNG,
+) where {T<:AbstractFloat}
     newT = oldT + 2 * step * (rand(rng) - T(0.5))
     if newT < T(0.0)
         newT += β
@@ -98,7 +96,12 @@ Propose to flip the old tau to a new tau, both in [0, β)
 # Arguments
 - `newT`:  will be modified!
 """
-@inline function shiftT_flip!(oldT::T, newT::T, β::T = T(1), rng = RNG) where {T<:AbstractFloat}
+@inline function shiftT_flip!(
+    oldT::T,
+    newT::T,
+    β::T = T(1),
+    rng = RNG,
+) where {T<:AbstractFloat}
     newT = β - oldT
     return T(1.0)
 end
@@ -133,8 +136,8 @@ Propose to generate new Fermi K in [Kf-δK, Kf+δK)
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi
         # prop density of Theta, Jacobian
     else  # DIM==2
-        newK[1] = Kamp *cos(ϕ)
-        newK[2] = Kamp *sin(ϕ)
+        newK[1] = Kamp * cos(ϕ)
+        newK[2] = Kamp * sin(ϕ)
         return 2δK * 2π * Kamp
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi, Jacobian
     end
@@ -180,10 +183,10 @@ Propose to shift oldK to newK. Work for generic momentum vector
 # Arguments
 - `newK`:  randomly proposed in [oldK/λ, oldK*λ)
 """
-@inline function shiftK_radial!(oldK, newK, λ=1.5, rng=RNG)
+@inline function shiftK_radial!(oldK, newK, λ = 1.5, rng = RNG)
     ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
     newK .= oldK .* ratio
-    DIM=length(oldK)
+    DIM = length(oldK)
     return (DIM == 2) ? 1.0 : ratio
 end
 
@@ -192,8 +195,8 @@ end
 
 Propose to shift oldK to newK. Work for generic momentum vector
 """
-@inline function shiftK!(oldK, newK, step, rng=RNG)
-    DIM=length(oldK)
+@inline function shiftK!(oldK, newK, step, rng = RNG)
+    DIM = length(oldK)
     newK .= oldK .+ (rand(rng, DIM) .- 0.5) .* step
     return 1.0
 end
@@ -204,8 +207,6 @@ end
 Propose to flip oldK to newK. Work for generic momentum vector
 """
 @inline function shiftK_flip!(oldK, newK)
-    newK .= oldK .*(-1.0)
+    newK .= oldK .* (-1.0)
     return 1.0
-end
-
 end
