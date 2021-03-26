@@ -11,7 +11,6 @@ include("sampler.jl")
 
 function montecarlo!(totalblock, config, timer=nothing, updates=nothing, savefile=nothing)
     println("Start Simulation ...")
-    block = 0
 
     # printTimer = StopWatch(PrintTime, Markov.printStatus)
     # saveTimer = StopWatch(SaveTime, Markov.save)

@@ -1,3 +1,31 @@
+abstract type Variable end
+
+mutable struct FermiK{D} <:Variable
+    k::Vector{SVector{Float64, D}}
+    maxK::Float64
+    kF::Float64
+end
+
+mutable struct BoseK{D} <:Variable
+    k::Vector{SVector{Float64, D}}
+    maxK::Float64
+end
+
+mutable struct Tau<:Variable
+    t::Vector{Float64}
+    β::Float64
+end
+
+mutable struct TauPair<:Variable
+    t::Vector{Float64}
+    β::Float64
+end
+
+mutable struct External<:Variable
+    idx::Vector{Int}
+    size::Vector{Int}
+end
+
 """
     Group{A}(type::Int, internal::Tuple{Vararg{Int}}, external::Tuple{Vararg{Int}}, eval, obstype=Float64) 
 
@@ -5,15 +33,14 @@ create a group of diagrams
 
 #Arguments:
 - type: integer identifier of the group
-- internal: array of internal variable numbers, e.g. [number of internal momentum, number of internal tau]
+- internal: internal variable numbers, e.g. [number of internal momentum, number of internal tau]
 - external: array of size of external index, e.g. [size of external momentum index, size of external tau]
 - eval: function to evaluate the group
 - obstype: type of the diagram weight, e.g. Float64
 """
 mutable struct Group{A<:AbstractArray, F<:Function}
     type::Int
-    internal::Tuple{Vararg{Int}}
-    external::Tuple{Vararg{Int}}
+    order::Int
     observable::A
     eval::Function
 
@@ -26,28 +53,31 @@ mutable struct Group{A<:AbstractArray, F<:Function}
     #     return new{T}(_type, Tuple(_internal), Tuple(_external), _obs, 1.0, 0.0, eps())
     # end
 
-    function Group(_type, _internal, _external, _eval::F, _obstype=Float64) where F
-        _obs=zeros(_obstype, Tuple(_external))
-        obstype=Array{_obstype, length(_external)}
-        return new{obstype, F}(_type, Tuple(_internal), Tuple(_external), _obs, eval, 1.0, 0.0, eps())
+    function Group(_type, _order, _obs::A, _eval::F) where {A, F}
+        # _obs=zeros(_obstype, Tuple(_external))
+        # obstype=Array{_obstype, length(_external)}
+        return new{A, F}(_type, _order, _obs, eval, 1.0, 0.0, eps())
     end
 end
 
 mutable struct Configuration{V, R}
-    seed::Int
+    pid::Int
     step::UInt64
-    var::V
+    var::Vector{V}
     groups::Tuple{Vararg{Group}}
     curr::Group
     rng::R
 
-    function Configuration(_var::V, _groups; seed=nothing, rng::R = Random.GLOBAL_RNG) where {V, R}
-        if (seed==nothing)
+    function Configuration(_groups, _vartype::T; pid=nothing, rng::R = Random.GLOBAL_RNG) where {T, R}
+        if (pid==nothing)
             r=Random.RandomDevice()
-            seed=rand(r, Int)%1000000
+            pid=rand(r, Int)%1000000
         end
         curridx=1
-        return new{V, R}(seed, 0, _var, Tuple(_groups), _groups[curridx], rng)
+
+        _var=Vector{T...}(undef, 0, 0)
+
+        return new{T..., R}(pid, 0, _var, Tuple(_groups), _groups[curridx], rng)
     end
 end
 

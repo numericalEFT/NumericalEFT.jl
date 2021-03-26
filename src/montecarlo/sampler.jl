@@ -210,3 +210,64 @@ Propose to flip oldK to newK. Work for generic momentum vector
     newK .= oldK .* (-1.0)
     return 1.0
 end
+
+"""
+    create!(new::Tau, rng=GLOBAL_RNG)
+
+Propose to generate new tau (uniformly) randomly in [0, β), return proposal probability
+"""
+@inline function create!(new::Tau, rng = RNG)
+    new.t = rand(rng) * new.β
+    return β
+end
+
+"""
+    remove(old::Tau, rng=GLOBAL_RNG)
+
+Propose to remove old tau in [0, β), return proposal probability
+"""
+@inline function removeT(old::Tau, rng = RNG) where {T<:AbstractFloat}
+    return T(1) / β
+end
+
+"""
+    shiftT!(oldT, newT, β=1.0, rng=GLOBAL_RNG)
+
+Propose to shift the old tau to new tau, both in [0, β)
+
+# Arguments
+- `newT`:  will be modified!
+"""
+@inline function shiftT!(
+    oldT::T,
+    newT::T,
+    step::T,
+    β::T = T(1),
+    rng = RNG,
+) where {T<:AbstractFloat}
+    newT = oldT + 2 * step * (rand(rng) - T(0.5))
+    if newT < T(0.0)
+        newT += β
+    elseif newT > β
+        newT -= β
+    end
+    return T(1.0)
+end
+
+"""
+    shiftT_flip!(oldT, newT, β=1.0, rng=GLOBAL_RNG)
+
+Propose to flip the old tau to a new tau, both in [0, β)
+
+# Arguments
+- `newT`:  will be modified!
+"""
+@inline function shiftT_flip!(
+    oldT::T,
+    newT::T,
+    β::T = T(1),
+    rng = RNG,
+) where {T<:AbstractFloat}
+    newT = β - oldT
+    return T(1.0)
+end
