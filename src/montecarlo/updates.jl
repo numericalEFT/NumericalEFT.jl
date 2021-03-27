@@ -1,35 +1,57 @@
-function increaseOrder(config, new)
-    curr=config.curr
-    if (new.internal!=curr.internal+1)
-        return
+
+function increaseOrder(config)
+    new=rand(config.rng, config.groups)
+    curr = config.curr
+
+    (new.internal == curr.internal) && return #new and curr groups should not be the same order
+
+    diff = new.internal - curr.internal
+    for num in diff
+        if num < 0 || num > 2
+            return #the internal variables of the new and curr groups should be either the same or a lot more 
+        end
     end
 
     prop = 1.0
-    if curr.order == 0
-        # create new external Tau
-        curr.extTidx, propT = createExtIdx(TauGridSize)
-        varT[LastTidx] = Grid.tau.grid[curr.extTidx]
-
-        curr.extKidx, propK = createExtIdx(KGridSize)
-        varK[1][1] = Grid.K.grid[curr.extKidx]
-        prop = propT * propK
-    else
-        # create new internal Tau
-        varT[lastInnerTidx(newOrder)], prop = createTau()
+    for (idx, v) in enumerate(config.var)
+        for pos = curr.internal[idx]+1:new.internal[idx]
+            prop *= create!(v, pos)
+        end
     end
-    # newOrder == 1 && println(lastInnerKidx(newOrder))
-    # oldK = copy(varK[2])
-    # prop *= createK!(varK[lastInnerKidx(newOrder)])
-    prop *= createK!(varK[2])
-    # @assert norm(oldK) != norm(varK[2]) "K remains the same"
 
-    newAbsWeight = abs(eval(newOrder))
-    # println(prop, ", ", newAbsWeight)
-    R = prop * newAbsWeight * ReWeight[newOrder + 1] / curr.absWeight / ReWeight[curr.order + 1]
-    propose(INCREASE_ORDER)
-    if rand(rng) < R
-        accept(INCREASE_ORDER)
-        curr.order = newOrder
-        curr.absWeight = newAbsWeight
+    newAbsWeight = abs(new.eval(config))
+    R = prop * newAbsWeight * new.reWeightFactor / curr.absWeight / curr.reWeightFactor
+    curr.proposal[Symbol(increaseOrder)]+=1.0
+    if rand(config.rng) < R
+        curr.accept[Symbol(increaseOrder)]+=1.0
+        new.absWeight = newAbsWeight
+        config.curr = new
+    end
+end
+
+function decreaseOrder(config)
+    new=rand(config.rng, config.groups)
+    curr = config.curr
+    (new.internal == curr.internal) && return #new and curr groups should not be the same order
+
+    diff = curr.internal - new.internal
+    for num in diff
+        if num < 0 || num > 2
+            return #the internal variables of the new and curr groups should be either the same or a lot more 
+        end
+    end
+    prop = 1.0
+    for (idx, v) in enumerate(config.var)
+        for pos = new.internal[idx]+1:curr.internal[idx]
+            prop *= remove(v, pos)
+        end
+    end
+    newAbsWeight = abs(new.eval(config))
+    R = prop * newAbsWeight * new.reWeightFactor / curr.absWeight / curr.reWeightFactor
+    curr.proposal[Symbol(decreaseOrder)]+=1.0
+    if rand(config.rng) < R
+        curr.accept[Symbol(decreaseOrder)]+=1.0
+        new.absWeight = newAbsWeight
+        config.curr = new
     end
 end

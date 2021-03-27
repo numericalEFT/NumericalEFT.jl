@@ -42,79 +42,14 @@ Propose to shift the old index in [1, size] to a new index
 end
 
 """
-    createT!(newT, β=1.0, rng=GLOBAL_RNG)
-
-Propose to generate new tau (uniformly) randomly in [0, β)
-
-# Arguments
-- `newT`:  index ∈ [0, β)
-- `β=1.0`:  inverse temperature
-"""
-@inline function createT!(newT::T, β::T = T(1), rng = RNG) where {T<:AbstractFloat}
-    newT = rand(rng) * β
-    return β
-end
-
-"""
-    removeT(oldT, β=1.0, rng=GLOBAL_RNG)
-
-Propose to remove old tau in [0, β)
-"""
-@inline function removeT(oldT::T, β::T = T(1), rng = RNG) where {T<:AbstractFloat}
-    return T(1) / β
-end
-
-"""
-    shiftT!(oldT, newT, β=1.0, rng=GLOBAL_RNG)
-
-Propose to shift the old tau to new tau, both in [0, β)
-
-# Arguments
-- `newT`:  will be modified!
-"""
-@inline function shiftT!(
-    oldT::T,
-    newT::T,
-    step::T,
-    β::T = T(1),
-    rng = RNG,
-) where {T<:AbstractFloat}
-    newT = oldT + 2 * step * (rand(rng) - T(0.5))
-    if newT < T(0.0)
-        newT += β
-    elseif newT > β
-        newT -= β
-    end
-    return T(1.0)
-end
-
-"""
-    shiftT_flip!(oldT, newT, β=1.0, rng=GLOBAL_RNG)
-
-Propose to flip the old tau to a new tau, both in [0, β)
-
-# Arguments
-- `newT`:  will be modified!
-"""
-@inline function shiftT_flip!(
-    oldT::T,
-    newT::T,
-    β::T = T(1),
-    rng = RNG,
-) where {T<:AbstractFloat}
-    newT = β - oldT
-    return T(1.0)
-end
-
-"""
-    createFermiK!(newK, Kf=1.0, δK=0.5, rng=GLOBAL_RNG)
+    create!(K::FermiK{D}, idx::Int, rng=GLOBAL_RNG)
 
 Propose to generate new Fermi K in [Kf-δK, Kf+δK)
 
 # Arguments
 - `newK`:  vector of dimension of d=2 or 3
 """
-@inline function createFermiK!(newK, Kf = 1.0, δK = 0.5, rng = RNG)
+@inline function create!(K::FermiK{D}, idx::Int, rng = RNG) where {D}
     ############ Simple Way ########################
     # for i in 1:DIM
     #     newK[i] = Kf * (rand(rng) - 0.5) * 2.0
@@ -122,23 +57,20 @@ Propose to generate new Fermi K in [Kf-δK, Kf+δK)
     # return (2.0 * Kf)^DIM
     ################################################
 
-    Kamp = Kf + (rand(rng) - 0.5) * 2.0 * δK
+    Kamp = K.kF + (rand(rng) - 0.5) * 2.0 * K.δk
     Kamp <= 0.0 && return 0.0
     # Kf-dK<Kamp<Kf+dK 
     ϕ = 2π * rand(rng)
-    if length(newK) == 3 #dimension 3
+    if D == 3 #dimension 3
         θ = π * rand(rng)
         # newK .= Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
-        newK[1] = Kamp * cos(ϕ) * sin(θ)
-        newK[2] = Kamp * sin(ϕ) * sin(θ)
-        newK[3] = Kamp * cos(θ)
-        return 2δK * 2π * π * (sin(θ) * Kamp^2)
+        K[idx] = [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
+        return 2 * K.δk * 2π * π * (sin(θ) * Kamp^2)
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi
         # prop density of Theta, Jacobian
     else  # DIM==2
-        newK[1] = Kamp * cos(ϕ)
-        newK[2] = Kamp * sin(ϕ)
-        return 2δK * 2π * Kamp
+        K[idx] = [Kamp * cos(ϕ), Kamp * sin(ϕ)]
+        return 2 * K.δk * 2π * Kamp
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi, Jacobian
     end
 end
@@ -151,7 +83,7 @@ Propose to remove an existing Fermi K in [Kf-δK, Kf+δK)
 # Arguments
 - `oldK`:  vector of dimension of d=2 or 3
 """
-@inline function removeFermiK(oldK, Kf = 1.0, δK = 0.5, rng = RNG)
+@inline function remove(K::FermiK{D}, idx::Int, rng = RNG) where {D}
     ############## Simple Way #########################
     # for i in 1:DIM
     #     if abs(oldK[i]) > Kf
@@ -161,18 +93,18 @@ Propose to remove an existing Fermi K in [Kf-δK, Kf+δK)
     # return 1.0 / (2.0 * Kf)^DIM
     ####################################################
 
-    δK = Kf / 2.0
+    oldK = K[idx]
     Kamp = sqrt(dot(oldK, oldK))
-    if !(Kf - δK < Kamp < Kf + δK)
+    if !(K.kF - K.δk < Kamp < K.kF + K.δk)
         return 0.0
     end
     # (Kamp < Kf - dK || Kamp > Kf + dK) && return 0.0
-    if length(oldK) == 3 #dimension 3
+    if D == 3 #dimension 3
         sinθ = sqrt(oldK[1]^2 + oldK[2]^2) / Kamp
         sinθ < 1.0e-15 && return 0.0
-        return 1.0 / (2δK * 2π * π * sinθ * Kamp^2)
+        return 1.0 / (2 * K.δk * 2π * π * sinθ * Kamp^2)
     else  # DIM==2
-        return 1.0 / (2δK * 2π * Kamp)
+        return 1.0 / (2 * K.δk * 2π * Kamp)
     end
 end
 
@@ -212,65 +144,56 @@ Propose to flip oldK to newK. Work for generic momentum vector
 end
 
 """
-    create!(new::Tau, rng=GLOBAL_RNG)
+    create!(T::Tau, idx::Int, rng=GLOBAL_RNG)
 
 Propose to generate new tau (uniformly) randomly in [0, β), return proposal probability
+
+# Arguments
+- `T`:  Tau variable
+- `idx`: T.t[idx] will be updated
 """
 @inline function create!(T::Tau, idx::Int, rng = RNG)
-    T.t[idx] = rand(rng) * T.β
-    return β
+    T[idx] = rand(rng) * T.β
+    return T.β
 end
 
 """
-    remove(old::Tau, rng=GLOBAL_RNG)
+    remove(T::Tau, idx::Int, rng=GLOBAL_RNG)
 
 Propose to remove old tau in [0, β), return proposal probability
+
+# Arguments
+- `T`:  Tau variable
+- `idx`: T.t[idx] will be updated
 """
-@inline function remove(T::Tau, idx::Int, ng = RNG)
-    return T(1) / β
+@inline function remove(T::Tau, idx::Int, rng = RNG)
+    return T(1) / T.β
 end
 
 """
-    shiftT!(oldT, newT, β=1.0, rng=GLOBAL_RNG)
+    shift!(T::Tau, idx::Int, rng=GLOBAL_RNG)
 
-Propose to shift the old tau to new tau, both in [0, β)
+Propose to shift the old tau to new tau, both in [0, β), return proposal probability
 
 # Arguments
-- `newT`:  will be modified!
+- `T`:  Tau variable
+- `idx`: T.t[idx] will be updated
 """
 @inline function shift!(T::Tau, idx::Int, rng = RNG)
-    x=rand(rng)
-    if x<1.0/3
-        T.t[idx] = T.t[idx] + 2 * T.λ * (rand(rng) - T(0.5))
-    elseif x<2.0/3
-        T.t[idx]= T.β - T.t[idx]
+    x = rand(rng)
+    if x < 1.0 / 3
+        T[idx] = T[idx] + 2 * T.λ * (rand(rng) - T(0.5))
+    elseif x < 2.0 / 3
+        T[idx] = T.β - T[idx]
     else
-        T.t[idx] = rand(rng) * T.β
+        T[idx] = rand(rng) * T.β
     end
 
-    if T.t[idx] < T(0.0)
-        T.t[idx] += β
+    if T[idx] < T(0.0)
+        T[idx] += β
     elseif newT > β
-        T.t[idx] -= β
+        T[idx] -= β
     end
 
-    return T(1.0)
-end
-
-"""
-    shiftT_flip!(oldT, newT, β=1.0, rng=GLOBAL_RNG)
-
-Propose to flip the old tau to a new tau, both in [0, β)
-
-# Arguments
-- `newT`:  will be modified!
-"""
-@inline function shiftT_flip!(
-    oldT::T,
-    newT::T,
-    β::T = T(1),
-    rng = RNG,
-) where {T<:AbstractFloat}
-    newT = β - oldT
     return T(1.0)
 end

@@ -1,48 +1,3 @@
-abstract type Variable end
-const MaxOrder=16
-
-mutable struct FermiK{D} <:Variable
-    k::Vector{SVector{D, Float64}}
-    kF::Float64
-    δk::Float64
-    maxK::Float64
-    function FermiK(dim, kF, δk, maxK, size=MaxOrder)
-        k0=SVector{dim, Float64}([kF for i in 1:dim])
-        k=[k0 for i in 1:size]
-        return new{dim}(k, kF, δk, maxK)
-    end
-end
-
-mutable struct BoseK{D} <:Variable
-    k::Vector{SVector{Float64, D}}
-    maxK::Float64
-end
-
-mutable struct Tau<:Variable
-    t::Vector{Float64}
-    λ::Float64
-    β::Float64
-    function Tau(β=1.0, λ=0.5, size=MaxOrder)
-        t=[β/2.0 for i in 1:size]
-        return new(t, β)
-    end
-end
-
-mutable struct TauPair<:Variable
-    t::Vector{Float64}
-    λ::Float64
-    β::Float64
-end
-
-mutable struct External<:Variable
-    idx::Vector{Int}
-    size::Vector{Int}
-    function External(size)
-        idx=[1 for i in size]
-        return new(idx, size)
-    end
-end
-
 """
     Group{A}(type::Int, internal::Tuple{Vararg{Int}}, external::Tuple{Vararg{Int}}, eval, obstype=Float64) 
 
@@ -55,49 +10,63 @@ create a group of diagrams
 - eval: function to evaluate the group
 - obstype: type of the diagram weight, e.g. Float64
 """
-mutable struct Group{A<:AbstractArray, F<:Function}
+mutable struct Group{A<:AbstractArray,F<:Function}
     id::Int
-    order::Int
+    internal::Vector{Int}
     observable::A
     eval::Function
 
+    propose::Dict{Symbol, Float64}
+    accept::Dict{Symbol, Float64}
     reWeightFactor::Float64
     visitedSteps::Float64
     absWeight::Float64
 
-    function Group(_id, _order, _obs::A, _eval::F) where {A, F}
+    function Group(_id, _internal, _obs::A, _eval::F) where {A,F}
         # _obs=zeros(_obstype, Tuple(_external))
         # obstype=Array{_obstype, length(_external)}
-        return new{A, F}(_id, _order, _obs, eval, 1.0, 0.0, eps())
+        propose=Dict{Symbol, Float64}()
+        accept=Dict{Symbol, Float64}()
+
+        return new{A,F}(_id, collect(_internal), _obs, _eval, propose, accept, 1.0, 0.0, eps())
     end
 end
 
-mutable struct Configuration{V, R}
+mutable struct Configuration{V,R}
     pid::Int
+    totalBlock::Int
+    groups::Tuple{Vararg{Group}}
+
     step::Int64
     var::V
     ext::External
-    groups::Tuple{Vararg{Group}}
     curr::Group
     rng::R
 
-    function Configuration(_groups, _var::V, _ext; pid=nothing, rng::R = Random.GLOBAL_RNG) where {V, R}
-        if (pid==nothing)
-            r=Random.RandomDevice()
-            pid=rand(r, Int)%1000000
+    function Configuration(
+        _totalBlock,
+        _groups,
+        _var::V,
+        _ext;
+        pid = nothing,
+        rng::R = Random.GLOBAL_RNG,
+    ) where {V,R}
+        if (pid == nothing)
+            r = Random.RandomDevice()
+            pid = rand(r, Int) % 1000000
         end
-        curridx=1
+        curridx = 1
 
-        return new{V, R}(pid, 0, _var, _ext, Tuple(_groups), _groups[curridx], rng)
+        return new{V,R}(pid, _totalBlock, Tuple(_groups), 0, _var, _ext, _groups[curridx], rng)
     end
 end
 
-function measure(configuration)
-    curr=configuration.curr
+function measure(config)
+    curr = config.curr
 
     factor = 1.0 / curr.absWeight / curr.reWeightFactor
-    weight = curr.eval(curr, configuration.step)
-    curr.observable[curr.external...] += weight*factor
+    weight = curr.eval(config)
+    curr.observable[config.ext.idx...] += weight * factor
 end
 
 # function save(obs::OneBody)
