@@ -21,6 +21,8 @@ function increaseOrder(config)
 
     newAbsWeight = abs(new.eval(config))
     R = prop * newAbsWeight * new.reWeightFactor / curr.absWeight / curr.reWeightFactor
+
+    # println(prop, ", ", newAbsWeight)
     curr.propose[Symbol(increaseOrder)]+=1.0
     if rand(config.rng) < R
         curr.accept[Symbol(increaseOrder)]+=1.0
