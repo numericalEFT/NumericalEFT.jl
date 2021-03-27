@@ -29,7 +29,7 @@ mutable struct Tau <: Variable
     β::Float64
     function Tau(β = 1.0, λ = 0.5, size = MaxOrder)
         t = [β / 2.0 for i = 1:size]
-        return new(t, β)
+        return new(t, λ, β)
     end
 end
 
