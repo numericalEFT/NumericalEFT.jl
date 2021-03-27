@@ -167,7 +167,7 @@ Propose to remove old tau in [0, β), return proposal probability
 - `idx`: T.t[idx] will be updated
 """
 @inline function remove(T::Tau, idx::Int, rng = RNG)
-    return T(1) / T.β
+    return 1.0 / T.β
 end
 
 """

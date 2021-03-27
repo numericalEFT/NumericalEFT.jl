@@ -77,7 +77,7 @@ function printStatus(config)
         @printf("%-14s %12s %12s %12s\n", String(update), "Proposed", "Accepted", "Ratio  ")
         for (idx, group) in enumerate(config.groups)
             @printf(
-                "  Order%2d:     %12.6f %12.6f %12.6f\n",
+                "  Order%2d:     %12.8f %12.8f %12.6f\n",
                 group.id,
                 group.propose[update]/config.step,
                 group.accept[update]/config.step,
