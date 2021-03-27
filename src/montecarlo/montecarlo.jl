@@ -4,7 +4,7 @@ utility for Monte Carlo
 module MonteCarlo
 using Random
 using LinearAlgebra
-using StaticArrays, Printf, Dates
+using StaticArrays, Printf, Dates, NamedArrays
 const RNG = Random.GLOBAL_RNG
 
 include("variable.jl")
@@ -72,19 +72,20 @@ function printStatus(config)
     printstyled(Dates.now(), color = :green)
     println("\nStep:", config.step)
     println(bar)
-    # for update in config.propose
-    #     @printf("%-14s %12s %12s %12s\n", String(update), "Proposed", "Accepted", "Ratio  ")
-    #     for (idx, group) in enumerate(config.groups)
-    #         @printf(
-    #             "  Order%2d:     %12.0f %12.0f %12.6f\n",
-    #             o,
-    #             config.propose[update][idx],
-    #             config.accept[update][idx],
-    #             config.accept[update][idx] / config.propose[update][idx]
-    #         )
-    #     end
-    #     println(bar)
-    # end
+
+    for (update, val) in config.groups[1].propose
+        @printf("%-14s %12s %12s %12s\n", String(update), "Proposed", "Accepted", "Ratio  ")
+        for (idx, group) in enumerate(config.groups)
+            @printf(
+                "  Order%2d:     %12.0f %12.0f %12.6f\n",
+                group.id,
+                group.propose[update],
+                group.accept[update],
+                group.accept[update] / group.propose[update]
+            )
+        end
+        println(bar)
+    end
     println(progressBar(round(config.step / 1000_000, digits = 2), config.totalBlock))
     println()
 end
