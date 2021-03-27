@@ -4,13 +4,21 @@ utility for Monte Carlo
 module MonteCarlo
 using Random
 using LinearAlgebra
-using StaticArrays
+using StaticArrays, Printf, Dates
 const RNG = Random.GLOBAL_RNG
 
+include("variable.jl")
 include("configuration.jl")
 include("sampler.jl")
+include("updates.jl")
 
-function montecarlo!(totalblock, config, timer=nothing, updates=nothing, savefile=nothing)
+function montecarlo(
+    config,
+    timer = nothing,
+    updates = nothing
+)
+
+    timer, updates=initialize(config, timer, updates)
     println("Start Simulation ...")
 
     # printTimer = StopWatch(PrintTime, Markov.printStatus)
@@ -18,9 +26,10 @@ function montecarlo!(totalblock, config, timer=nothing, updates=nothing, savefil
     # reweightTimer = StopWatch(ReWeightTime, Markov.reweight)
     # messageTimer = StopWatch(MessageTime, Markov.save)
 
-    for block = 1:totalblock
+    for block = 1:config.totalBlock
         for i = 1:1000_000
             config.step += 1
+            config.curr.visitedSteps += 1
             _update = rand(config.rng, updates) #randomly select an update
             _update(config)
             i % 10 == 0 && measure(config)
@@ -32,34 +41,103 @@ function montecarlo!(totalblock, config, timer=nothing, updates=nothing, savefil
         end
     end
 
-    # printStatus()
+    printStatus(config)
     println("End Simulation. ")
 end
 
-# const barbar = "====================================================================================="
-# const bar = "-------------------------------------------------------------------------------------"
+function initialize(config, timer, updates)
+    if timer==nothing
+        printTime=10
+        timer=[StopWatch(printTime, printStatus), ]
+    end
 
-# function printStatus(state, updates)
-#     # Var.counter += 1
-#     println(barbar)
-#     printstyled(Dates.now(), color = :green)
-#     println("\nStep:", state.step)
-#     println(bar)
-#     for i = 1:UpdateNum
-#         @printf("%-14s %12s %12s %12s\n", Name[i], "Proposed", "Accepted", "Ratio  ")
-#         for o = 0:Order
-#             @printf(
-#                 "  Order%2d:     %12.0f %12.0f %12.6f\n",
-#                 o,
-#                 Proposed[i, o + 1],
-#                 Accepted[i, o + 1],
-#                 Accepted[i, o + 1] / Proposed[i, o + 1]
-#             )
-#         end
-#         println(bar)
-#     end
-#     println(progressBar(round(curr.step / 1000_000, digits = 2), TotalBlock))
-#     println()
-# end
+    if updates==nothing
+        updates=[increaseOrder, decreaseOrder]
+    end
+    for update in updates
+        for group in config.groups
+            group.propose[Symbol(update)]=1.0e-10
+            group.accept[Symbol(update)]=1.0e-10
+        end
+    end
+    return timer, updates
+end
+
+const barbar = "====================================================================================="
+const bar = "-------------------------------------------------------------------------------------"
+
+function printStatus(config)
+    # Var.counter += 1
+    println(barbar)
+    printstyled(Dates.now(), color = :green)
+    println("\nStep:", config.step)
+    println(bar)
+    # for update in config.propose
+    #     @printf("%-14s %12s %12s %12s\n", String(update), "Proposed", "Accepted", "Ratio  ")
+    #     for (idx, group) in enumerate(config.groups)
+    #         @printf(
+    #             "  Order%2d:     %12.0f %12.0f %12.6f\n",
+    #             o,
+    #             config.propose[update][idx],
+    #             config.accept[update][idx],
+    #             config.accept[update][idx] / config.propose[update][idx]
+    #         )
+    #     end
+    #     println(bar)
+    # end
+    println(progressBar(round(config.step / 1000_000, digits = 2), config.totalBlock))
+    println()
+end
+
+"""
+    StopWatch(start, interval, callback)
+
+Initialize a stopwatch. 
+
+# Arguments
+- `start::Float64`: initial time (in seconds)
+- `interval::Float64` : interval to click (in seconds)
+- `callback` : callback function after each click (interval seconds)
+"""
+mutable struct StopWatch
+    start::Float64
+    interval::Float64
+    f::Function
+    StopWatch(_interval, callback) = new(time(), _interval, callback)
+end
+
+"""
+    check(stopwatch, parameter...)
+
+Check stopwatch. If it clicks, call the callback function with the unpacked parameter
+"""
+function check(watch::StopWatch, parameter...)
+    now = time()
+    if now - watch.start > watch.interval
+        watch.f(parameter...)
+        watch.start = now
+    end
+end
+
+"""
+    progressBar(step, total)
+
+Return string of progressBar (step/total*100%)
+"""
+function progressBar(step, total)
+    barWidth = 70
+    percent = round(step / total * 100.0, digits = 2)
+    str = "["
+    pos = barWidth * percent / 100.0
+    for i = 1:barWidth
+        if i <= pos
+            str *= "I"
+        else
+            str *= " "
+        end
+    end
+    str *= "] $step/$total=$percent%"
+    return str
+end
 
 end
