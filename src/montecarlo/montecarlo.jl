@@ -57,26 +57,32 @@ function initialize(config, timer, updates)
     if updates==nothing
         updates=[increaseOrder, decreaseOrder, changeInternal]
     end
-    for update in updates
-        for group in config.groups
-            group.propose[Symbol(update)]=1.0e-10
-            group.accept[Symbol(update)]=1.0e-10
-        end
+
+    for group in config.groups
+        group.propose=zeros(Float64, length(updates))
+        group.accept=zeros(Float64, length(updates))
     end
+
+    # for update in updates
+    #     for group in config.groups
+    #         group.propose[Symbol(update)]=1.0e-10
+    #         group.accept[Symbol(update)]=1.0e-10
+    #     end
+    # end
 
     return timer, updates
 end
 
 function reweight(config)
-    # config.groups[1].reWeightFactor=1.0
-    # config.groups[2].reWeightFactor=8.0
-    avgstep=sum([g.visitedSteps for g in config.groups])/length(config.groups)
-    for g in config.groups
-        if g.visitedSteps>10000
-            # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
-            g.reWeightFactor *=avgstep/g.visitedSteps
-        end
-    end
+    config.groups[1].reWeightFactor=1.0
+    config.groups[2].reWeightFactor=8.0
+    # avgstep=sum([g.visitedSteps for g in config.groups])/length(config.groups)
+    # for g in config.groups
+    #     if g.visitedSteps>10000
+    #         # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
+    #         g.reWeightFactor *=avgstep/g.visitedSteps
+    #     end
+    # end
 end
 
 function measure(config)
@@ -96,15 +102,17 @@ function printStatus(config)
     println("\nStep:", config.step)
     println(bar)
 
-    for (update, val) in config.groups[1].propose
-        @printf("%-14s %12s %12s %12s\n", String(update), "Proposed", "Accepted", "Ratio  ")
+    name=["increaseOrder", "decreaseOrder", "changeInternal"]
+
+    for num in 1:length(name)
+        @printf("%-14s %12s %12s %12s\n", String(name[num]), "Proposed", "Accepted", "Ratio  ")
         for (idx, group) in enumerate(config.groups)
             @printf(
                 "  Order%2d:     %12.8f %12.8f %12.6f\n",
                 group.id,
-                group.propose[update]/config.step,
-                group.accept[update]/config.step,
-                group.accept[update] / group.propose[update]
+                group.propose[num]/config.step,
+                group.accept[num]/config.step,
+                group.accept[num] / group.propose[num]
             )
         end
         println(bar)
