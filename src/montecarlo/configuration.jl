@@ -61,14 +61,6 @@ mutable struct Configuration{V,R}
     end
 end
 
-function measure(config)
-    curr = config.curr
-
-    factor = 1.0 / curr.absWeight / curr.reWeightFactor
-    weight = curr.eval(config)
-    curr.observable[config.ext.idx...] += weight * factor
-end
-
 # function save(obs::OneBody)
 #     filename = "$(name())_pid$(curr.PID).jld2"
 #     data = Dict("PID" => curr.PID, "Norm" => obs.norm, "Data" => obs.data / obs.norm * obs.phy)

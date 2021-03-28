@@ -109,6 +109,27 @@ Propose to remove an existing Fermi K in [Kf-δK, Kf+δK)
 end
 
 """
+    shiftK!(oldK, newK, step, rng=GLOBAL_RNG)
+
+Propose to shift oldK to newK. Work for generic momentum vector
+"""
+@inline function shift!(K::FermiK{D}, idx::Int, rng = RNG) where {D}
+    x=rand(rng)
+    if x<1.0/3
+        K[idx] = K[idx]+(rand(rng, D) .- 0.5) .* K.δk
+        return 1.0
+    elseif x<2.0/3
+        λ=1.5
+        ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
+        K[idx] = K[idx]*ratio
+        return (D == 2) ? 1.0 : ratio
+    else
+        K[idx] = K[idx]*(-1.0)
+        return 1.0
+    end
+end
+
+"""
     shiftK_radial!(oldK, newK, λ=1.5, rng=GLOBAL_RNG)
 
 Propose to shift oldK to newK. Work for generic momentum vector
@@ -116,10 +137,6 @@ Propose to shift oldK to newK. Work for generic momentum vector
 - `newK`:  randomly proposed in [oldK/λ, oldK*λ)
 """
 @inline function shiftK_radial!(oldK, newK, λ = 1.5, rng = RNG)
-    ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
-    newK .= oldK .* ratio
-    DIM = length(oldK)
-    return (DIM == 2) ? 1.0 : ratio
 end
 
 """
@@ -182,18 +199,18 @@ Propose to shift the old tau to new tau, both in [0, β), return proposal probab
 @inline function shift!(T::Tau, idx::Int, rng = RNG)
     x = rand(rng)
     if x < 1.0 / 3
-        T[idx] = T[idx] + 2 * T.λ * (rand(rng) - T(0.5))
+        T[idx] = T[idx] + 2 * T.λ * (rand(rng) - 0.5)
     elseif x < 2.0 / 3
         T[idx] = T.β - T[idx]
     else
         T[idx] = rand(rng) * T.β
     end
 
-    if T[idx] < T(0.0)
-        T[idx] += β
-    elseif newT > β
-        T[idx] -= β
+    if T[idx] < 0.0
+        T[idx] += T.β
+    elseif T[idx] > T.β
+        T[idx] -= T.β
     end
 
-    return T(1.0)
+    return 1.0
 end

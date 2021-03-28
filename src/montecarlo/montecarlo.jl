@@ -34,11 +34,13 @@ function montecarlo(
             _update(config)
             i % 10 == 0 && measure(config)
             if i % 1000 == 0
+                # println(config.var[1][1], ", ", config.var[2][1], ", ", config.var[2][2])
                 for t in timer
                     check(t, config)
                 end
             end
         end
+        reweight(config)
     end
 
     printStatus(config)
@@ -52,7 +54,7 @@ function initialize(config, timer, updates)
     end
 
     if updates==nothing
-        updates=[increaseOrder, decreaseOrder]
+        updates=[increaseOrder, decreaseOrder, changeInternal]
     end
     for update in updates
         for group in config.groups
@@ -61,6 +63,25 @@ function initialize(config, timer, updates)
         end
     end
     return timer, updates
+end
+
+function reweight(config)
+    # config.groups[1].reWeightFactor=1.0
+    # config.groups[2].reWeightFactor=8.0
+    avgstep=sum([g.visitedSteps for g in config.groups])/length(config.groups)
+    for g in config.groups
+        if g.visitedSteps>10000
+            # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
+            g.reWeightFactor *=avgstep/g.visitedSteps
+        end
+    end
+end
+
+function measure(config)
+    curr = config.curr
+    factor = 1.0 / curr.absWeight / curr.reWeightFactor
+    weight = curr.eval(config)
+    curr.observable[config.ext.idx...] += weight * factor
 end
 
 const barbar = "====================================================================================="
