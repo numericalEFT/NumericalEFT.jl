@@ -1,10 +1,7 @@
-using Distributed
+using QuantumStatistics, Statistics, LinearAlgebra, Random
+using BenchmarkTools
 
-const N=1
-addprocs(N)
-@everywhere using QuantumStatistics, Statistics, LinearAlgebra, Random
-
-@everywhere function MC(block, kF, β, x)
+function MC(block, kF, β, x)
     rng=MersenneTwister(x)
     function eval1(config)
         T=config.var[2][1]
@@ -42,15 +39,16 @@ end
 
 function run()
     # println(procs())
-    block=10
+    block=1
     # result=zeros(Float64, N)
     kF, β = 1.919, 25.0
 
-    result=pmap((x)->MC(block, kF, β, x), 1:N)
+    result=MC(block, kF, β, 1)
+    println(result)
 
     println(mean(result)," ± ",std(result)/sqrt(length(result)))
     p, err=Diagram.bubble(0.0, 0.0im, 3, kF, β)
     println(real(p)*2, " ± ", real(err)*2)
 end
 
-run()
+@btime run()

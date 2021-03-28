@@ -16,8 +16,8 @@ mutable struct Group{A<:AbstractArray,F<:Function}
     observable::A
     eval::Function
 
-    propose::Dict{Symbol, Float64}
-    accept::Dict{Symbol, Float64}
+    propose::Vector{Float64}
+    accept::Vector{Float64}
     reWeightFactor::Float64
     visitedSteps::Float64
     absWeight::Float64
@@ -25,8 +25,8 @@ mutable struct Group{A<:AbstractArray,F<:Function}
     function Group(_id, _internal, _obs::A, _eval::F) where {A,F}
         # _obs=zeros(_obstype, Tuple(_external))
         # obstype=Array{_obstype, length(_external)}
-        propose=Dict{Symbol, Float64}()
-        accept=Dict{Symbol, Float64}()
+        propose=Vector{Float64}(undef, 0)
+        accept=Vector{Float64}(undef, 0)
 
         return new{A,F}(_id, collect(_internal), _obs, _eval, propose, accept, 1.0, 0.0, eps())
     end
