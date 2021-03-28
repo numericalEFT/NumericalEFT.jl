@@ -1,6 +1,6 @@
 using Distributed
 
-const N=16
+const N=30
 addprocs(N)
 @everywhere using QuantumStatistics, Statistics, LinearAlgebra, Random
 
@@ -54,7 +54,3 @@ function run()
 end
 
 run()
-
-
-# println(group1.observable)
-# println(group2.observable)
