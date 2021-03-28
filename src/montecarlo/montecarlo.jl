@@ -40,6 +40,7 @@ function montecarlo(
                 end
             end
         end
+        # println(config.curr.observable)
         reweight(config)
     end
 
@@ -62,6 +63,7 @@ function initialize(config, timer, updates)
             group.accept[Symbol(update)]=1.0e-10
         end
     end
+
     return timer, updates
 end
 

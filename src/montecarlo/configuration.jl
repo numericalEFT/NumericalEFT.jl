@@ -55,9 +55,11 @@ mutable struct Configuration{V,R}
             r = Random.RandomDevice()
             pid = rand(r, Int) % 1000000
         end
-        curridx = 1
 
-        return new{V,R}(pid, _totalBlock, Tuple(_groups), 0, _var, _ext, _groups[curridx], rng)
+        curr=_groups[1]
+        config=new{V,R}(pid, _totalBlock, Tuple(_groups), 0, _var, _ext, curr, rng)
+        curr.absWeight=curr.eval(config)
+        return config
     end
 end
 
