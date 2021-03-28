@@ -79,6 +79,9 @@ Compute the polarization function of free electrons at a given frequency.
     result1, err1 = Cuba.cuhre(integrand1, 2, 2, atol = eps * 1e-3)
     result2, err2 = Cuba.cuhre(integrand2, 2, 2, atol = eps * 1e-3)
 
+    # result1, err1 = Cuba.vegas(integrand1, 2, 2, atol = eps * 1e-3)
+    # result2, err2 = Cuba.vegas(integrand2, 2, 2, atol = eps * 1e-3)
+
     # println(complex(result1[1], result1[2]))
     # println(complex(result2[1]...))
     result = result1 + result2

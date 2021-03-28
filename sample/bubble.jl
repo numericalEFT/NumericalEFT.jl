@@ -1,10 +1,11 @@
-using QuantumStatistics
-using LinearAlgebra
-using Statistics
-using Random
+using Distributed
 
-function MC(block, rng)
-    kF, β = 1.919, 25.0
+const N=16
+addprocs(N)
+@everywhere using QuantumStatistics, Statistics, LinearAlgebra, Random
+
+@everywhere function MC(block, kF, β, x)
+    rng=MersenneTwister(x)
     function eval1(config)
         T=config.var[2][1]
         return 1.0
@@ -40,15 +41,16 @@ function MC(block, rng)
 end
 
 function run()
-    N=30
+    # println(procs())
     block=10
-    result=zeros(Float64, N)
-    rngs = [MersenneTwister(i) for i in 1:Threads.nthreads()]
+    # result=zeros(Float64, N)
+    kF, β = 1.919, 25.0
 
-    Threads.@threads for i in 1:N
-        result[i]=MC(block, rngs[i])
-    end
-    println(mean(result),"±",std(result)/sqrt(length(result)))
+    result=pmap((x)->MC(block, kF, β, x), 1:N)
+
+    println(mean(result)," ± ",std(result)/sqrt(length(result)))
+    p, err=Diagram.bubble(0.0, 0.0im, 3, kF, β)
+    println(real(p)*2, " ± ", real(err)*2)
 end
 
 run()
