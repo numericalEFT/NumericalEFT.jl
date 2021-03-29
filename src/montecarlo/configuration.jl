@@ -33,7 +33,7 @@ mutable struct Group
     end
 end
 
-mutable struct Configuration{TX, TK ,R}
+mutable struct Configuration{TX,TK,R}
     pid::Int
     totalBlock::Int
     groups::Vector{Group}
@@ -53,10 +53,21 @@ mutable struct Configuration{TX, TK ,R}
         _varX::TX,
         _varK::TK,
         _ext,
-        rng::R
-    ) where {TX, TK, R}
+        rng::R,
+    ) where {TX,TK,R}
         curr = _groups[1]
-        config = new{TX, TK, R}(_pid, _totalBlock, collect(_groups), _varX, _varK, _ext, 0, curr, rng, 0.0)
+        config = new{TX,TK,R}(
+            _pid,
+            _totalBlock,
+            collect(_groups),
+            _varX,
+            _varK,
+            _ext,
+            0,
+            curr,
+            rng,
+            0.0,
+        )
         return config
     end
 end

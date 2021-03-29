@@ -12,7 +12,17 @@ include("configuration.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(block, integrand, groups, T, K, Ext; pid=nothing, rng=GLOBAL_RNG, timer=nothing)
+function montecarlo(
+    block,
+    integrand,
+    groups,
+    T,
+    K,
+    Ext;
+    pid = nothing,
+    rng = GLOBAL_RNG,
+    timer = nothing,
+)
     ##############  initialization  ################################
     if (pid == nothing)
         r = Random.RandomDevice()
@@ -21,7 +31,8 @@ function montecarlo(block, integrand, groups, T, K, Ext; pid=nothing, rng=GLOBAL
     Random.seed!(rng, pid)
 
     config = Configuration(pid, block, groups, T, K, Ext, rng)
-    config.absWeight = integrand(config.curr.id, config.X, config.K, config.ext, config.step)
+    config.absWeight =
+        integrand(config.curr.id, config.X, config.K, config.ext, config.step)
 
     if timer == nothing
         printTime = 10
@@ -43,7 +54,7 @@ function montecarlo(block, integrand, groups, T, K, Ext; pid=nothing, rng=GLOBAL
             config.curr.visitedSteps += 1
             _update = rand(config.rng, updates) #randomly select an update
             _update(config, integrand)
-            (i % 10 == 0 && block>=2) && measure(config, integrand)
+            (i % 10 == 0 && block >= 2) && measure(config, integrand)
             if i % 1000 == 0
                 # println(config.var[1][1], ", ", config.var[2][1], ", ", config.var[2][2])
                 for t in timer
@@ -81,7 +92,8 @@ function initialize(config, integrand, timer, updates)
     #     end
     # end
 
-    config.absWeight = integrand(config.curr.id, config.X, config.K, config.ext, config.step)
+    config.absWeight =
+        integrand(config.curr.id, config.X, config.K, config.ext, config.step)
 
     return timer, updates
 end
@@ -102,8 +114,8 @@ function measure(config, integrand)
     curr = config.curr
     # factor = 1.0 / config.absWeight / curr.reWeightFactor
     weight = integrand(curr.id, config.X, config.K, config.ext, config.step)
-    obs=curr.observable
-    obs[config.ext.idx...] += weight/abs(weight) /curr.reWeightFactor
+    obs = curr.observable
+    obs[config.ext.idx...] += weight / abs(weight) / curr.reWeightFactor
 end
 
 const barbar = "====================================================================================="
