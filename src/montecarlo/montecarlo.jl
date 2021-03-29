@@ -12,13 +12,9 @@ include("configuration.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(
-    config,
-    timer = nothing,
-    updates = nothing
-)
+function montecarlo(config, integrand, timer = nothing, updates = nothing)
 
-    timer, updates=initialize(config, timer, updates)
+    timer, updates = initialize(config, integrand, timer, updates)
     println("Start Simulation ...")
 
     # printTimer = StopWatch(PrintTime, Markov.printStatus)
@@ -31,8 +27,8 @@ function montecarlo(
             config.step += 1
             config.curr.visitedSteps += 1
             _update = rand(config.rng, updates) #randomly select an update
-            _update(config)
-            i % 10 == 0 && measure(config)
+            _update(config, integrand)
+            i % 10 == 0 && measure(config, integrand)
             if i % 1000 == 0
                 # println(config.var[1][1], ", ", config.var[2][1], ", ", config.var[2][2])
                 for t in timer
@@ -48,19 +44,19 @@ function montecarlo(
     println("End Simulation. ")
 end
 
-function initialize(config, timer, updates)
-    if timer==nothing
-        printTime=10
-        timer=[StopWatch(printTime, printStatus), ]
+function initialize(config, integrand, timer, updates)
+    if timer == nothing
+        printTime = 10
+        timer = [StopWatch(printTime, printStatus)]
     end
 
-    if updates==nothing
-        updates=[increaseOrder, decreaseOrder, changeInternal]
+    if updates == nothing
+        updates = [increaseOrder, decreaseOrder, changeInternal]
     end
 
     for group in config.groups
-        group.propose=zeros(Float64, length(updates))
-        group.accept=zeros(Float64, length(updates))
+        group.propose = zeros(Float64, length(updates))
+        group.accept = zeros(Float64, length(updates))
     end
 
     # for update in updates
@@ -70,12 +66,14 @@ function initialize(config, timer, updates)
     #     end
     # end
 
+    config.absWeight = integrand(config, config.curr)
+
     return timer, updates
 end
 
 function reweight(config)
-    config.groups[1].reWeightFactor=1.0
-    config.groups[2].reWeightFactor=8.0
+    config.groups[1].reWeightFactor = 1.0
+    config.groups[2].reWeightFactor = 8.0
     # avgstep=sum([g.visitedSteps for g in config.groups])/length(config.groups)
     # for g in config.groups
     #     if g.visitedSteps>10000
@@ -85,10 +83,10 @@ function reweight(config)
     # end
 end
 
-function measure(config)
+function measure(config, integrand)
     curr = config.curr
-    factor = 1.0 / curr.absWeight / curr.reWeightFactor
-    weight = curr.eval(config)
+    factor = 1.0 / config.absWeight / curr.reWeightFactor
+    weight = integrand(config, curr)
     curr.observable[config.ext.idx...] += weight * factor
 end
 
@@ -102,16 +100,22 @@ function printStatus(config)
     println("\nStep:", config.step)
     println(bar)
 
-    name=["increaseOrder", "decreaseOrder", "changeInternal"]
+    name = ["increaseOrder", "decreaseOrder", "changeInternal"]
 
-    for num in 1:length(name)
-        @printf("%-14s %12s %12s %12s\n", String(name[num]), "Proposed", "Accepted", "Ratio  ")
+    for num = 1:length(name)
+        @printf(
+            "%-14s %12s %12s %12s\n",
+            String(name[num]),
+            "Proposed",
+            "Accepted",
+            "Ratio  "
+        )
         for (idx, group) in enumerate(config.groups)
             @printf(
                 "  Order%2d:     %12.8f %12.8f %12.6f\n",
                 group.id,
-                group.propose[num]/config.step,
-                group.accept[num]/config.step,
+                group.propose[num] / config.step,
+                group.accept[num] / config.step,
                 group.accept[num] / group.propose[num]
             )
         end

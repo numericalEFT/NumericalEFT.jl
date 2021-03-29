@@ -1,7 +1,7 @@
 
-function increaseOrder(config)
-    idx=rand(config.rng, 1:length(config.groups))
-    new=config.groups[idx]
+function increaseOrder(config, integrand)
+    idx = rand(config.rng, 1:length(config.groups))
+    new = config.groups[idx]
     # new::Group=rand(config.rng, config.groups)
     curr = config.curr
 
@@ -15,10 +15,12 @@ function increaseOrder(config)
     end
 
     prop = 1.0
-    for idx in 1:length(config.var)
-        v=config.var[idx]
-        for pos = curr.internal[idx]+1:new.internal[idx]
-            prop *= create!(v, pos, config.rng)
+    for idx = 1:length(config.var)
+        v = config.var[idx]
+        if diff[idx] > 0
+            for pos = 1:diff[idx]
+                prop *= create!(v, curr.internal[idx] + pos, config.rng)
+            end
         end
     end
 
@@ -28,21 +30,22 @@ function increaseOrder(config)
     #     end
     # end
 
-    newAbsWeight::Float64 = abs(new.eval(config))
-    R::Float64 = prop * newAbsWeight * new.reWeightFactor / curr.absWeight / curr.reWeightFactor
+    newAbsWeight = abs(integrand(config, new))
+    R = prop * newAbsWeight * new.reWeightFactor / config.absWeight / curr.reWeightFactor
 
-    curr.propose[1]+=1.0
+    curr.propose[1] += 1.0
     # curr.propose[Symbol(increaseOrder)]+=1.0
     if rand(config.rng) < R
-        curr.accept[1]+=1.0
+        curr.accept[1] += 1.0
         # curr.accept[Symbol(increaseOrder)]+=1.0
-        new.absWeight = newAbsWeight
+        config.absWeight = newAbsWeight
         config.curr = new
     end
 end
 
-function decreaseOrder(config)
-    new=rand(config.rng, config.groups)
+function decreaseOrder(config, integrand)
+    idx = rand(config.rng, 1:length(config.groups))
+    new = config.groups[idx]
     curr = config.curr
     (new.internal == curr.internal) && return #new and curr groups should not be the same order
 
@@ -58,14 +61,14 @@ function decreaseOrder(config)
             prop *= remove(v, pos, config.rng)
         end
     end
-    newAbsWeight = abs(new.eval(config))
-    R = prop * newAbsWeight * new.reWeightFactor / curr.absWeight / curr.reWeightFactor
+    newAbsWeight = abs(integrand(config, new))
+    R = prop * newAbsWeight * new.reWeightFactor / config.absWeight / curr.reWeightFactor
     # curr.propose[Symbol(decreaseOrder)]+=1.0
-    curr.propose[2]+=1.0
+    curr.propose[2] += 1.0
     if rand(config.rng) < R
-        curr.accept[2]+=1.0
+        curr.accept[2] += 1.0
         # curr.accept[Symbol(decreaseOrder)]+=1.0
-        new.absWeight = newAbsWeight
+        config.absWeight = newAbsWeight
         config.curr = new
     end
 end
@@ -76,23 +79,23 @@ end
 #     return
 # end
 
-function changeInternal(config)
-    curr=config.curr
-    varidx=rand(config.rng, 1:length(config.var))
-    var=config.var[varidx] #get the internal variable table
-    varnum=curr.internal[varidx] #number of var of the current group
-    (varnum<=0) && return #return if the var number is less than 1
-    idx=rand(config.rng, 1:varnum) #randomly choose one var to update
-    oldvar=var[idx] 
-    prop=shift!(var, idx, config.rng)
+function changeInternal(config, integrand)
+    curr = config.curr
+    varidx = rand(config.rng, 1:length(config.var))
+    var = config.var[varidx] #get the internal variable table
+    varnum = curr.internal[varidx] #number of var of the current group
+    (varnum <= 0) && return #return if the var number is less than 1
+    idx = rand(config.rng, 1:varnum) #randomly choose one var to update
+    oldvar = var[idx]
+    prop = shift!(var, idx, config.rng)
 
-    newAbsWeight = abs(curr.eval(config))
-    R = prop * newAbsWeight / curr.absWeight
-    curr.propose[3]+=1.0
+    newAbsWeight = abs(integrand(config, curr))
+    R = prop * newAbsWeight / config.absWeight
+    curr.propose[3] += 1.0
     # curr.propose[Symbol(changeInternal)]+=1.0
     if rand(config.rng) < R
-        curr.accept[3]+=1.0
-        curr.absWeight = newAbsWeight
+        curr.accept[3] += 1.0
+        config.absWeight = newAbsWeight
     else
         var[idx] = oldvar
     end
