@@ -46,28 +46,9 @@ mutable struct Configuration{TX,TK,R}
     rng::R
     absWeight::Float64
 
-    function Configuration(
-        _pid,
-        _totalBlock,
-        _groups,
-        _varX::TX,
-        _varK::TK,
-        _ext,
-        rng::R,
-    ) where {TX,TK,R}
+    function Configuration(_pid, _totalBlock, _groups, _varX::TX, _varK::TK, _ext, rng::R) where {TX,TK,R}
         curr = _groups[1]
-        config = new{TX,TK,R}(
-            _pid,
-            _totalBlock,
-            collect(_groups),
-            _varX,
-            _varK,
-            _ext,
-            0,
-            curr,
-            rng,
-            0.0,
-        )
+        config = new{TX,TK,R}(_pid, _totalBlock, collect(_groups), _varX, _varK, _ext, 0, curr, rng, 0.0)
         return config
     end
 end
