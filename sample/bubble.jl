@@ -42,12 +42,9 @@ addprocs(N)
     Ext = MonteCarlo.External([1]) # external variable is specified
     group1 = MonteCarlo.Group(1, 0, 1, 0, zeros(Float64, Ext.size...))
     group2 = MonteCarlo.Group(2, 1, 2, 1, zeros(Float64, Ext.size...))
-    # config =
-    #     MonteCarlo.Configuration(block, (group1, group2), T, K, Ext; pid=x, rng = rng)
 
-# function montecarlo(block, integrand, groups, T, K, Ext; pid=nothing, rng=GLOBAL_RNG, timer=nothing)
+    MonteCarlo.montecarlo(block, integrand, (group1, group2), T, K, Ext; pid = x, rng = rng)
 
-    MonteCarlo.montecarlo(block, integrand, (group1, group2), T, K, Ext; pid=x, rng=rng)
     w1 = group1.observable[1]
     w2 = group2.observable[1]
     println(group1.visitedSteps, " vs ", group2.visitedSteps)
@@ -60,7 +57,7 @@ function run()
     block = 100
     # result=zeros(Float64, N)
     kF = 1.919
-    β=25.0/kF^2
+    β = 25.0 / kF^2
 
     result = pmap((x) -> MC(block, kF, β, x), 1:N)
 

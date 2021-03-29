@@ -5,15 +5,15 @@ function increaseOrder(config, integrand)
     # new::Group=rand(config.rng, config.groups)
     curr = config.curr
 
-    if (new.order!=curr.order+1) 
+    if (new.order != curr.order + 1)
         return
     end
 
     prop = 1.0
-    for pos in curr.nX+1:new.nX
+    for pos = curr.nX+1:new.nX
         prop *= create!(config.X, pos, config.rng)
     end
-    for pos in curr.nK+1:new.nK
+    for pos = curr.nK+1:new.nK
         prop *= create!(config.K, pos, config.rng)
     end
 
@@ -41,15 +41,15 @@ function decreaseOrder(config, integrand)
     new = config.groups[idx]
     curr = config.curr
 
-    if (new.order!=curr.order-1) 
+    if (new.order != curr.order - 1)
         return
     end
 
     prop = 1.0
-    for pos in new.nX+1:curr.nX
+    for pos = new.nX+1:curr.nX
         prop *= remove(config.X, pos, config.rng)
     end
-    for pos in new.nK+1:curr.nK
+    for pos = new.nK+1:curr.nK
         prop *= remove(config.K, pos, config.rng)
     end
 
