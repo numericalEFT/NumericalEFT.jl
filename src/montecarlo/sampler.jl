@@ -154,36 +154,6 @@ Propose to shift oldK to newK. Work for generic momentum vector
 end
 
 """
-    shiftK_radial!(oldK, newK, λ=1.5, rng=GLOBAL_RNG)
-
-Propose to shift oldK to newK. Work for generic momentum vector
-# Arguments
-- `newK`:  randomly proposed in [oldK/λ, oldK*λ)
-"""
-@inline function shiftK_radial!(oldK, newK, λ = 1.5, rng = RNG) end
-
-"""
-    shiftK!(oldK, newK, step, rng=GLOBAL_RNG)
-
-Propose to shift oldK to newK. Work for generic momentum vector
-"""
-@inline function shiftK!(oldK, newK, step, rng = RNG)
-    DIM = length(oldK)
-    newK .= oldK .+ (rand(rng, DIM) .- 0.5) .* step
-    return 1.0
-end
-
-"""
-    shiftK_flip!(oldK, newK)
-
-Propose to flip oldK to newK. Work for generic momentum vector
-"""
-@inline function shiftK_flip!(oldK, newK)
-    newK .= oldK .* (-1.0)
-    return 1.0
-end
-
-"""
     create!(T::Tau, idx::Int, rng=GLOBAL_RNG)
 
 Propose to generate new tau (uniformly) randomly in [0, β), return proposal probability

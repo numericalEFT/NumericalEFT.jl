@@ -70,44 +70,16 @@ function montecarlo(
     println("End Simulation. ")
 end
 
-function initialize(config, integrand, timer, updates)
-    if timer == nothing
-        printTime = 10
-        timer = [StopWatch(printTime, printStatus)]
-    end
-
-    if updates == nothing
-        updates = [increaseOrder, decreaseOrder, changeX, changeK]
-    end
-
-    for group in config.groups
-        group.propose = zeros(Float64, length(updates))
-        group.accept = zeros(Float64, length(updates))
-    end
-
-    # for update in updates
-    #     for group in config.groups
-    #         group.propose[Symbol(update)]=1.0e-10
-    #         group.accept[Symbol(update)]=1.0e-10
-    #     end
-    # end
-
-    config.absWeight =
-        integrand(config.curr.id, config.X, config.K, config.ext, config.step)
-
-    return timer, updates
-end
-
 function reweight(config)
-    config.groups[1].reWeightFactor = 1.0
-    config.groups[2].reWeightFactor = 8.0
-    # avgstep=sum([g.visitedSteps for g in config.groups])/length(config.groups)
-    # for g in config.groups
-    #     if g.visitedSteps>10000
-    #         # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
-    #         g.reWeightFactor *=avgstep/g.visitedSteps
-    #     end
-    # end
+    # config.groups[1].reWeightFactor = 1.0
+    # config.groups[2].reWeightFactor = 8.0
+    avgstep=sum([g.visitedSteps for g in config.groups])/length(config.groups)
+    for g in config.groups
+        if g.visitedSteps>10000
+            # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
+            g.reWeightFactor *=avgstep/g.visitedSteps
+        end
+    end
 end
 
 function measure(config, integrand)
