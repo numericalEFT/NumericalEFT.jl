@@ -12,23 +12,38 @@ include("configuration.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(config, integrand, timer = nothing, updates = nothing)
+function montecarlo(block, integrand, groups, T, K, Ext; pid=nothing, rng=GLOBAL_RNG, timer=nothing)
+    ##############  initialization  ################################
+    if (pid == nothing)
+        r = Random.RandomDevice()
+        pid = abs(rand(r, Int)) % 1000000
+    end
+    Random.seed!(rng, pid)
 
-    timer, updates = initialize(config, integrand, timer, updates)
+    config = Configuration(pid, block, groups, T, K, Ext, rng)
+    config.absWeight = integrand(config.curr.id, config.X, config.K, config.ext, config.step)
+
+    if timer == nothing
+        printTime = 10
+        timer = [StopWatch(printTime, printStatus)]
+    end
+
+    updates = [increaseOrder, decreaseOrder, changeX, changeK]
+
+    for group in config.groups
+        group.propose = zeros(Float64, length(updates))
+        group.accept = zeros(Float64, length(updates))
+    end
+
     println("Start Simulation ...")
 
-    # printTimer = StopWatch(PrintTime, Markov.printStatus)
-    # saveTimer = StopWatch(SaveTime, Markov.save)
-    # reweightTimer = StopWatch(ReWeightTime, Markov.reweight)
-    # messageTimer = StopWatch(MessageTime, Markov.save)
-
-    for block = 1:config.totalBlock
+    for block = 1:block
         for i = 1:1000_000
             config.step += 1
             config.curr.visitedSteps += 1
             _update = rand(config.rng, updates) #randomly select an update
             _update(config, integrand)
-            i % 10 == 0 && measure(config, integrand)
+            (i % 10 == 0 && block>=2) && measure(config, integrand)
             if i % 1000 == 0
                 # println(config.var[1][1], ", ", config.var[2][1], ", ", config.var[2][2])
                 for t in timer
@@ -85,9 +100,10 @@ end
 
 function measure(config, integrand)
     curr = config.curr
-    factor = 1.0 / config.absWeight / curr.reWeightFactor
+    # factor = 1.0 / config.absWeight / curr.reWeightFactor
     weight = integrand(curr.id, config.X, config.K, config.ext, config.step)
-    curr.observable[config.ext.idx...] += weight * factor
+    obs=curr.observable
+    obs[config.ext.idx...] += weight/abs(weight) /curr.reWeightFactor
 end
 
 const barbar = "====================================================================================="

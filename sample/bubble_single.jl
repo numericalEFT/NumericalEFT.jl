@@ -2,8 +2,8 @@ using QuantumStatistics, Statistics, LinearAlgebra, Random
 using BenchmarkTools
 using InteractiveUtils
 
-const β = 25.0
 const kF = 1.919
+const β = 25.0/kF^2
 
 function MC(block, x)
     rng = MersenneTwister(x)
@@ -42,8 +42,8 @@ function MC(block, x)
     Ext = MonteCarlo.External([1]) # external variable is specified
     group1 = MonteCarlo.Group(1, 0, 1, 0, zeros(Float64, Ext.size...))
     group2 = MonteCarlo.Group(2, 1, 2, 1, zeros(Float64, Ext.size...))
-    config =
-        MonteCarlo.Configuration(block, [group1, group2], T, K, Ext; rng = rng)
+    # config =
+    #     MonteCarlo.Configuration(block, [group1, group2], T, K, Ext; rng = rng)
 
     # @benchmark eval2(c) setup=(c=$config)
 
@@ -52,7 +52,9 @@ function MC(block, x)
     # @code_warntype MonteCarlo.increaseOrder(config, config.curr)
     # @code_warntype eval2(config)
 
-    MonteCarlo.montecarlo(config, integrand)
+    # MonteCarlo.montecarlo(config, integrand)
+
+    MonteCarlo.montecarlo(block, integrand, (group1, group2), T, K, Ext; pid=x, rng=rng)
     w1 = group1.observable[1]
     w2 = group2.observable[1]
     println(group1.visitedSteps, " vs ", group2.visitedSteps)
@@ -62,7 +64,7 @@ end
 
 function run()
     # println(procs())
-    block = 1
+    block = 10
     # result=zeros(Float64, N)
     # kF, β = 1.919, 25.0
 
