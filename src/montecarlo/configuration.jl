@@ -13,7 +13,9 @@ create a group of diagrams
 mutable struct Group
     id::Int
     order::Int
-    internal::Vector{Int}
+    # internal::Vector{Int}
+    nX::Int
+    nK::Int
     observable::Any
 
     reWeightFactor::Float64
@@ -21,24 +23,25 @@ mutable struct Group
     propose::Vector{Float64}
     accept::Vector{Float64}
 
-    function Group(_id, _order, _internal, _obs)
+    function Group(_id, _order, _nX, _nK, _obs)
         # _obs=zeros(_obstype, Tuple(_external))
         # obstype=Array{_obstype, length(_external)}
         propose = Vector{Float64}(undef, 0)
         accept = Vector{Float64}(undef, 0)
 
-        return new(_id, _order, collect(_internal), _obs, 1.0, 1.0e-6, propose, accept)
+        return new(_id, _order, _nX, _nK, _obs, 1.0, 1.0e-6, propose, accept)
     end
 end
 
-mutable struct Configuration{V,R}
+mutable struct Configuration{TX, TK ,R}
     pid::Int
     totalBlock::Int
-    groups::Tuple{Vararg{Group}}
+    groups::Vector{Group}
+    X::TX
+    K::TK
+    ext::External
 
     step::Int64
-    var::V
-    ext::External
     curr::Group
     rng::R
     absWeight::Float64
@@ -46,18 +49,21 @@ mutable struct Configuration{V,R}
     function Configuration(
         _totalBlock,
         _groups,
-        _var::V,
+        _varX::TX,
+        _varK::TK,
         _ext;
         pid = nothing,
         rng::R = Random.GLOBAL_RNG,
-    ) where {V,R}
+    ) where {TX, TK,R}
         if (pid == nothing)
             r = Random.RandomDevice()
-            pid = rand(r, Int) % 1000000
+            pid = abs(rand(r, Int)) % 1000000
         end
 
+        Random.seed!(rng, pid)
+
         curr = _groups[1]
-        config = new{V,R}(pid, _totalBlock, Tuple(_groups), 0, _var, _ext, curr, rng, 0.0)
+        config = new{TX, TK, R}(pid, _totalBlock, collect(_groups), _varX, _varK, _ext, 0, curr, rng, 0.0)
         return config
     end
 end
