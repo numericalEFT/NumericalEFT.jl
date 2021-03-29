@@ -61,7 +61,7 @@ Propose to generate new Fermi K in [Kf-δK, Kf+δK)
     Kamp <= 0.0 && return 0.0
     # Kf-dK<Kamp<Kf+dK 
     ϕ = 2π * rand(rng)
-    if D == 3 #dimension 3
+    if D == 3 # dimension 3
         θ = π * rand(rng)
         # newK .= Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
         K[idx] = [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
@@ -99,7 +99,7 @@ Propose to remove an existing Fermi K in [Kf-δK, Kf+δK)
         return 0.0
     end
     # (Kamp < Kf - dK || Kamp > Kf + dK) && return 0.0
-    if D == 3 #dimension 3
+    if D == 3 # dimension 3
         sinθ = sqrt(oldK[1]^2 + oldK[2]^2) / Kamp
         sinθ < 1.0e-15 && return 0.0
         return 1.0 / (2 * K.δk * 2π * π * sinθ * Kamp^2)
@@ -114,19 +114,43 @@ end
 Propose to shift oldK to newK. Work for generic momentum vector
 """
 @inline function shift!(K::FermiK{D}, idx::Int, rng = RNG) where {D}
-    x=rand(rng)
-    if x<1.0/3
-        K[idx] = K[idx]+(rand(rng, D) .- 0.5) .* K.δk
+    x = rand(rng)
+    if x < 1.0 / 3
+        K[idx] = K[idx] + (rand(rng, D) .- 0.5) .* K.δk
         return 1.0
-    elseif x<2.0/3
-        λ=1.5
+    elseif x < 2.0 / 3
+        λ = 1.5
         ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
-        K[idx] = K[idx]*ratio
+        K[idx] = K[idx] * ratio
         return (D == 2) ? 1.0 : ratio
     else
-        K[idx] = K[idx]*(-1.0)
+        K[idx] = K[idx] * (-1.0)
         return 1.0
     end
+    # x = rand(rng)
+    # K = K[idx]
+    # if x < 0.5
+    #     λ = 1.5
+    #     ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
+    #     K = K * ratio
+    #     return (D == 2) ? 1.0 : ratio
+    # else
+    #     ϕ = rand(rng) * 2π
+    #     if (D == 3)
+    #         θ = rand(rng) * π
+    #         if (θ == 0.0)
+    #             return 0.0
+    #         end
+    #         Kamp = sqrt(K[1]^2 + K[2]^2 + K[3]^2)
+    #         K = [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
+    #         # return 2π^2/(Kamp^2*sin(θ))
+    #         return 1.0 / 2π^2 * (Kamp^2 * sin(θ))
+    #     else # D=2
+    #         Kamp = sqrt(K[1]^2 + K[2]^2)
+    #         K = [Kamp * cos(ϕ), Kamp * sin(ϕ)]
+    #         return 1.0
+    #     end
+    # end
 end
 
 """
@@ -136,8 +160,7 @@ Propose to shift oldK to newK. Work for generic momentum vector
 # Arguments
 - `newK`:  randomly proposed in [oldK/λ, oldK*λ)
 """
-@inline function shiftK_radial!(oldK, newK, λ = 1.5, rng = RNG)
-end
+@inline function shiftK_radial!(oldK, newK, λ = 1.5, rng = RNG) end
 
 """
     shiftK!(oldK, newK, step, rng=GLOBAL_RNG)

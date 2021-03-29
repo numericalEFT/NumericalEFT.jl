@@ -6,6 +6,7 @@
 abstract type Variable end
 const MaxOrder = 16
 
+
 mutable struct FermiK{D} <: Variable
     data::Vector{SVector{D,Float64}}
     kF::Float64
