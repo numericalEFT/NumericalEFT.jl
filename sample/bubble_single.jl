@@ -8,19 +8,18 @@ const kF = 1.919
 function MC(block, x)
     rng = MersenneTwister(x)
 
-
-    function eval1(config)
-        T = config.var[2][1]
+    function eval1(X, K, ext, step)
+        T = X[1]
         return 1.0
     end
 
-    function eval2(config)
-        K = config.var[1][1]
-        Tin = config.var[2][1]
-        Tout = config.var[2][2]
+    function eval2(X, K, ext, step)
+        k = K[1]
+        Tin = X[1]
+        Tout = X[2]
         # println(Tout, ", ", Tin)
         τ = (Tout - Tin) / β
-        ω = Float64((dot(K, K) - kF^2) * β)
+        ω = (dot(k, k) - kF^2) * β
         g1 = Spectral.kernelFermiT(τ, ω)
         g2 = Spectral.kernelFermiT(-τ, ω)
         spin = 2
@@ -28,11 +27,11 @@ function MC(block, x)
         return g1 * g2 * spin * phase
     end
 
-    function integrand(config, group)
-        if group.id == 1
-            return Float64(eval1(config))
-        elseif group.id == 2
-            return Float64(eval2(config))
+    function integrand(id, X, K, ext, step)
+        if id == 1
+            return eval1(X, K, ext, step)
+        elseif id == 2
+            return eval2(X, K, ext, step)
         else
             return 0.0
         end
@@ -41,10 +40,10 @@ function MC(block, x)
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
     Ext = MonteCarlo.External([1]) # external variable is specified
-    group1 = MonteCarlo.Group(1, 0, [0, 1], zeros(Float64, Ext.size...))
-    group2 = MonteCarlo.Group(2, 1, [1, 2], zeros(Float64, Ext.size...))
+    group1 = MonteCarlo.Group(1, 0, 1, 0, zeros(Float64, Ext.size...))
+    group2 = MonteCarlo.Group(2, 1, 2, 1, zeros(Float64, Ext.size...))
     config =
-        MonteCarlo.Configuration(block, (group1, group2), (K, T), Ext; pid = 1, rng = rng)
+        MonteCarlo.Configuration(block, [group1, group2], T, K, Ext; rng = rng)
 
     # @benchmark eval2(c) setup=(c=$config)
 

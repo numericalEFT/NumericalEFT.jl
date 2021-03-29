@@ -5,23 +5,16 @@ function increaseOrder(config, integrand)
     # new::Group=rand(config.rng, config.groups)
     curr = config.curr
 
-    (new.internal == curr.internal) && return #new and curr groups should not be the same order
-
-    diff = new.internal - curr.internal
-    for num in diff
-        if num < 0 || num > 2
-            return #the internal variables of the new and curr groups should be either the same or a lot more 
-        end
+    if (new.order!=curr.order+1) 
+        return
     end
 
     prop = 1.0
-    for idx = 1:length(config.var)
-        v = config.var[idx]
-        if diff[idx] > 0
-            for pos = 1:diff[idx]
-                prop *= create!(v, curr.internal[idx] + pos, config.rng)
-            end
-        end
+    for pos in curr.nX+1:new.nX
+        prop *= create!(config.X, pos, config.rng)
+    end
+    for pos in curr.nK+1:new.nK
+        prop *= create!(config.K, pos, config.rng)
     end
 
     # for (idx, v) in enumerate(config.var)
@@ -30,7 +23,7 @@ function increaseOrder(config, integrand)
     #     end
     # end
 
-    newAbsWeight = abs(integrand(config, new))
+    newAbsWeight = abs(integrand(new.id, config.X, config.K, config.ext, config.step))
     R = prop * newAbsWeight * new.reWeightFactor / config.absWeight / curr.reWeightFactor
 
     curr.propose[1] += 1.0
@@ -47,21 +40,20 @@ function decreaseOrder(config, integrand)
     idx = rand(config.rng, 1:length(config.groups))
     new = config.groups[idx]
     curr = config.curr
-    (new.internal == curr.internal) && return #new and curr groups should not be the same order
 
-    diff = curr.internal - new.internal
-    for num in diff
-        if num < 0 || num > 2
-            return #the internal variables of the new and curr groups should be either the same or a lot more 
-        end
+    if (new.order!=curr.order-1) 
+        return
     end
+
     prop = 1.0
-    for (idx, v) in enumerate(config.var)
-        for pos = new.internal[idx]+1:curr.internal[idx]
-            prop *= remove(v, pos, config.rng)
-        end
+    for pos in new.nX+1:curr.nX
+        prop *= remove(config.X, pos, config.rng)
     end
-    newAbsWeight = abs(integrand(config, new))
+    for pos in new.nK+1:curr.nK
+        prop *= remove(config.K, pos, config.rng)
+    end
+
+    newAbsWeight = abs(integrand(new.id, config.X, config.K, config.ext, config.step))
     R = prop * newAbsWeight * new.reWeightFactor / config.absWeight / curr.reWeightFactor
     # curr.propose[Symbol(decreaseOrder)]+=1.0
     curr.propose[2] += 1.0
@@ -79,17 +71,14 @@ end
 #     return
 # end
 
-function changeInternal(config, integrand)
+function changeX(config, integrand)
     curr = config.curr
-    varidx = rand(config.rng, 1:length(config.var))
-    var = config.var[varidx] #get the internal variable table
-    varnum = curr.internal[varidx] #number of var of the current group
-    (varnum <= 0) && return #return if the var number is less than 1
-    idx = rand(config.rng, 1:varnum) #randomly choose one var to update
-    oldvar = var[idx]
-    prop = shift!(var, idx, config.rng)
+    (curr.nX <= 0) && return #return if the var number is less than 1
+    idx = rand(config.rng, 1:curr.nX) #randomly choose one var to update
+    oldvar = config.X[idx]
+    prop = shift!(config.X, idx, config.rng)
 
-    newAbsWeight = abs(integrand(config, curr))
+    newAbsWeight = abs(integrand(curr.id, config.X, config.K, config.ext, config.step))
     R = prop * newAbsWeight / config.absWeight
     curr.propose[3] += 1.0
     # curr.propose[Symbol(changeInternal)]+=1.0
@@ -97,6 +86,25 @@ function changeInternal(config, integrand)
         curr.accept[3] += 1.0
         config.absWeight = newAbsWeight
     else
-        var[idx] = oldvar
+        config.X[idx] = oldvar
+    end
+end
+
+function changeK(config, integrand)
+    curr = config.curr
+    (curr.nK <= 0) && return #return if the var number is less than 1
+    idx = rand(config.rng, 1:curr.nK) #randomly choose one var to update
+    oldvar = config.K[idx]
+    prop = shift!(config.K, idx, config.rng)
+
+    newAbsWeight = abs(integrand(curr.id, config.X, config.K, config.ext, config.step))
+    R = prop * newAbsWeight / config.absWeight
+    curr.propose[4] += 1.0
+    # curr.propose[Symbol(changeInternal)]+=1.0
+    if rand(config.rng) < R
+        curr.accept[4] += 1.0
+        config.absWeight = newAbsWeight
+    else
+        config.K[idx] = oldvar
     end
 end

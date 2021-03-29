@@ -51,7 +51,7 @@ function initialize(config, integrand, timer, updates)
     end
 
     if updates == nothing
-        updates = [increaseOrder, decreaseOrder, changeInternal]
+        updates = [increaseOrder, decreaseOrder, changeX, changeK]
     end
 
     for group in config.groups
@@ -66,7 +66,7 @@ function initialize(config, integrand, timer, updates)
     #     end
     # end
 
-    config.absWeight = integrand(config, config.curr)
+    config.absWeight = integrand(config.curr.id, config.X, config.K, config.ext, config.step)
 
     return timer, updates
 end
@@ -86,7 +86,7 @@ end
 function measure(config, integrand)
     curr = config.curr
     factor = 1.0 / config.absWeight / curr.reWeightFactor
-    weight = integrand(config, curr)
+    weight = integrand(curr.id, config.X, config.K, config.ext, config.step)
     curr.observable[config.ext.idx...] += weight * factor
 end
 
@@ -100,7 +100,7 @@ function printStatus(config)
     println("\nStep:", config.step)
     println(bar)
 
-    name = ["increaseOrder", "decreaseOrder", "changeInternal"]
+    name = ["increaseOrder", "decreaseOrder", "changeX", "changeK"]
 
     for num = 1:length(name)
         @printf(
