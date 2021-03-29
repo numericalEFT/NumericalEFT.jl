@@ -20,7 +20,7 @@ mutable struct FermiK{D} <: Variable
 end
 
 mutable struct BoseK{D} <: Variable
-    data::Vector{SVector{Float64,D}}
+    data::Vector{SVector{D,Float64}}
     maxK::Float64
 end
 
@@ -44,7 +44,7 @@ Base.getindex(Var::Variable, i::Int) = Var.data[i]
 function Base.setindex!(Var::Variable, v, i::Int)
     Var.data[i] = v
 end
-Base.firstindex(Var::Variable) = Var.data[begin]
+Base.firstindex(Var::Variable) = Var.data[1]
 Base.lastindex(Var::Variable) = Var.data[end]
 
 
