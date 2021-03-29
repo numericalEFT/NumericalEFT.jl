@@ -47,23 +47,16 @@ mutable struct Configuration{TX, TK ,R}
     absWeight::Float64
 
     function Configuration(
+        _pid,
         _totalBlock,
         _groups,
         _varX::TX,
         _varK::TK,
-        _ext;
-        pid = nothing,
-        rng::R = Random.GLOBAL_RNG,
-    ) where {TX, TK,R}
-        if (pid == nothing)
-            r = Random.RandomDevice()
-            pid = abs(rand(r, Int)) % 1000000
-        end
-
-        Random.seed!(rng, pid)
-
+        _ext,
+        rng::R
+    ) where {TX, TK, R}
         curr = _groups[1]
-        config = new{TX, TK, R}(pid, _totalBlock, collect(_groups), _varX, _varK, _ext, 0, curr, rng, 0.0)
+        config = new{TX, TK, R}(_pid, _totalBlock, collect(_groups), _varX, _varK, _ext, 0, curr, rng, 0.0)
         return config
     end
 end
