@@ -68,7 +68,7 @@ function run()
     # result=zeros(Float64, N)
     # kF, β = 1.919, 25.0
 
-    result, extQ = MC(block, 1)
+    result, extQ = MC(block, rand(1:10000))
 
     for (idx, q) in enumerate(extQ)
         q = q[1]
