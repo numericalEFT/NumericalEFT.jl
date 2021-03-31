@@ -17,6 +17,7 @@ function MC(block, x)
         Tin = X[1]
         Tout = X[2]
         kq = k + extQ[ext.idx[1]]
+        # kq = k + [kF, 0.0, 0.0]
         # println(Tout, ", ", Tin)
         τ = (Tout - Tin) / β
         ω1 = (dot(k, k) - kF^2) * β
