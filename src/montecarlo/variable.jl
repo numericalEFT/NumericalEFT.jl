@@ -81,8 +81,6 @@ mutable struct Diagram
     accept::Vector{Float64}
 
     function Diagram(_id, _order, _nX, _nK)
-        # _obs=zeros(_obstype, Tuple(_external))
-        # obstype=Array{_obstype, length(_external)}
         propose = Vector{Float64}(undef, 0)
         accept = Vector{Float64}(undef, 0)
 
@@ -90,11 +88,32 @@ mutable struct Diagram
     end
 end
 
-# function measure(config, integrand)
-#     curr = config.curr
-#     # factor = 1.0 / config.absWeight / curr.reWeightFactor
-#     weight = integrand(curr.id, config.X, config.K, config.ext, config.step)
-#     obs = curr.observable
-#     obs[config.ext.idx...] += weight / abs(weight) / curr.reWeightFactor
-# end
+mutable struct Configuration{TX,TK,R}
+    pid::Int
+    totalStep::Int64
+    diagrams::Vector{Diagram}
+    X::TX
+    K::TK
+    ext::External
+
+    step::Int64
+    curr::Diagram
+    rng::R
+    absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
+
+    function Configuration(totalStep, diagrams, X::TX, K::TK, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {TX,TK,R}
+        if (pid === nothing)
+            r = Random.RandomDevice()
+            pid = abs(rand(r, Int)) % 1000000
+        end
+        @assert pid >= 0 "pid should be positive!"
+        Random.seed!(rng, pid) # pid will be used as the seed to initialize the random numebr generator
+
+        @assert totalStep > 0 "Total step should be positive!"
+        @assert length(diagrams) > 0 "diagrams should not be empty!"
+        curr = diagrams[1]
+        config = new{TX,TK,R}(pid, Int64(totalStep), collect(diagrams), X, K, ext, 0, curr, rng, 0.0)
+        return config
+    end
+end
 
