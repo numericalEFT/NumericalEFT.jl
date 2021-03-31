@@ -11,7 +11,7 @@ include("variable.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(block::Int, integrand, groups, T, K, Ext; pid=nothing, rng=GLOBAL_RNG, timer=nothing)
+function montecarlo(block::Int, diagrams, T::Variable, K::Variable, Ext::External, integrand::Function, measure::Function; pid=nothing, rng=GLOBAL_RNG, timer=nothing)
     ##############  initialization  ################################
     if (pid === nothing)
         r = Random.RandomDevice()
@@ -21,10 +21,11 @@ function montecarlo(block::Int, integrand, groups, T, K, Ext; pid=nothing, rng=G
     Random.seed!(rng, pid)
 
     @assert block > 0 "block number should be positive!"
+    @assert length(diagrams) > 0 "diagrams should not be empty!"
 
-    config = Configuration(pid, block, groups, T, K, Ext, rng)
+    config = Configuration(pid, block, diagrams, T, K, Ext, rng)
     config.absWeight =
-        integrand(config.curr.id, config.X, config.K, config.ext, config.step)
+        integrand(config.curr, config.X, config.K, config.ext, config.step)
 
     if timer === nothing
         printTime = 10
@@ -33,9 +34,10 @@ function montecarlo(block::Int, integrand, groups, T, K, Ext; pid=nothing, rng=G
 
     updates = [increaseOrder, decreaseOrder, changeX, changeK, changeExt]
 
-    for group in config.groups
-        group.propose = zeros(Float64, length(updates))
-        group.accept = zeros(Float64, length(updates))
+    for diag in config.diagrams
+        diag.propose = zeros(Float64, length(updates)) .+ 1.0e-8
+        # add a small number so that the ratio propose/accept=0 if there is no such update proposed and accepted
+        diag.accept = zeros(Float64, length(updates)) 
     end
 
     ########### MC simulation ##################################
@@ -47,7 +49,7 @@ function montecarlo(block::Int, integrand, groups, T, K, Ext; pid=nothing, rng=G
             config.curr.visitedSteps += 1
             _update = rand(config.rng, updates) # randomly select an update
             _update(config, integrand)
-            (i % 10 == 0 && block >= 2) && measure(config, integrand)
+            (i % 10 == 0 && block >= 2) && measure(config.curr, config.X, config.K, config.ext, config.step)
             if i % 1000 == 0
                 # println(config.var[1][1], ", ", config.var[2][1], ", ", config.var[2][2])
                 for t in timer
@@ -66,19 +68,19 @@ end
 mutable struct Configuration{TX,TK,R}
     pid::Int
     totalBlock::Int
-    groups::Vector{Group}
+    diagrams::Vector{Diagram}
     X::TX
     K::TK
     ext::External
 
     step::Int64
-    curr::Group
+    curr::Diagram
     rng::R
     absWeight::Float64
 
-    function Configuration(_pid, _totalBlock, _groups, _varX::TX, _varK::TK, _ext, rng::R) where {TX,TK,R}
-        curr = _groups[1]
-        config = new{TX,TK,R}(_pid, _totalBlock, collect(_groups), _varX, _varK, _ext, 0, curr, rng, 0.0)
+    function Configuration(_pid, _totalBlock, _diagrams, _varX::TX, _varK::TK, _ext, rng::R) where {TX,TK,R}
+        curr = _diagrams[1]
+        config = new{TX,TK,R}(_pid, _totalBlock, collect(_diagrams), _varX, _varK, _ext, 0, curr, rng, 0.0)
         return config
     end
 end
@@ -86,21 +88,13 @@ end
 function reweight(config)
     # config.groups[1].reWeightFactor = 1.0
     # config.groups[2].reWeightFactor = 8.0
-    avgstep = sum([g.visitedSteps for g in config.groups]) / length(config.groups)
-    for g in config.groups
+    avgstep = sum([g.visitedSteps for g in config.diagrams]) / length(config.diagrams)
+    for g in config.diagrams
         if g.visitedSteps > 10000
             # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
             g.reWeightFactor *= avgstep / g.visitedSteps
         end
     end
-end
-
-function measure(config, integrand)
-    curr = config.curr
-    # factor = 1.0 / config.absWeight / curr.reWeightFactor
-    weight = integrand(curr.id, config.X, config.K, config.ext, config.step)
-    obs = curr.observable
-    obs[config.ext.idx...] += weight / abs(weight) / curr.reWeightFactor
 end
 
 function printStatus(config)
@@ -113,6 +107,7 @@ function printStatus(config)
     println(bar)
 
     name = ["increaseOrder", "decreaseOrder", "changeX", "changeK", "changeExt"]
+    totalproposed = 0.0
 
     for num = 1:length(name)
         @printf(
@@ -122,18 +117,31 @@ function printStatus(config)
             "Accepted",
             "Ratio  "
         )
-        for (idx, group) in enumerate(config.groups)
+        for (idx, diag) in enumerate(config.diagrams)
             @printf(
-                "  Order%2d:     %12.8f %12.8f %12.6f\n",
-                group.id,
-                group.propose[num] / config.step,
-                group.accept[num] / config.step,
-                group.accept[num] / group.propose[num]
+                "  Order%2d:     %11.6f%% %11.6f%% %12.6f\n",
+                diag.id,
+                diag.propose[num] / config.step * 100.0,
+                diag.accept[num] / config.step * 100.0,
+                diag.accept[num] / diag.propose[num]
             )
+            totalproposed += diag.propose[num]
         end
         println(bar)
     end
-    println(progressBar(round(config.step / 1000_000, digits=2), config.totalBlock))
+    printstyled("Diagrams            Visited      ReWeight\n", color=:yellow)
+    for (idx, diag) in enumerate(config.diagrams)
+        @printf(
+                "  Order%2d:     %12i %12.6f\n",
+                diag.id,
+                diag.visitedSteps,
+                diag.reWeightFactor
+            )
+    end
+    println(bar)
+    printstyled("Total Proposed: $(totalproposed / config.step * 100.0)%\n", color=:yellow)
+    # println(progressBar(round(config.step / 1000_000, digits=2), config.totalBlock))
+    printstyled(progressBar(round(config.step / 1000_000, digits=2), config.totalBlock), color=:green)
     println()
 end
 
