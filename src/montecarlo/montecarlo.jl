@@ -31,7 +31,7 @@ function montecarlo(block::Int, integrand, groups, T, K, Ext; pid=nothing, rng=G
         timer = [StopWatch(printTime, printStatus)]
     end
 
-    updates = [increaseOrder, decreaseOrder, changeX, changeK]
+    updates = [increaseOrder, decreaseOrder, changeX, changeK, changeExt]
 
     for group in config.groups
         group.propose = zeros(Float64, length(updates))
@@ -112,7 +112,7 @@ function printStatus(config)
     println("\nStep:", config.step)
     println(bar)
 
-    name = ["increaseOrder", "decreaseOrder", "changeX", "changeK"]
+    name = ["increaseOrder", "decreaseOrder", "changeX", "changeK", "changeExt"]
 
     for num = 1:length(name)
         @printf(
