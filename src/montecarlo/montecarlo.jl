@@ -12,29 +12,22 @@ include("configuration.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(
-    block,
-    integrand,
-    groups,
-    T,
-    K,
-    Ext;
-    pid = nothing,
-    rng = GLOBAL_RNG,
-    timer = nothing,
-)
+function montecarlo(block::Int, integrand, groups, T, K, Ext; pid=nothing, rng=GLOBAL_RNG, timer=nothing)
     ##############  initialization  ################################
-    if (pid == nothing)
+    if (pid === nothing)
         r = Random.RandomDevice()
         pid = abs(rand(r, Int)) % 1000000
     end
+    @assert pid >= 0 "pid should be positive!"
     Random.seed!(rng, pid)
+
+    @assert block > 0 "block number should be positive!"
 
     config = Configuration(pid, block, groups, T, K, Ext, rng)
     config.absWeight =
         integrand(config.curr.id, config.X, config.K, config.ext, config.step)
 
-    if timer == nothing
+    if timer === nothing
         printTime = 10
         timer = [StopWatch(printTime, printStatus)]
     end
@@ -46,13 +39,14 @@ function montecarlo(
         group.accept = zeros(Float64, length(updates))
     end
 
+    ########### MC simulation ##################################
     println("Start Simulation ...")
 
     for block = 1:block
         for i = 1:1000_000
             config.step += 1
             config.curr.visitedSteps += 1
-            _update = rand(config.rng, updates) #randomly select an update
+            _update = rand(config.rng, updates) # randomly select an update
             _update(config, integrand)
             (i % 10 == 0 && block >= 2) && measure(config, integrand)
             if i % 1000 == 0
@@ -70,14 +64,34 @@ function montecarlo(
     println("End Simulation. ")
 end
 
+mutable struct Configuration{TX,TK,R}
+    pid::Int
+    totalBlock::Int
+    groups::Vector{Group}
+    X::TX
+    K::TK
+    ext::External
+
+    step::Int64
+    curr::Group
+    rng::R
+    absWeight::Float64
+
+    function Configuration(_pid, _totalBlock, _groups, _varX::TX, _varK::TK, _ext, rng::R) where {TX,TK,R}
+        curr = _groups[1]
+        config = new{TX,TK,R}(_pid, _totalBlock, collect(_groups), _varX, _varK, _ext, 0, curr, rng, 0.0)
+        return config
+    end
+end
+
 function reweight(config)
     # config.groups[1].reWeightFactor = 1.0
     # config.groups[2].reWeightFactor = 8.0
-    avgstep=sum([g.visitedSteps for g in config.groups])/length(config.groups)
+    avgstep = sum([g.visitedSteps for g in config.groups]) / length(config.groups)
     for g in config.groups
-        if g.visitedSteps>10000
+        if g.visitedSteps > 10000
             # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
-            g.reWeightFactor *=avgstep/g.visitedSteps
+            g.reWeightFactor *= avgstep / g.visitedSteps
         end
     end
 end
@@ -90,13 +104,12 @@ function measure(config, integrand)
     obs[config.ext.idx...] += weight / abs(weight) / curr.reWeightFactor
 end
 
-const barbar = "====================================================================================="
-const bar = "-------------------------------------------------------------------------------------"
-
 function printStatus(config)
-    # Var.counter += 1
+    barbar = "====================================================================================="
+    bar = "-------------------------------------------------------------------------------------"
+
     println(barbar)
-    printstyled(Dates.now(), color = :green)
+    printstyled(Dates.now(), color=:green)
     println("\nStep:", config.step)
     println(bar)
 
@@ -121,7 +134,7 @@ function printStatus(config)
         end
         println(bar)
     end
-    println(progressBar(round(config.step / 1000_000, digits = 2), config.totalBlock))
+    println(progressBar(round(config.step / 1000_000, digits=2), config.totalBlock))
     println()
 end
 
@@ -162,7 +175,7 @@ Return string of progressBar (step/total*100%)
 """
 function progressBar(step, total)
     barWidth = 70
-    percent = round(step / total * 100.0, digits = 2)
+    percent = round(step / total * 100.0, digits=2)
     str = "["
     pos = barWidth * percent / 100.0
     for i = 1:barWidth
