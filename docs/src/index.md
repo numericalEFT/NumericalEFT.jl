@@ -8,7 +8,7 @@ Pages = [
     "lib/grid.md",
     "lib/spectral.md",
     "lib/green.md",
-    "lib/diagram.md",
+    "lib/twopoint.md",
     "lib/montecarlo.md",
     "lib/fastmath.md",
     "lib/utility.md",
