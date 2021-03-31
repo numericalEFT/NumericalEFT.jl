@@ -1,10 +1,11 @@
 """
-utility for Monte Carlo
+Monte Carlo Calculator for Diagrams
 """
 module MonteCarlo
 using Random
 using LinearAlgebra
 using StaticArrays, Printf, Dates
+using ..Utility
 const RNG = Random.GLOBAL_RNG
 
 include("variable.jl")
@@ -23,7 +24,7 @@ function montecarlo(block::Int, diagrams, T::Variable, K::Variable, Ext::Externa
     @assert block > 0 "block number should be positive!"
     @assert length(diagrams) > 0 "diagrams should not be empty!"
 
-    config = Configuration(pid, block, diagrams, T, K, Ext, rng)
+    config = Configuration(pid, block, blockStep, diagrams, T, K, Ext, rng)
     # don't forget to initialize the diagram weight
     config.absWeight =
         integrand(config.curr, config.X, config.K, config.ext, config.step)
@@ -68,6 +69,7 @@ end
 mutable struct Configuration{TX,TK,R}
     pid::Int
     totalBlock::Int
+    blockStep::Int
     diagrams::Vector{Diagram}
     X::TX
     K::TK
@@ -78,9 +80,9 @@ mutable struct Configuration{TX,TK,R}
     rng::R
     absWeight::Float64
 
-    function Configuration(_pid, _totalBlock, _diagrams, _varX::TX, _varK::TK, _ext, rng::R) where {TX,TK,R}
+    function Configuration(_pid, _totalBlock, _blockStep, _diagrams, _varX::TX, _varK::TK, _ext, rng::R) where {TX,TK,R}
         curr = _diagrams[1]
-        config = new{TX,TK,R}(_pid, _totalBlock, collect(_diagrams), _varX, _varK, _ext, 0, curr, rng, 0.0)
+        config = new{TX,TK,R}(_pid, _totalBlock, _blockStep, collect(_diagrams), _varX, _varK, _ext, 0, curr, rng, 0.0)
         return config
     end
 end
@@ -94,36 +96,6 @@ function reweight(config)
             # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
             g.reWeightFactor *= avgstep / g.visitedSteps
         end
-    end
-end
-
-"""
-    StopWatch(start, interval, callback)
-
-Initialize a stopwatch. 
-
-# Arguments
-- `start::Float64`: initial time (in seconds)
-- `interval::Float64` : interval to click (in seconds)
-- `callback` : callback function after each click (interval seconds)
-"""
-mutable struct StopWatch
-    start::Float64
-    interval::Float64
-    f::Function
-    StopWatch(_interval, callback) = new(time(), _interval, callback)
-end
-
-"""
-    check(stopwatch, parameter...)
-
-Check stopwatch. If it clicks, call the callback function with the unpacked parameter
-"""
-function check(watch::StopWatch, parameter...)
-    now = time()
-    if now - watch.start > watch.interval
-        watch.f(parameter...)
-        watch.start = now
     end
 end
 
@@ -170,8 +142,8 @@ function printStatus(config)
     end
     println(bar)
     printstyled("Total Proposed: $(totalproposed / config.step * 100.0)%\n", color=:yellow)
-    # println(progressBar(round(config.step / 1000_000, digits=2), config.totalBlock))
-    printstyled(progressBar(round(config.step / 1000_000, digits=2), config.totalBlock), color=:green)
+    # printstyled(progressBar(round(config.step / config.blockStep, digits=2), config.totalBlock + 1), color=:green)
+    printstyled(progressBar(round(config.step / config.blockStep, digits=2), config.totalBlock + 1), color=:green)
     println()
 end
 
@@ -187,7 +159,7 @@ function progressBar(step, total)
     pos = barWidth * percent / 100.0
     for i = 1:barWidth
         if i <= pos
-            str *= "I"
+            str *= "█"
         else
             str *= " "
         end

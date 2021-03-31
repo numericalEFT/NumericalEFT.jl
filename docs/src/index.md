@@ -1,12 +1,11 @@
 # QuantumStatistics.jl
 
-A platform for numerical experiments on quantum statistics.
+A toolbox for quantum many-body field theory.
 
 ## Outline
 ```@contents
 Pages = [
     "lib/grid.md",
-    "lib/interpolate.md",
     "lib/spectral.md",
     "lib/green.md",
     "lib/diagram.md",

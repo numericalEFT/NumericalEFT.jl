@@ -12,9 +12,9 @@ export dot, squaredNorm, norm
 # @inline squaredNorm(x) = Yeppp.dot(x, x)
 # @inline norm(x) = sqrt(Yeppp.dot(x, x))
 
-@inline dot(x, y) = dot(x, y)
-@inline squaredNorm(x) = dot(x, x)
-@inline norm(x) = sqrt(dot(x, x))
+# @inline dot(x, y) = dot(x, y)
+# @inline squaredNorm(x) = dot(x, x)
+# @inline norm(x) = sqrt(dot(x, x))
 
 """
     invsqrt(x)

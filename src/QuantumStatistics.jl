@@ -1,14 +1,12 @@
 module QuantumStatistics
-export Green, Grid, FastMath, Diagram, Interpolate, Spectral, MonteCarlo, Utility
-import StaticArrays
+export TwoPoint, Grid, FastMath, Diagram, Spectral, MonteCarlo, Utility
 # greet() = print("Hello World!")
-include("green.jl")
-include("spectral.jl")
-include("diagram.jl")
-include("grid.jl")
-include("interpolate.jl")
+include("grid/grid.jl")
 include("fastmath.jl")
+include("utility/utility.jl")
+include("correlator/twopoint.jl")
+include("correlator/spectral.jl")
+include("correlator/diagram.jl")
 include("montecarlo/montecarlo.jl")
-include("utility.jl")
 
 end # module

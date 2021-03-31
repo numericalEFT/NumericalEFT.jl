@@ -6,7 +6,7 @@ using StaticArrays: SVector, MVector
 
 @enum GridType LOG UNIFORM
 
-struct Coeff{T<:AbstractFloat}
+struct Coeff{T <: AbstractFloat}
     bound::SVector{2,T}
     idx::SVector{2,T}
     λ::T
@@ -38,7 +38,7 @@ end
 
 function checkOrder(grid)
     for idx = 2:length(grid)
-        @assert grid[idx-1] < grid[idx] "The grid at $idx is not in the increase order: \n$grid"
+        @assert grid[idx - 1] < grid[idx] "The grid at $idx is not in the increase order: \n$grid"
     end
 end
 
@@ -51,10 +51,10 @@ struct Log{T,SIZE,SEG} # create a log grid of the type T with SIZE grids and SEG
     coeff::SVector{SEG,Coeff{T}}
     isopen::SVector{2,Bool}
 
-    function Log{T,SIZE,SEG}(coeff, range, isopen) where {T<:AbstractFloat,SIZE,SEG}
+    function Log{T,SIZE,SEG}(coeff, range, isopen) where {T <: AbstractFloat,SIZE,SEG}
         @assert SIZE > 1 "Size must be large than 1"
         for ri = 2:SEG
-            @assert range[ri-1][end] + 1 == range[ri][1] "ranges must be connected to each other"
+            @assert range[ri - 1][end] + 1 == range[ri][1] "ranges must be connected to each other"
         end
         @assert range[1][1] == 1 "ranges should start with the idx 1"
         @assert range[end][end] == SIZE "ranges ends with $(range[end][end]), expected $SIZE"
@@ -81,9 +81,9 @@ function Base.floor(grid::Log{T,SIZE,2}, x) where {T,SIZE}
         return 1
     elseif x < grid[segment[1]]
         return _floor(grid.coeff[1], x)
-    elseif x < grid[segment[1]+1]
+    elseif x < grid[segment[1] + 1]
         return segment[1]
-    elseif x < grid[end-1]
+    elseif x < grid[end - 1]
         return _floor(grid.coeff[2], x)
     else
         return SIZE - 1
@@ -97,13 +97,13 @@ function Base.floor(grid::Log{T,SIZE,3}, x) where {T,SIZE}
         return 1
     elseif x < grid[segment[1]]
         return _floor(grid.coeff[1], x)
-    elseif x < grid[segment[1]+1]
+    elseif x < grid[segment[1] + 1]
         return segment[1]
     elseif x < grid[segment[2]]
         return _floor(grid.coeff[2], x)
-    elseif x < grid[segment[2]+1]
+    elseif x < grid[segment[2] + 1]
         return segment[2]
-    elseif x < grid[end-1]
+    elseif x < grid[end - 1]
         return _floor(grid.coeff[3], x)
     else
         return SIZE - 1
@@ -148,26 +148,26 @@ struct Uniform{T,SIZE}
      - tail: the end of the grid
      - isopen: if isopen[1]==true, then grid[1]=head+eps; If isopen[2]==true, then grid[2]=tail-eps. Otherwise, grid[1]==head / grid[2]==tail
     """
-    function Uniform{T,SIZE}(head, tail, isopen) where {T<:AbstractFloat,SIZE}
+    function Uniform{T,SIZE}(head, tail, isopen) where {T <: AbstractFloat,SIZE}
         @assert SIZE > 1 "Size must be large than 1"
         grid = Array(LinRange(T(head), T(tail), SIZE))
         isopen[1] && (grid[1] += eps(T))
         isopen[2] && (grid[end] -= eps(T))
         return new{T,SIZE}(grid, SIZE, head, tail, (tail - head) / (SIZE - 1), isopen)
-    end
+end
 end
 
 function Base.floor(grid::Uniform, x)
 
     (grid.head <= x <= grid.tail) || error("$x is out of the uniform grid range!")
 
-    if grid[2] <= x < grid[end-1]
+    if grid[2] <= x < grid[end - 1]
         return floor(Int, (x - grid.head) / grid.δ + 1)
     elseif x < grid[2]
         return 1
     else
         return grid.size - 1
-    end
+end
 end
 
 Base.getindex(grid::Uniform, i) = grid.grid[i]
@@ -185,15 +185,14 @@ Create a logarithmic Grid for the imaginary time, which is densest near the 0 an
 - halfLife: the grid is densest in the range (0, halfLife) and (β-halfLife, β)
 - size: the Grid size
 """
-@inline function tau(β, halfLife, size::Int, type = Float64)
+@inline function tau(β, halfLife, size::Int, type=Float64)
     size = Int(size)
     c1 = Grid.Coeff{type}([0.0, 0.5β], [1.0, 0.5size + 0.5], 1.0 / halfLife, true)
     r1 = 1:Int(0.5size)
 
     c2 = Grid.Coeff{type}([0.5β, β], [0.5size + 0.5, size], 1.0 / halfLife, false)
-    r2 = (Int(0.5size)+1):size
-    tau = Log{type,size,2}([c1, c2], [r1, r2], [true, true])
-    return tau
+    r2 = (Int(0.5size) + 1):size
+    return Log{type,size,2}([c1, c2], [r1, r2], [true, true])
 end
 
 """
@@ -208,22 +207,14 @@ Create a logarithmic fermionic K Grid, which is densest near the Fermi momentum 
 - size: the Grid size
 - kFi: index of Kf
 """
-@inline function fermiK(
-    Kf,
-    maxK,
-    halfLife,
-    size::Int,
-    kFi = floor(Int, 0.5size),
-    type = Float64,
-)
+@inline function fermiK(Kf, maxK, halfLife, size::Int, kFi=floor(Int, 0.5size), type=Float64)
     size = Int(size)
     c1 = Grid.Coeff{type}([0.0, Kf], [1.0, kFi], 1.0 / halfLife, false)
     r1 = 1:kFi
 
     c2 = Grid.Coeff{type}([Kf, maxK], [kFi - 1.0, size], 1.0 / halfLife, true)
-    r2 = kFi+1:size
-    K = Log{type,size,2}([c1, c2], [r1, r2], [true, false])
-    return K
+    r2 = kFi + 1:size
+    return Log{type,size,2}([c1, c2], [r1, r2], [true, false])
 end
 
 """
@@ -244,9 +235,9 @@ Create a logarithmic bosonic K Grid, which is densest near the momentum `0` and 
     maxK,
     halfLife,
     size::Int,
-    kFi = floor(Int, size / 3),
-    twokFi = floor(Int, 2size / 3),
-    type = Float64,
+    kFi=floor(Int, size / 3),
+    twokFi=floor(Int, 2size / 3),
+    type=Float64,
 )
     size = Int(size)
     λ = 1.0 / halfLife
@@ -254,13 +245,15 @@ Create a logarithmic bosonic K Grid, which is densest near the momentum `0` and 
     r1 = 1:kFi
 
     c2 = Grid.Coeff{type}([Kf, 2.0 * Kf], [kFi - 1.0, twokFi], λ, false)
-    r2 = kFi+1:twokFi
+    r2 = kFi + 1:twokFi
 
     c3 = Grid.Coeff{type}([2.0 * Kf, maxK], [twokFi - 1.0, size], λ, true)
-    r3 = twokFi+1:size
+    r3 = twokFi + 1:size
 
     K = Grid.Log{type,size,3}([c1, c2, c3], [r1, r2, r3], [true, false])
-    return K
+return K
 end
+
+include("interpolate.jl")
 
 end
