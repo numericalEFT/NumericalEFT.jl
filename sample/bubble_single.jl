@@ -1,10 +1,15 @@
-using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, Statistics, BenchmarkTools, InteractiveUtils
+using Distributed
 
-const kF = 1.919
-const β = 25.0 / kF^2
+const Ncpu = 1
+const Block = 10
+const Repeat = 4
 
-function MC(block, x)
-    rng = MersenneTwister(x)
+addprocs(Ncpu)
+
+@everywhere using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, Statistics, BenchmarkTools, InteractiveUtils
+
+@everywhere function MC(block, pid, kF, β)
+    rng = MersenneTwister(pid)
 
     function eval1(X, K, ext, step)
         return 1.0
@@ -64,27 +69,31 @@ function MC(block, x)
     # @code_warntype MonteCarlo.increaseOrder(config, config.curr)
     # @code_warntype eval2(config)
 
-    MonteCarlo.montecarlo(block, (diag1, diag2), T, K, Ext, integrand, measure; pid=x, rng=rng)
+    MonteCarlo.montecarlo(block, (diag1, diag2), T, K, Ext, integrand, measure; pid=pid, rng=rng)
 
     return obs2 / obs1 * Ext.size[1], extQ
 end
 
 function run(repeat, block)
-    # println(procs())
-    # result=zeros(Float64, N)
-    # kF, β = 1.919, 25.0
+    kF = 1.919
+    β = 25.0 / kF^2
+    if Ncpu > 1
+        result = pmap((x) -> MC(block, rand(1:10000), kF, β), 1:repeat)
+    else
+        result = map((x) -> MC(block, rand(1:10000), kF, β), 1:repeat)
+    end
+
+    extQ = result[1][2]
+
     observable = []
-    Q = []
-    for i in 1:repeat
-        obs, extQ = MC(block, rand(1:10000))
-        push!(observable, obs)
-        push!(Q, extQ)
+    for r in result
+        push!(observable, r[1])
     end
 
     obs = mean(observable)
     obserr = std(observable) / sqrt(length(observable))
 
-    for (idx, q) in enumerate(Q[1])
+    for (idx, q) in enumerate(extQ)
         q = q[1]
         p, err = Diagram.bubble(q, 0.0im, 3, kF, β)
         p, err = real(p) * 2.0, real(err) * 2.0
@@ -93,4 +102,4 @@ function run(repeat, block)
 end
 
 # @btime run(1, 10)
-run(8, 10)
+run(Repeat, Block)

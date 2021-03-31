@@ -43,6 +43,7 @@ function montecarlo(block::Int, diagrams, T::Variable, K::Variable, Ext::Externa
 
     ########### MC simulation ##################################
     printstyled("PID $pid Start Simulation ...\n", color=:red)
+    startTime = time()
 
     for blk = 0:block
         for i = 1:blockStep
@@ -61,7 +62,7 @@ function montecarlo(block::Int, diagrams, T::Variable, K::Variable, Ext::Externa
     end
 
     printStatus(config)
-    printstyled("PID $pid End Simulation. \n\n", color=:red)
+    printstyled("PID $pid End Simulation. Cost $(time() - startTime) seconds.\n\n", color=:red)
 end
 
 mutable struct Configuration{TX,TK,R}
@@ -85,15 +86,15 @@ mutable struct Configuration{TX,TK,R}
 end
 
 function reweight(config)
-    config.diagrams[1].reWeightFactor = 1.0
-    config.diagrams[2].reWeightFactor = 8.0
-    # avgstep = sum([g.visitedSteps for g in config.diagrams]) / length(config.diagrams)
-    # for g in config.diagrams
-    #     if g.visitedSteps > 10000
-    #         # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
-    #         g.reWeightFactor *= avgstep / g.visitedSteps
-    #     end
-    # end
+    # config.diagrams[1].reWeightFactor = 1.0
+    # config.diagrams[2].reWeightFactor = 8.0
+    avgstep = sum([g.visitedSteps for g in config.diagrams]) / length(config.diagrams)
+    for g in config.diagrams
+        if g.visitedSteps > 10000
+            # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
+            g.reWeightFactor *= avgstep / g.visitedSteps
+        end
+    end
 end
 
 """
