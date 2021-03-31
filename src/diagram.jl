@@ -26,32 +26,28 @@ Compute the polarization function of free electrons at a given frequency.
     q::T,
     ω::Complex{T},
     dim::Int,
-    kF = T(1.0),
-    β = T(1.0),
-    eps = T(1.0e-6),
-) where {T<:AbstractFloat}
-    ω, q = ω * β, q / kF # make everything dimensionless 
-    if (ω != 0.0 && imag(ω) < eps)
+    kF=T(1.0),
+    β=T(1.0),
+    eps=T(1.0e-6),
+) where {T <: AbstractFloat}
+    # ω, q = ω * β, q / kF # make everything dimensionless 
+    if (ω * β != 0.0 && imag(ω * β) < eps)
         println("Im ω>eps is expected unless ω=0!")
     end
-
+    
     kp2(k, θ) = (q + k * cos(θ))^2 + (k * sin(θ))^2
-
+    
     function polar(k, θ)
+        # ϵ1 = (k^2 - kF^2) * β
+        # ϵ2 = (kp2(k, θ) - kF^2) * β
         ϵ1 = (k^2 - kF^2) * β
         ϵ2 = (kp2(k, θ) - kF^2) * β
         δϵ = ϵ1 - ϵ2
         Jacobi = (dim == 3 ? T(2π) * k^2 * sin(θ) : k^2 * sin(θ))
         Phase = T(1.0) / (2π)^dim
 
-        if ((abs(ω) < abs(δϵ) && q < T(1.0e-4)) || (abs(ω) < eps && abs(δϵ) < eps))
-            p =
-                -(T(1) + δϵ / 2) *
-                fermiDirac(ϵ1) *
-                (T(1) - fermiDirac(ϵ2)) *
-                β *
-                Jacobi *
-                Phase + 0.0 * 1im
+        if ((abs(ω * β) < abs(δϵ) && q / kF < T(1.0e-4)) || (abs(ω * β) < eps && abs(δϵ) < eps))
+            p = -(T(1) + δϵ / 2) * fermiDirac(ϵ1) * (T(1) - fermiDirac(ϵ2)) * β * Jacobi * Phase + 0.0 * 1im
         else
             p = (fermiDirac(ϵ1) - fermiDirac(ϵ2)) / (ω + δϵ) * β * Jacobi * Phase
         end
@@ -60,7 +56,7 @@ Compute the polarization function of free electrons at a given frequency.
             println("ω=$ω, q=$q, k=$k leads to NaN!")
         end
         # println(p)
-        return p
+    return p
     end
 
     function integrand1(x, f)
@@ -76,8 +72,8 @@ Compute the polarization function of free electrons at a given frequency.
         f[1], f[2] = reim(polar(x[1] * kF, x[2] * phase) * kF * phase)
     end
 
-    result1, err1 = Cuba.cuhre(integrand1, 2, 2, atol = eps * 1e-3)
-    result2, err2 = Cuba.cuhre(integrand2, 2, 2, atol = eps * 1e-3)
+    result1, err1 = Cuba.cuhre(integrand1, 2, 2, atol=eps * 1e-3)
+    result2, err2 = Cuba.cuhre(integrand2, 2, 2, atol=eps * 1e-3)
 
     # result1, err1 = Cuba.vegas(integrand1, 2, 2, flags=11, atol = eps * 1e-3)
     # result2, err2 = Cuba.vegas(integrand2, 2, 2, flags=11, atol = eps * 1e-3)
