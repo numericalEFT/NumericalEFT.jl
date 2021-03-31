@@ -1,8 +1,8 @@
 using Distributed
 
-const Ncpu = 16
+const Ncpu = 1
 const totalStep = 1e7
-const Repeat = 16
+const Repeat = 4
 
 addprocs(Ncpu)
 
@@ -31,10 +31,10 @@ addprocs(Ncpu)
         return g1 * g2 * spin * phase
     end
 
-    function integrand(diag, config)
-        if diag.id == 1
+    function integrand(config)
+        if config.curr.id == 1
             return eval1(config)
-        elseif diag.id == 2
+        elseif config.curr.id == 2
             return eval2(config)
         else
             return 0.0
@@ -47,7 +47,7 @@ addprocs(Ncpu)
         if diag.id == 1
             obs1 += factor
         elseif diag.id == 2
-            weight = integrand(config.curr, config)
+            weight = integrand(config)
             obs2[config.ext.idx[1]] += weight / abs(weight) * factor
         else
             return
@@ -79,6 +79,7 @@ end
 function run(repeat, totalStep)
     kF = 1.919
     β = 25.0 / kF^2
+    m = 0.5
     if Ncpu > 1
         result = pmap((x) -> MC(totalStep, rand(1:10000), kF, β), 1:repeat)
     else
@@ -97,7 +98,7 @@ function run(repeat, totalStep)
 
     for (idx, q) in enumerate(extQ)
         q = q[1]
-        p, err = Diagram.bubble(q, 0.0im, 3, kF, β)
+        p, err = Diagram.bubble(q, 0.0im, 3, kF, β, m)
         p, err = real(p) * 2.0, real(err) * 2.0
         @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
     end
