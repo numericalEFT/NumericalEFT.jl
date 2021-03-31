@@ -8,7 +8,6 @@ using StaticArrays, Printf, Dates, NamedArrays
 const RNG = Random.GLOBAL_RNG
 
 include("variable.jl")
-include("configuration.jl")
 include("sampler.jl")
 include("updates.jl")
 
