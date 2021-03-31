@@ -4,26 +4,27 @@ utility for Monte Carlo
 module MonteCarlo
 using Random
 using LinearAlgebra
-using StaticArrays, Printf, Dates, NamedArrays
+using StaticArrays, Printf, Dates
 const RNG = Random.GLOBAL_RNG
 
 include("variable.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(block::Int, diagrams, T::Variable, K::Variable, Ext::External, integrand::Function, measure::Function; pid=nothing, rng=GLOBAL_RNG, timer=nothing)
+function montecarlo(block::Int, diagrams, T::Variable, K::Variable, Ext::External, integrand::Function, measure::Function; pid=nothing, rng=GLOBAL_RNG, timer=nothing, blockStep=1000_000)
     ##############  initialization  ################################
     if (pid === nothing)
         r = Random.RandomDevice()
         pid = abs(rand(r, Int)) % 1000000
     end
     @assert pid >= 0 "pid should be positive!"
-    Random.seed!(rng, pid)
+    Random.seed!(rng, pid) # pid will be used as the seed to initialize the random numebr generator
 
     @assert block > 0 "block number should be positive!"
     @assert length(diagrams) > 0 "diagrams should not be empty!"
 
     config = Configuration(pid, block, diagrams, T, K, Ext, rng)
+    # don't forget to initialize the diagram weight
     config.absWeight =
         integrand(config.curr, config.X, config.K, config.ext, config.step)
 
@@ -41,28 +42,26 @@ function montecarlo(block::Int, diagrams, T::Variable, K::Variable, Ext::Externa
     end
 
     ########### MC simulation ##################################
-    println("Start Simulation ...")
+    printstyled("PID $pid Start Simulation ...\n", color=:red)
 
-    for block = 1:block
-        for i = 1:1000_000
+    for blk = 0:block
+        for i = 1:blockStep
             config.step += 1
             config.curr.visitedSteps += 1
             _update = rand(config.rng, updates) # randomly select an update
             _update(config, integrand)
-            (i % 10 == 0 && block >= 2) && measure(config.curr, config.X, config.K, config.ext, config.step)
+            (i % 10 == 0 && blk >= 1) && measure(config.curr, config.X, config.K, config.ext, config.step, blk)
             if i % 1000 == 0
-                # println(config.var[1][1], ", ", config.var[2][1], ", ", config.var[2][2])
                 for t in timer
                     check(t, config)
                 end
             end
         end
-        # println(config.curr.observable)
-        reweight(config)
+        (blk >= 1) && reweight(config)
     end
 
     printStatus(config)
-    println("End Simulation. ")
+    printstyled("PID $pid End Simulation. \n\n", color=:red)
 end
 
 mutable struct Configuration{TX,TK,R}
@@ -86,14 +85,44 @@ mutable struct Configuration{TX,TK,R}
 end
 
 function reweight(config)
-    # config.groups[1].reWeightFactor = 1.0
-    # config.groups[2].reWeightFactor = 8.0
-    avgstep = sum([g.visitedSteps for g in config.diagrams]) / length(config.diagrams)
-    for g in config.diagrams
-        if g.visitedSteps > 10000
-            # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
-            g.reWeightFactor *= avgstep / g.visitedSteps
-        end
+    config.diagrams[1].reWeightFactor = 1.0
+    config.diagrams[2].reWeightFactor = 8.0
+    # avgstep = sum([g.visitedSteps for g in config.diagrams]) / length(config.diagrams)
+    # for g in config.diagrams
+    #     if g.visitedSteps > 10000
+    #         # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
+    #         g.reWeightFactor *= avgstep / g.visitedSteps
+    #     end
+    # end
+end
+
+"""
+    StopWatch(start, interval, callback)
+
+Initialize a stopwatch. 
+
+# Arguments
+- `start::Float64`: initial time (in seconds)
+- `interval::Float64` : interval to click (in seconds)
+- `callback` : callback function after each click (interval seconds)
+"""
+mutable struct StopWatch
+    start::Float64
+    interval::Float64
+    f::Function
+    StopWatch(_interval, callback) = new(time(), _interval, callback)
+end
+
+"""
+    check(stopwatch, parameter...)
+
+Check stopwatch. If it clicks, call the callback function with the unpacked parameter
+"""
+function check(watch::StopWatch, parameter...)
+    now = time()
+    if now - watch.start > watch.interval
+        watch.f(parameter...)
+        watch.start = now
     end
 end
 
@@ -143,36 +172,6 @@ function printStatus(config)
     # println(progressBar(round(config.step / 1000_000, digits=2), config.totalBlock))
     printstyled(progressBar(round(config.step / 1000_000, digits=2), config.totalBlock), color=:green)
     println()
-end
-
-"""
-    StopWatch(start, interval, callback)
-
-Initialize a stopwatch. 
-
-# Arguments
-- `start::Float64`: initial time (in seconds)
-- `interval::Float64` : interval to click (in seconds)
-- `callback` : callback function after each click (interval seconds)
-"""
-mutable struct StopWatch
-    start::Float64
-    interval::Float64
-    f::Function
-    StopWatch(_interval, callback) = new(time(), _interval, callback)
-end
-
-"""
-    check(stopwatch, parameter...)
-
-Check stopwatch. If it clicks, call the callback function with the unpacked parameter
-"""
-function check(watch::StopWatch, parameter...)
-    now = time()
-    if now - watch.start > watch.interval
-        watch.f(parameter...)
-        watch.start = now
-    end
 end
 
 """

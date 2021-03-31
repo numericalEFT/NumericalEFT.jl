@@ -1,6 +1,4 @@
-using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays
-using BenchmarkTools
-using InteractiveUtils
+using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, Statistics, BenchmarkTools, InteractiveUtils
 
 const kF = 1.919
 const β = 25.0 / kF^2
@@ -38,7 +36,7 @@ function MC(block, x)
         end
     end
 
-    function measure(diag, X, K, ext, step)
+    function measure(diag, X, K, ext, step, block)
         factor = 1.0 / diag.reWeightFactor
         if diag.id == 1
             obs1 += factor
@@ -50,20 +48,12 @@ function MC(block, x)
         end
     end
 
-# function measure(config, integrand)
-#     curr = config.curr
-#     # factor = 1.0 / config.absWeight / curr.reWeightFactor
-#     weight = integrand(curr.id, config.X, config.K, config.ext, config.step)
-#     obs = curr.observable
-#     obs[config.ext.idx...] += weight / abs(weight) / curr.reWeightFactor
-# end
-
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
     Ext = MonteCarlo.External([16]) # external variable is specified
     extQ = [@SVector [q, 0.0, 0.0] for q in range(0.0, stop=3.0 * kF, length=Ext.size[1])]
-    obs1 = 0.0 # group1 is a constant for normalization
-    obs2 = zeros(Float64, Ext.size...) # group2 measures the bubble for different external q
+    obs1 = 0.0 # diag1 is a constant for normalization
+    obs2 = zeros(Float64, Ext.size...) # diag2 measures the bubble for different external q
     diag1 = MonteCarlo.Diagram(1, 0, 1, 0)
     diag2 = MonteCarlo.Diagram(2, 1, 2, 1)
 
@@ -76,27 +66,31 @@ function MC(block, x)
 
     MonteCarlo.montecarlo(block, (diag1, diag2), T, K, Ext, integrand, measure; pid=x, rng=rng)
 
-    # println(group1.visitedSteps, " vs ", group2.visitedSteps)
-    # println(group1.reWeightFactor, " vs ", group2.reWeightFactor)
     return obs2 / obs1 * Ext.size[1], extQ
 end
 
-function run()
+function run(repeat, block)
     # println(procs())
-    block = 10
     # result=zeros(Float64, N)
     # kF, β = 1.919, 25.0
+    observable = []
+    Q = []
+    for i in 1:repeat
+        obs, extQ = MC(block, rand(1:10000))
+        push!(observable, obs)
+        push!(Q, extQ)
+    end
 
-    result, extQ = MC(block, rand(1:10000))
+    obs = mean(observable)
+    obserr = std(observable) / sqrt(length(observable))
 
-    for (idx, q) in enumerate(extQ)
+    for (idx, q) in enumerate(Q[1])
         q = q[1]
         p, err = Diagram.bubble(q, 0.0im, 3, kF, β)
         p, err = real(p) * 2.0, real(err) * 2.0
-        polar = result[idx]
-        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, polar, 0.0, p, err)
+        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
     end
 end
 
-# @btime run()
-run()
+# @btime run(1, 10)
+run(8, 10)
