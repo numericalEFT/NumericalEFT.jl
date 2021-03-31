@@ -1,5 +1,3 @@
-module Interpolate
-
 """
    linear2D(xgrid, ygrid, data, x, y) 
 
@@ -38,5 +36,3 @@ linear interpolation of data(x, y)
     gx = (g0 * dy1 + g1 * dy0) / (dx0 + dx1) / (dy0 + dy1)
     return gx
 end
-
-end # module
