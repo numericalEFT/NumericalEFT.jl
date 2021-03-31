@@ -8,9 +8,9 @@ Propose to generate new index (uniformly) randomly in [1, size]
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline function createIdx!(newIdx::Int, size::Int, rng = RNG)
-    newIdx = rand(rng, 1:size)
-    return size * 1.0
+@inline function create!(ext::External, idx::Int, rng=RNG)
+    ext.idx[idx] = rand(rng, 1:ext.size[idx])
+    return Float64(ext.size[idx])
 end
 
 """
@@ -23,7 +23,7 @@ Propose to remove the old index in [1, size]
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline removeIdx(oldIdx::Int, size::Int, rng = RNG) = 1.0 / size
+@inline remove(ext::External, idx::Int, rng=RNG) = 1.0 / size
 
 """
     shiftIdx!(oldIdx::Int, newIdx::Int, size::Int, rng=GLOBAL_RNG)
@@ -36,8 +36,8 @@ Propose to shift the old index in [1, size] to a new index
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline function shiftIdx!(oldIdx::Int, newIdx::Int, size::Int, rng = RNG)
-    newIdx = rand(rng, 1:size)
+@inline function shift!(ext::External, idx::Int, rng=RNG)
+    ext.idx[idx] = rand(rng, 1:ext.size[idx])
     return 1.0
 end
 
@@ -49,7 +49,7 @@ Propose to generate new Fermi K in [Kf-δK, Kf+δK)
 # Arguments
 - `newK`:  vector of dimension of d=2 or 3
 """
-@inline function create!(K::FermiK{D}, idx::Int, rng = RNG) where {D}
+@inline function create!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     ############ Simple Way ########################
     # for i in 1:DIM
     #     newK[i] = Kf * (rand(rng) - 0.5) * 2.0
@@ -83,7 +83,7 @@ Propose to remove an existing Fermi K in [Kf-δK, Kf+δK)
 # Arguments
 - `oldK`:  vector of dimension of d=2 or 3
 """
-@inline function remove(K::FermiK{D}, idx::Int, rng = RNG) where {D}
+@inline function remove(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     ############## Simple Way #########################
     # for i in 1:DIM
     #     if abs(oldK[i]) > Kf
@@ -105,7 +105,7 @@ Propose to remove an existing Fermi K in [Kf-δK, Kf+δK)
         return 1.0 / (2 * K.δk * 2π * π * sinθ * Kamp^2)
     else  # DIM==2
         return 1.0 / (2 * K.δk * 2π * Kamp)
-    end
+end
 end
 
 """
@@ -113,7 +113,7 @@ end
 
 Propose to shift oldK to newK. Work for generic momentum vector
 """
-@inline function shift!(K::FermiK{D}, idx::Int, rng = RNG) where {D}
+@inline function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     x = rand(rng)
     if x < 1.0 / 3
         K[idx] = K[idx] + (rand(rng, D) .- 0.5) .* K.δk
@@ -162,7 +162,7 @@ Propose to generate new tau (uniformly) randomly in [0, β), return proposal pro
 - `T`:  Tau variable
 - `idx`: T.t[idx] will be updated
 """
-@inline function create!(T::Tau, idx::Int, rng = RNG)
+@inline function create!(T::Tau, idx::Int, rng=RNG)
     T[idx] = rand(rng) * T.β
     return T.β
 end
@@ -176,7 +176,7 @@ Propose to remove old tau in [0, β), return proposal probability
 - `T`:  Tau variable
 - `idx`: T.t[idx] will be updated
 """
-@inline function remove(T::Tau, idx::Int, rng = RNG)
+@inline function remove(T::Tau, idx::Int, rng=RNG)
     return 1.0 / T.β
 end
 
@@ -189,7 +189,7 @@ Propose to shift the old tau to new tau, both in [0, β), return proposal probab
 - `T`:  Tau variable
 - `idx`: T.t[idx] will be updated
 """
-@inline function shift!(T::Tau, idx::Int, rng = RNG)
+@inline function shift!(T::Tau, idx::Int, rng=RNG)
     x = rand(rng)
     if x < 1.0 / 3
         T[idx] = T[idx] + 2 * T.λ * (rand(rng) - 0.5)
