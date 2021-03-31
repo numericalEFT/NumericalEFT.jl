@@ -1,8 +1,7 @@
 
 function increaseOrder(config, integrand)
-    idx = rand(config.rng, 1:length(config.groups))
-    new = config.groups[idx]
-    # new::Group=rand(config.rng, config.groups)
+    idx = rand(config.rng, 1:length(config.diagrams))
+    new = config.diagrams[idx]
     curr = config.curr
 
     if (new.order != curr.order + 1)
@@ -23,7 +22,7 @@ function increaseOrder(config, integrand)
     #     end
     # end
 
-    newAbsWeight = abs(integrand(new.id, config.X, config.K, config.ext, config.step))
+    newAbsWeight = abs(integrand(new, config.X, config.K, config.ext, config.step))
     R = prop * newAbsWeight * new.reWeightFactor / config.absWeight / curr.reWeightFactor
 
     curr.propose[1] += 1.0
@@ -37,8 +36,8 @@ function increaseOrder(config, integrand)
 end
 
 function decreaseOrder(config, integrand)
-    idx = rand(config.rng, 1:length(config.groups))
-    new = config.groups[idx]
+    idx = rand(config.rng, 1:length(config.diagrams))
+    new = config.diagrams[idx]
     curr = config.curr
 
     if (new.order != curr.order - 1)
@@ -53,7 +52,7 @@ function decreaseOrder(config, integrand)
         prop *= remove(config.K, pos, config.rng)
     end
 
-    newAbsWeight = abs(integrand(new.id, config.X, config.K, config.ext, config.step))
+    newAbsWeight = abs(integrand(new, config.X, config.K, config.ext, config.step))
     R = prop * newAbsWeight * new.reWeightFactor / config.absWeight / curr.reWeightFactor
     # curr.propose[Symbol(decreaseOrder)]+=1.0
     curr.propose[2] += 1.0
@@ -78,7 +77,7 @@ function changeX(config, integrand)
     oldvar = config.X[idx]
     prop = shift!(config.X, idx, config.rng)
 
-    newAbsWeight = abs(integrand(curr.id, config.X, config.K, config.ext, config.step))
+    newAbsWeight = abs(integrand(curr, config.X, config.K, config.ext, config.step))
     R = prop * newAbsWeight / config.absWeight
     curr.propose[3] += 1.0
     # curr.propose[Symbol(changeInternal)]+=1.0
@@ -97,7 +96,7 @@ function changeK(config, integrand)
     oldvar = config.K[idx]
     prop = shift!(config.K, idx, config.rng)
 
-    newAbsWeight = abs(integrand(curr.id, config.X, config.K, config.ext, config.step))
+    newAbsWeight = abs(integrand(curr, config.X, config.K, config.ext, config.step))
     R = prop * newAbsWeight / config.absWeight
     curr.propose[4] += 1.0
     # curr.propose[Symbol(changeInternal)]+=1.0
@@ -118,7 +117,7 @@ function changeExt(config, integrand)
     oldidx = ext.idx[i]
     prop = shift!(ext, i, config.rng)
 
-    newAbsWeight = abs(integrand(curr.id, config.X, config.K, config.ext, config.step))
+    newAbsWeight = abs(integrand(curr, config.X, config.K, config.ext, config.step))
     R = prop * newAbsWeight / config.absWeight
     curr.propose[5] += 1.0
     # curr.propose[Symbol(changeInternal)]+=1.0
