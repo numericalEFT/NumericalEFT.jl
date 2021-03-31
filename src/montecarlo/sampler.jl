@@ -58,7 +58,7 @@ Propose to generate new Fermi K in [Kf-δK, Kf+δK)
     ################################################
 
     Kamp = K.kF + (rand(rng) - 0.5) * 2.0 * K.δk
-    Kamp <= 0.0 && return 0.0
+    (Kamp <= 0.0) && return 0.0
     # Kf-dK<Kamp<Kf+dK 
     ϕ = 2π * rand(rng)
     if D == 3 # dimension 3
