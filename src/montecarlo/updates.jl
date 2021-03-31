@@ -64,12 +64,6 @@ function decreaseOrder(config, integrand)
     end
 end
 
-# function changeTau()
-#     # Proposed[CHANGE_TAU, curr.order + 1] += 1
-#     # Accepted[CHANGE_TAU, curr.order + 1] += 1
-#     return
-# end
-
 function changeX(config, integrand)
     curr = config.curr
     (curr.nX <= 0) && return # return if the var number is less than 1
