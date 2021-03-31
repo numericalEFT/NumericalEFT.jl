@@ -1,9 +1,8 @@
 
 function increaseOrder(config, integrand)
     idx = rand(config.rng, 1:length(config.diagrams))
-    new = config.diagrams[idx]
     curr = config.curr
-
+    new = config.diagrams[idx]
     if (new.order != curr.order + 1)
         return
     end
@@ -16,22 +15,21 @@ function increaseOrder(config, integrand)
         prop *= create!(config.K, pos, config.rng)
     end
 
-    # for (idx, v) in enumerate(config.var)
-    #     for pos = curr.internal[idx]+1:new.internal[idx]
-    #         prop *= create!(v, pos, config.rng)
-    #     end
-    # end
+    currAbsWeight = config.absWeight
 
-    newAbsWeight = abs(integrand(new, config))
-    R = prop * newAbsWeight * new.reWeightFactor / config.absWeight / curr.reWeightFactor
+    config.curr = new
+    newAbsWeight = abs(integrand(config))
+    R = prop * newAbsWeight * new.reWeightFactor / currAbsWeight / curr.reWeightFactor
 
     curr.propose[1] += 1.0
-    # curr.propose[Symbol(increaseOrder)]+=1.0
     if rand(config.rng) < R
         curr.accept[1] += 1.0
-        # curr.accept[Symbol(increaseOrder)]+=1.0
-        config.absWeight = newAbsWeight
         config.curr = new
+        config.absWeight = newAbsWeight
+    else
+        config.curr = curr
+        # in case the user modifies config.absWeight when calculate integrand(config)
+        config.absWeight = currAbsWeight
     end
 end
 
@@ -52,15 +50,19 @@ function decreaseOrder(config, integrand)
         prop *= remove(config.K, pos, config.rng)
     end
 
-    newAbsWeight = abs(integrand(new, config))
-    R = prop * newAbsWeight * new.reWeightFactor / config.absWeight / curr.reWeightFactor
-    # curr.propose[Symbol(decreaseOrder)]+=1.0
+    config.curr = new
+    currAbsWeight = config.absWeight
+    newAbsWeight = abs(integrand(config))
+    R = prop * newAbsWeight * new.reWeightFactor / currAbsWeight / curr.reWeightFactor
     curr.propose[2] += 1.0
     if rand(config.rng) < R
         curr.accept[2] += 1.0
-        # curr.accept[Symbol(decreaseOrder)]+=1.0
         config.absWeight = newAbsWeight
         config.curr = new
+    else
+        # in case the user modifies config.absWeight when calculate integrand(config)
+        config.absWeight = currAbsWeight
+        config.curr = curr
     end
 end
 
@@ -71,15 +73,17 @@ function changeX(config, integrand)
     oldvar = config.X[idx]
     prop = shift!(config.X, idx, config.rng)
 
-    newAbsWeight = abs(integrand(curr, config))
-    R = prop * newAbsWeight / config.absWeight
+    currAbsWeight = config.absWeight
+    newAbsWeight = abs(integrand(config))
+    R = prop * newAbsWeight / currAbsWeight
     curr.propose[3] += 1.0
-    # curr.propose[Symbol(changeInternal)]+=1.0
     if rand(config.rng) < R
         curr.accept[3] += 1.0
         config.absWeight = newAbsWeight
     else
         config.X[idx] = oldvar
+        # in case the user modifies config.absWeight when calculate integrand(config)
+        config.absWeight = currAbsWeight 
     end
 end
 
@@ -90,15 +94,17 @@ function changeK(config, integrand)
     oldvar = config.K[idx]
     prop = shift!(config.K, idx, config.rng)
 
-    newAbsWeight = abs(integrand(curr, config))
-    R = prop * newAbsWeight / config.absWeight
+    currAbsWeight = config.absWeight
+    newAbsWeight = abs(integrand(config))
+    R = prop * newAbsWeight / currAbsWeight
     curr.propose[4] += 1.0
-    # curr.propose[Symbol(changeInternal)]+=1.0
     if rand(config.rng) < R
         curr.accept[4] += 1.0
         config.absWeight = newAbsWeight
     else
         config.K[idx] = oldvar
+        # in case the user modifies config.absWeight when calculate integrand(config)
+        config.absWeight = currAbsWeight 
     end
 end
 
@@ -111,8 +117,9 @@ function changeExt(config, integrand)
     oldidx = ext.idx[i]
     prop = shift!(ext, i, config.rng)
 
-    newAbsWeight = abs(integrand(curr, config))
-    R = prop * newAbsWeight / config.absWeight
+    currAbsWeight = config.absWeight
+    newAbsWeight = abs(integrand(config))
+    R = prop * newAbsWeight / currAbsWeight
     curr.propose[5] += 1.0
     # curr.propose[Symbol(changeInternal)]+=1.0
     if rand(config.rng) < R
@@ -120,5 +127,7 @@ function changeExt(config, integrand)
         config.absWeight = newAbsWeight
     else
         ext.idx[i] = oldidx
+        # in case the user modifies config.absWeight when calculate integrand(config)
+        config.absWeight = currAbsWeight 
     end
 end

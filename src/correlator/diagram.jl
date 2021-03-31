@@ -24,7 +24,7 @@ Compute the polarization function of free electrons at a given frequency.
 - `dispersion': dispersion, default k^2/2m-kF^2/2m
 - `eps=1.0e-6`: the required absolute accuracy
 """
-@inline function bubble(q::T, ω::Complex{T}, dim::Int, kF=T(1.0), β=T(1.0), m=T(0.5), dispersion=(k) -> (k^2 - kF^2) / (2m), eps=T(1.0e-6)) where {T <: AbstractFloat}
+@inline function bubble(q::T, ω::Complex{T}, dim::Int, kF=T(1.0), β=T(1.0), m=T(0.5), ϵk=(k) -> (k^2 - kF^2) / (2m); eps=T(1.0e-6)) where {T <: AbstractFloat}
     # ω, q = ω * β, q / kF # make everything dimensionless 
     if (ω * β != 0.0 && imag(ω * β) < eps)
         println("Im ω>eps is expected unless ω=0!")
@@ -36,8 +36,8 @@ Compute the polarization function of free electrons at a given frequency.
         # ϵ1 = (k^2 - kF^2) * β
         # ϵ2 = (kp2(k, θ) - kF^2) * β
         # @assert ϵ1 ≈ dispersion(k) * β
-        ϵ1 = dispersion(k) * β
-        ϵ2 = dispersion(sqrt(kp2(k, θ))) * β
+        ϵ1 = ϵk(k) * β
+        ϵ2 = ϵk(sqrt(kp2(k, θ))) * β
         δϵ = ϵ1 - ϵ2
         Jacobi = (dim == 3 ? T(2π) * k^2 * sin(θ) : k^2 * sin(θ))
         Phase = T(1.0) / (2π)^dim

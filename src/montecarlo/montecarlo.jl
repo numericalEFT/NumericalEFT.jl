@@ -19,8 +19,7 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
     ##############  initialization  ################################
 
     # don't forget to initialize the diagram weight
-    config.absWeight =
-        integrand(config.curr, config)
+    config.absWeight = integrand(config)
 
     if timer === nothing
         printTime = 10
