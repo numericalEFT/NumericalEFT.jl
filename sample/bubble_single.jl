@@ -1,4 +1,4 @@
-using QuantumStatistics, Statistics, LinearAlgebra, Random
+using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays
 using BenchmarkTools
 using InteractiveUtils
 
@@ -9,7 +9,6 @@ function MC(block, x)
     rng = MersenneTwister(x)
 
     function eval1(X, K, ext, step)
-        T = X[1]
         return 1.0
     end
 
@@ -17,11 +16,13 @@ function MC(block, x)
         k = K[1]
         Tin = X[1]
         Tout = X[2]
+        kq = k + extQ[ext.idx[1]]
         # println(Tout, ", ", Tin)
         τ = (Tout - Tin) / β
-        ω = (dot(k, k) - kF^2) * β
-        g1 = Spectral.kernelFermiT(τ, ω)
-        g2 = Spectral.kernelFermiT(-τ, ω)
+        ω1 = (dot(k, k) - kF^2) * β
+        g1 = Spectral.kernelFermiT(τ, ω1)
+        ω2 = (dot(kq, kq) - kF^2) * β
+        g2 = Spectral.kernelFermiT(-τ, ω2)
         spin = 2
         phase = 1.0 / (2π)^3
         return g1 * g2 * spin * phase
@@ -39,7 +40,8 @@ function MC(block, x)
 
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
-    Ext = MonteCarlo.External([1]) # external variable is specified
+    Ext = MonteCarlo.External([16]) # external variable is specified
+    extQ = [@SVector [q, 0.0, 0.0] for q in range(0.0, stop=3.0 * kF, length=Ext.size[1])]
     group1 = MonteCarlo.Group(1, 0, 1, 0, zeros(Float64, Ext.size...))
     group2 = MonteCarlo.Group(2, 1, 2, 1, zeros(Float64, Ext.size...))
 
@@ -50,13 +52,13 @@ function MC(block, x)
     # @code_warntype MonteCarlo.increaseOrder(config, config.curr)
     # @code_warntype eval2(config)
 
-    MonteCarlo.montecarlo(block, integrand, (group1, group2), T, K, Ext; pid = x, rng = rng)
+    MonteCarlo.montecarlo(block, integrand, (group1, group2), T, K, Ext; pid=x, rng=rng)
 
-    w1 = group1.observable[1]
-    w2 = group2.observable[1]
+    # w1 = group1.observable[1]
+    # w2 = group2.observable[1]
     println(group1.visitedSteps, " vs ", group2.visitedSteps)
     println(group1.reWeightFactor, " vs ", group2.reWeightFactor)
-    return w2 / w1
+    return group2.observable / sum(group1.observable) * length(group1.observable), extQ
 end
 
 function run()
@@ -65,13 +67,17 @@ function run()
     # result=zeros(Float64, N)
     # kF, β = 1.919, 25.0
 
-    result = MC(block, 1)
-    println(result)
+    result, extQ = MC(block, 1)
 
-    println(mean(result), " ± ", std(result) / sqrt(length(result)))
-    p, err = Diagram.bubble(0.0, 0.0im, 3, kF, β)
-    println(real(p) * 2, " ± ", real(err) * 2)
+    for (idx, q) in enumerate(extQ)
+        q = q[1]
+        p, err = Diagram.bubble(q, 0.0im, 3, kF, β)
+        p, err = real(p) * 2.0, real(err) * 2.0
+        polar = result[idx]
+        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, polar, 0.0, p, err)
+    end
 end
 
-@btime run()
-# run()
+# @btime run()
+run()
+    
