@@ -26,7 +26,7 @@ function dlrGrid(type, Euv, β=1.0, eps=1e-10)
         grid = readdlm(filename)
 
         ω = grid[:, 2] / β
-        ωn = (2.0 * grid[:, 4] .+ 1.0) * π / β
+        ωn = Int.(grid[:, 4])
         tgrid = [((t >= 0.0) ? t : 1.0 + t) for t in grid[:, 3]]
         τ = sort(tgrid * β)
         return Dict(:ω => ω, :τ => τ, :ωn => ωn)

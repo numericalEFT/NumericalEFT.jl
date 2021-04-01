@@ -29,7 +29,7 @@ g(τ>0) = e^{-ϵτ}/(1+e^{-βϵ}), g(τ≤0) = -e^{-ϵτ}/(1+e^{βϵ})
 end
 
 """
-    bareFermiMatsubara(β, n, ε, [, scale])
+    fermiΩ(n::Int, ε::T, β::T) where {T <: AbstractFloat}
 
 Compute the bare Green's function for a given Matsubara frequency.
 ```math
@@ -38,12 +38,12 @@ g(iω_n) = -1/(iω_n-ε),
 where ``ω_n=(2n+1)π/β``. The convention here is consist with the book "Quantum Many-particle Systems" by J. Negele and H. Orland, Page 95
 
 # Arguments
-- `β`: the inverse temperature 
-- `τ`: the imaginary time, must be (-β, β]
+- `n`: index of the Matsubara frequency
 - `ε`: dispersion minus chemical potential: ``E_k-μ``; 
        it could also be the real frequency ω if the bare Green's function is used as the kernel in the Lehmann representation 
+- `β`: the inverse temperature 
 """
-@inline function fermiΩ(β::T, n::Int, ε::T) where {T <: AbstractFloat}
+@inline function fermiΩ(n::Int, ε::T, β::T) where {T <: AbstractFloat}
     # fermionic Matsurbara frequency
     ω_n = (2 * n + 1) * π / β
     G = -1.0 / (ω_n * im - ε)
