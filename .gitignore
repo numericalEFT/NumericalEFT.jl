@@ -24,7 +24,6 @@ deps/src/
 Manifest.toml
 
 *.log
-*.dat
 *.pyc
 .ipynb*
 *.data
