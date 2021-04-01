@@ -16,19 +16,31 @@ end
 
 
 @testset "Spectral functions" begin
-    τ, ε = 0.1, 10.0
-    n(ε) = 1.0 / (1.0 + exp(ε))
-    @test Spectral.fermiDirac(ε) ≈ n(ε)
+    function testKernelT(type, sign, β, τ, ε)
+        println("Testing $type for β=$β, τ=$τ, ε=$ε")
+    n(ε, β) = 1.0 / (exp(ε*β) - sign * 1.0)
+    @test Spectral.density(type, ε, β) ≈ n(ε, β)
+    @test Spectral.kernelT(type, eps(0.0), ε, β) ≈ 1.0 + sign * n(ε, β)
 
-    @test Spectral.kernelFermiT(τ, 0.0) ≈ n(0.0)
-    @test Spectral.kernelFermiT(eps(0.0), ε) ≈ 1.0 - n(ε)
+    @test Spectral.kernelT(type, 0.0, ε, β) ≈ sign * n(ε, β) # τ=0.0 should be treated as the 0⁻
+    @test Spectral.kernelT(type, -eps(0.0), ε, β) ≈ sign * n(ε, β)
 
-    @test Spectral.kernelFermiT(0.0, ε) ≈ -n(ε) # τ=0.0 should be treated as the 0⁻
-    @test Spectral.kernelFermiT(-eps(0.0), ε) ≈ -n(ε)
+    @test Spectral.kernelT(type, -τ, ε, β) ≈ sign * Spectral.kernelT(type, β - τ, ε, β)
+    @test Spectral.kernelT(type, -eps(0.0), 1000.0, 1.0) ≈ 0.0
+    @test Spectral.kernelT(type, -eps(0.0), -1000.0, 1.0) ≈ -1.0
+    if type == :fermi
+        # ω can not be zero for boson
+        @test Spectral.kernelT(:fermi, τ, 0.0, β) ≈ n(0.0, β)
+    end
+end
+    testKernelT(:fermi, -1.0, 10.0, 1.0, 1.0)
+    testKernelT(:bose, 1.0, 10.0, 1.0, 1.0)
 
-    @test Spectral.kernelFermiT(-τ, ε) ≈ -Spectral.kernelFermiT(1 - τ, ε)
-    @test Spectral.kernelFermiT(-eps(0.0), 1000.0) ≈ 0.0
-    @test Spectral.kernelFermiT(-eps(0.0), -1000.0) ≈ -1.0
+    testKernelT(:fermi, -1.0, 10.0, 1e-10, 1.0)
+    testKernelT(:bose, 1.0, 10.0, 1e-10, 1.0)
+
+    testKernelT(:fermi, -1.0, 10.0, 1.0, 1.0e-6)
+    testKernelT(:bose, 1.0, 10.0, 1.0, 1.0e-6) #small ϵ for bosonic case is particularly dangerous because the kernal diverges ~1/ϵ
 end
 
 @testset "Correlator Representation" begin
