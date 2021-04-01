@@ -49,7 +49,7 @@ function kernelT(type, τGrid, ωGrid, β)
     return kernel
 end
 
-function tau2dlr(type, green, dlrGrid, β=1.0; axis=1, eps=1e-16)
+function tau2dlr(type, green, dlrGrid, β=1.0; axis=1, rtol=1e-12)
     @assert length(size(green)) >= axis "dimension of the Green's function should be larger than axis!"
     τGrid = dlrGrid[:τ]
     ωGrid = dlrGrid[:ω]

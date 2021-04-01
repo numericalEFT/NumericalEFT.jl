@@ -3,6 +3,7 @@ Provide a set of fast math functions
 """
 module FastMath
 using LinearAlgebra
+using Cuba
 export dot, squaredNorm, norm
 
 # include("Yeppp.jl")
