@@ -23,7 +23,7 @@ Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
     elseif type == :bose
         return kernelBoseT(τ, ω, β)
     else
-        @error "Type $type  is not implemented!"
+        @error "Type $type   is not implemented!"
     end
 end
 
@@ -47,7 +47,7 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
     end
     G = sign(τ)
     if τ < T(0.0)
-        τ += 1.0
+        τ += β
     end
     x = ω * β / 2
     y = 2τ / β - 1
@@ -80,7 +80,7 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
         τ = -eps(T)
     end
     if τ < T(0.0)
-        τ += 1.0
+        τ += β
     end
     # if -eps(T) < ω <eps(T) #ω->0 makes the kernel diverge
     #     return 0.0
@@ -92,9 +92,11 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
     elseif x >= T(100.0)
         G = exp(-x * (y + 1))
     else # x<=-100.0
-        G = exp(x * (1 - y))
+        G = -exp(x * (1 - y))
     end
-    @assert isfinite(G)
+    if !isfinite(G)
+        throw(DomainError(-1, "Got $G for the parameter $τ, $ω and $β"))
+    end
     return G
 end
 
@@ -115,7 +117,7 @@ Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
     elseif type == :bose
         return kernelBoseΩ(n, ω, β)
     else
-        @error "Type $type  is not implemented!"
+        @error "Type $type   is not implemented!"
     end
 end
 
@@ -158,6 +160,9 @@ where ``ω_n=2nπ/β``. The convention here is consist with the book "Quantum Ma
     # fermionic Matsurbara frequency
     ω_n = (2 * n) * π / β
     G = -1.0 / (ω_n * im - ε)
+    if !isfinite(G)
+        throw(DomainError(-1, "Got $G for the parameter $n, $ω and $β"))
+    end
     return T(G)
 end
 
@@ -177,7 +182,7 @@ Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
     elseif type == :bose
         return boseEinstein(ω, β)
     else
-        @error "Type $type  is not implemented!"
+        @error "Type $type   is not implemented!"
     end
 end
 
@@ -194,7 +199,7 @@ f(ω) = 1/(1+e^{-ω})
 - `β`: the inverse temperature 
 """
 @inline function fermiDirac(ω::T, β::T=1.0) where {T <: AbstractFloat}
-    x=ω*β
+    x = ω * β
     if -T(50.0) < x < T(50.0)
     return 1.0 / (1.0 + exp(x))
     elseif x >= T(50.0)
@@ -220,16 +225,18 @@ f(ω) = 1/(1-e^{-ω})
     # if -eps(T)<ω<eps(T)
     #     return 0.0
     # end
-    n=0.0
-    x=ω*β
+    n = 0.0
+    x = ω * β
     if -T(50.0) < x < T(50.0)
-        n=1.0 / (1.0 - exp(x))
+        n = 1.0 / (exp(x) - 1.0)
     elseif x >= T(50.0)
-        n=exp(-x)
+        n = exp(-x)
     else # x<=-50.0
-        n=1.0 - exp(x)
+        n = -1.0 - exp(x)
     end
-    @assert isfinite(n)
+    if !isfinite(n)
+        throw(DomainError(-1, "Got $n for the parameter $ω and $β"))
+    end
     return n
 end
 
