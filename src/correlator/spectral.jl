@@ -3,6 +3,7 @@ Spectral representation related functions
 """
 module Spectral
 export kernelFermiT, kernelFermiW, kernelBoseT, kernelBoseW, fermiDirac
+using QuadGK
 
 """
     kernelFermiT(τ, ω)
@@ -16,7 +17,7 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
 - `τ`: the imaginary time, must be (-1, 1]
 - `ω`: frequency
 """
-@inline function kernelFermiT(τ::T, ω::T) where {T<:AbstractFloat}
+@inline function kernelFermiT(τ::T, ω::T) where {T <: AbstractFloat}
     (-T(1.0) < τ <= T(1.0)) || error("τ must be (-β, β]")
     if τ == T(0.0)
         τ = -eps(T)
@@ -48,7 +49,7 @@ f(ω) = 1/(1+e^{-ω})
 # Arguments
 - `ω`: frequency
 """
-@inline function fermiDirac(ω::T) where {T<:AbstractFloat}
+@inline function fermiDirac(ω::T) where {T <: AbstractFloat}
     if -T(50.0) < ω < T(50.0)
         return 1.0 / (1.0 + exp(ω))
     elseif ω >= T(50.0)
@@ -56,6 +57,33 @@ f(ω) = 1/(1+e^{-ω})
     else # x<=-50.0
         return 1.0 - exp(ω)
     end
+end
+
+"""
+freq2Tau(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
+
+Compute imaginary-time Green's function from a spectral density``
+```math
+G(τ>0) = ∫dω e^{-ωτ}/(1±e^{-ωβ}) S(ω)
+G(τ≤0) = -∫dω e^{-ωτ}/(1±e^{ωβ}) S(ω)
+```
+
+# Arguments
+- `ω`: frequency
+"""
+function freq2Tau(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
+    if type == :fermi
+        kernel = kernelFermiT
+    else
+        @error "Not implemented!"
+    end
+    G = similar(τGrid)
+    err = similar(τGrid)
+        for (τi, τ) in enumerate(τGrid)
+        f(ω) = Spectral.kernelFermiT(τ / β, ω * β) * spectral(ω)
+        G[τi], err[τi] = QuadGK.quadgk(f, Emin, Emax, rtol=rtol)
+    end
+    return G, err
 end
 
 end
