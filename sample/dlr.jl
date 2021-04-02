@@ -1,6 +1,5 @@
 using QuantumStatistics
 using QuadGK
-
 β = 1000.0
 Euv = 10.0
 dlrGrid = Basis.dlrGrid(:fermi, Euv, β, 1.0e-12)
@@ -13,7 +12,7 @@ G = zeros(Float64, (2, length(dlrGrid[:τ])))
 G[1, :] = [TwoPoint.fermiT(τ, 0.1, β) for τ in dlrGrid[:τ]]
 G[2, :] = [TwoPoint.fermiT(τ, 1.0, β) for τ in dlrGrid[:τ]]
 # println("G: ", G)
-dlrcoeff = Basis.tau2dlr(:fermi, G, dlrGrid, β; axis=2, eps=1.0e-16)
+dlrcoeff = Basis.tau2dlr(:fermi, G, dlrGrid, β; axis=2, rtol=1.0e-16)
 # println(size(dlrcoeff))
 Gp = Basis.dlr2tau(:fermi, dlrcoeff, dlrGrid, β; axis=2)
 
@@ -28,20 +27,20 @@ for i in 1:length(G[1, :])
 end
 println("End")
 
-S(ω) = sqrt(1.0 - ω^2) # semicircle -1<ω<1
-# S(ω) = 1.0 / (ω^2 + 1.0) # semicircle -1<ω<1
-Euv = 1.0
-β = 10000.0
-eps = 1e-10
-dlr = Basis.dlrGrid(:fermi, Euv, β, eps)
-τGrid = dlr[:τ]
-G = similar(dlr[:τ])
-for (τi, τ) in enumerate(dlr[:τ])
-    f(ω) = Spectral.kernelFermiT(τ / β, ω * β) * S(ω)
-    y1 = FastMath.integrate(f, -1.0, 1.0, :cuhre, eps)
-    y2 = QuadGK.quadgk(f, -1.0, 1.0, rtol=eps)
-    println("$y1 vs $y2")
-end
+# S(ω) = sqrt(1.0 - ω^2) # semicircle -1<ω<1
+# # S(ω) = 1.0 / (ω^2 + 1.0) # semicircle -1<ω<1
+# Euv = 1.0
+# β = 10000.0
+# eps = 1e-10
+# dlr = Basis.dlrGrid(:fermi, Euv, β, eps)
+# τGrid = dlr[:τ]
+# G = similar(dlr[:τ])
+# for (τi, τ) in enumerate(dlr[:τ])
+#     f(ω) = Spectral.kernelFermiT(τ / β, ω * β) * S(ω)
+#     y1 = FastMath.integrate(f, -1.0, 1.0, :cuhre, eps)
+#     y2 = QuadGK.quadgk(f, -1.0, 1.0, rtol=eps)
+#     println("$y1 vs $y2")
+# end
 
 
 

@@ -9,7 +9,7 @@ using QuadGK
 """
     kernelT(type, τ, ω, β=1.0)
 
-Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
+Compute the imaginary-time kernel of different type.
 
 # Arguments
 - `type`: symbol :fermi, :bose, :corr
@@ -26,11 +26,25 @@ Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
         @error "Type $type   is not implemented!"
     end
 end
+"""
+    kernelT(type::Symbol, τGrid::Vector{T}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
+Compute kernel with given τ and ω grids.
+"""
+function kernelT(type::Symbol, τGrid::Vector{T}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
+    kernel = zeros(T, (length(τGrid), length(ωGrid)))
+    for (τi, τ) in enumerate(τGrid)
+        for (ωi, ω) in enumerate(ωGrid)
+            kernel[τi, ωi] = kernelT(:fermi, τ, ω, β)
+        end
+    end
+    return kernel
+end
+
 
 """
     kernelFermiT(τ, ω, β=1.0)
 
-Compute the imaginary-time fermionic kernel. Assume ``k_B T/\\hbar=1``
+Compute the imaginary-time fermionic kernel.  Machine accuracy ~eps(g) is guaranteed``
 ```math
 g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
 ```
@@ -42,29 +56,29 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
 """
 @inline function kernelFermiT(τ::T, ω::T, β::T=1.0) where {T <: AbstractFloat}
     (-β < τ <= β) || error("τ must be (-β, β]")
-        if τ == T(0.0)
+    if τ == T(0.0)
         τ = -eps(T)
     end
     G = sign(τ)
-    if τ < T(0.0)
-        τ += β
+    if τ>T(0.0)
+        if ω>T(0.0)
+            return exp(-ω*τ)/(1+exp(-ω*β))
+        else
+            return exp(ω*(β-τ))/(1+exp(ω*β))
+        end
+    else
+        if ω>T(0.0)
+            return -exp(-ω*(τ+β))/(1+exp(-ω*β))
+        else
+            return -exp(-ω*τ)/(1+exp(ω*β))
+        end
     end
-    x = ω * β / 2
-    y = 2τ / β - 1
-    if -T(100.0) < x < T(100.0)
-        G *= exp(-x * y) / (2 * cosh(x))
-    elseif x >= T(100.0)
-        G *= exp(-x * (y + 1))
-    else # x<=-100.0
-        G *= exp(x * (1 - y))
-    end
-    return G
 end
 
 """
     kernelBoseT(τ, ω, β=1.0)
 
-Compute the imaginary-time bosonic kernel. Assume ``k_B T/\\hbar=1``
+Compute the imaginary-time bosonic kernel. Machine accuracy ~eps(g) is guaranteed``
 ```math
 g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
 ```
@@ -79,26 +93,47 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
     if τ == T(0.0)
         τ = -eps(T)
     end
-    if τ < T(0.0)
-        τ += β
+    G = sign(τ)
+    if τ>T(0.0)
+        if ω>T(0.0)
+            #expm1(x)=exp(x)-1 fixes the accuracy for x-->0^+
+            return exp(-ω*τ)/(-expm1(-ω*β)) 
+        else
+            return exp(ω*(β-τ))/expm1(ω*β)
+        end
+    else
+        if ω>T(0.0)
+            return exp(-ω*(τ+β))/(-expm1(-ω*β))
+        else
+            return exp(-ω*τ)/expm1(ω*β)
+        end
     end
-    # if -eps(T) < ω <eps(T) #ω->0 makes the kernel diverge
-    #     return 0.0
-    # end
-    x = ω * β / 2
-    y = 2τ / β - 1
-    if -T(100.0) < x < T(100.0)
-        G = exp(-x * y) / (2 * sinh(x))
-    elseif x >= T(100.0)
-        G = exp(-x * (y + 1))
-    else # x<=-100.0
-        G = -exp(x * (1 - y))
-    end
-    if !isfinite(G)
-        throw(DomainError(-1, "Got $G for the parameter $τ, $ω and $β"))
-    end
-    return G
 end
+# @inline function kernelBoseT(τ::T, ω::T, β::T=1.0) where {T <: AbstractFloat}
+#     (-β < τ <= β) || error("τ must be (-β, β]")
+#     if τ == T(0.0)
+#         τ = -eps(T)
+#     end
+#     if τ < T(0.0)
+#         τ += β
+#     end
+#     # if -eps(T) < ω <eps(T) #ω->0 makes the kernel diverge
+#     #     return 0.0
+#     # end
+#     x = ω * β / 2
+#     y = 2τ / β - 1
+#     if -T(100.0) < x < T(100.0)
+#         G = exp(-x * y) / (2 * sinh(x))
+#     elseif x >= T(100.0)
+#         G = exp(-x * (y + 1))
+#     else # x<=-100.0
+#         G = -exp(x * (1 - y))
+#     end
+#     if !isfinite(G)
+#         throw(DomainError(-1, "Got $G for the parameter $τ, $ω and $β"))
+#     end
+#     return G
+# end
 
 """
     kernelΩ(type, n, ω, β=1.0)
@@ -122,6 +157,20 @@ Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
 end
 
 """
+    kernelΩ(type::Symbol, nGrid::Vector{Int}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
+Compute kernel matrix with given ωn (integer!) and ω grids.
+"""
+function kernelΩ(type::Symbol, nGrid::Vector{Int}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
+    kernel = zeros(Complex{T}, (length(nGrid), length(ωGrid)))
+    for (ni, n) in enumerate(nGrid)
+        for (ωi, ω) in enumerate(ωGrid)
+            kernel[ni, ωi] = kernelΩ(:fermi, n, ω, β)
+        end
+    end
+    return kernel
+end
+
+"""
     kernelFermiΩ(n::Int, ω::T, β::T) where {T <: AbstractFloat}
 
 Compute the fermionic kernel with Matsubara frequency.
@@ -138,8 +187,8 @@ where ``ω_n=(2n+1)π/β``. The convention here is consist with the book "Quantu
 @inline function kernelFermiΩ(n::Int, ω::T, β::T=1.0) where {T <: AbstractFloat}
     # fermionic Matsurbara frequency
     ω_n = (2 * n + 1) * π / β
-    G = -1.0 / (ω_n * im - ε)
-    return T(G)
+    G = -1.0 / (ω_n * im - ω)
+    return Complex{T}(G)
 end
 
 """
@@ -159,11 +208,11 @@ where ``ω_n=2nπ/β``. The convention here is consist with the book "Quantum Ma
 @inline function kernelBoseΩ(n::Int, ω::T, β::T=1.0) where {T <: AbstractFloat}
     # fermionic Matsurbara frequency
     ω_n = (2 * n) * π / β
-    G = -1.0 / (ω_n * im - ε)
+    G = -1.0 / (ω_n * im - ω)
     if !isfinite(G)
         throw(DomainError(-1, "Got $G for the parameter $n, $ω and $β"))
     end
-    return T(G)
+    return Complex{T}(G)
 end
 
 """
@@ -241,18 +290,23 @@ f(ω) = 1/(1-e^{-ω})
 end
 
 """
-freq2Tau(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
+freq2tau(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
 
 Compute imaginary-time Green's function from a spectral density``
 ```math
 G(τ>0) = ∫dω e^{-ωτ}/(1±e^{-ωβ}) S(ω)
 G(τ≤0) = -∫dω e^{-ωτ}/(1±e^{ωβ}) S(ω)
 ```
-
 # Arguments
-- `ω`: frequency
+- `type`: :fermi, :boson
+- `spectral`: call spectral(ω) returns the spectral density
+- `τGrid`: array of imaginary times to evaluate
+- `β=1.0`: inverse temperature
+- `Emin=-Inf`: lower bound of frequency
+- `Emax=Inf`: upper bound of frequency
+- `rtol=1e-12`: accuracy to achieve
 """
-function freq2Tau(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
+function freq2tau(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
     G = similar(τGrid)
     err = similar(τGrid)
         for (τi, τ) in enumerate(τGrid)
@@ -263,24 +317,29 @@ function freq2Tau(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-1
 end
 
 """
-freq2MatFreq(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
+freq2matfreq(type, spectral, nGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
 
 Compute Matubra frequency Green's function from a spectral density``
 ```math
 G(iωn) = ∫dω -1/(iωn-ω) S(ω)
+where ωn=(2n+1)π/β for fermion and ωn=2nπ/β
 ```
-
 # Arguments
-- `ω`: frequency
+- `type`: :fermi, :boson
+- `spectral`: call spectral(ω) returns the spectral density
+- `nGrid`: array of Matsubara frequency (integer!) to evaluate
+- `β=1.0`: inverse temperature
+- `Emin=-Inf`: lower bound of frequency
+- `Emax=Inf`: upper bound of frequency
+- `rtol=1e-12`: accuracy to achieve
 """
-function freq2MatFreq(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
-    G = similar(τGrid)
-    err = similar(τGrid)
-        for (τi, τ) in enumerate(τGrid)
-        f(ω) = Spectral.kernelΩ(type, τ / β, ω * β) * spectral(ω)
-        G[τi], err[τi] = QuadGK.quadgk(f, Emin, Emax, rtol=rtol)
+function freq2matfreq(type, spectral, nGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
+    G = zeros(ComplexF64, length(nGrid))
+    err = similar(G)
+        for (ni, n) in enumerate(nGrid)
+        f(ω) = Spectral.kernelΩ(type, n, ω * β) * spectral(ω)
+        G[ni], err[ni] = QuadGK.quadgk(f, Emin, Emax, rtol=rtol)
     end
     return G, err
-end
-
+end 
 end
