@@ -41,18 +41,128 @@ end
 
     testKernelT(:fermi, -1.0, 10.0, 1.0, 1.0e-6)
     testKernelT(:bose, 1.0, 10.0, 1.0, 1.0e-6) #small ϵ for bosonic case is particularly dangerous because the kernal diverges ~1/ϵ
+
+    ####### Test fermi kernel accuracy for BigFloat #############
+    τ, ω, β=BigFloat(0.5), BigFloat(1), BigFloat(1)
+    s=Spectral.kernelT(:fermi, τ, ω, β)
+    sext=exp(-ω*τ)/(BigFloat(1)+exp(-ω*β))
+    @test abs(s-sext)<BigFloat(1e-64)
+    ####### Test bose kernel accuracy for BigFloat #############
+    τ, ω, β=BigFloat(0.5), BigFloat(1), BigFloat(1)
+    s=Spectral.kernelT(:bose, τ, ω, β)
+    sext=exp(-ω*τ)/(BigFloat(1)-exp(-ω*β))
+    @test abs(s-sext)<BigFloat(1e-64)
+
+
+    function testAccuracy(type, τGrid, ωGrid, β)
+        maxErr=BigFloat(0.0)
+        τ0, ω0, macheps = 0.0, 0.0, 0.0
+        for (τi, τ) in enumerate(τGrid)
+            for (ωi, ω) in enumerate(ωGrid)
+                ker1=Spectral.kernelT(type, τ, ω, β)
+                ker2=Spectral.kernelT(type, BigFloat(τ), BigFloat(ω), BigFloat(β))
+                if abs(ker1-ker2)>maxErr
+                    maxErr=abs(ker1-ker2)
+                    τ0, ω0, macheps=τ, ω, eps(ker1) #get the machine accuracy for the float number ker1
+                end
+            end
+        end
+        @test maxErr<2macheps
+        return maxErr, τ0, ω0, macheps
+    end
+
+    β, Euv=10000.0, 100.0
+    τGrid=[t for t in LinRange(-β+1e-10, β, 100)]
+    ωGrid=[w for w in LinRange(-Euv, Euv, 100)]
+    maxErr, τ0, ω0, macheps=testAccuracy(:fermi, τGrid, ωGrid, β)
+    maxErr, τ0, ω0, macheps=testAccuracy(:bose, τGrid, ωGrid, β)
+
+    τGrid=[t for t in LinRange(-β+1e-6, β, 100)]
+    ωGrid=[-1e-6, -1e-8, -1e-10, 1e-10, 1e-8, 1e-6]
+    maxErr, τ0, ω0, macheps=testAccuracy(:fermi, τGrid, ωGrid, β)
+    maxErr, τ0, ω0, macheps=testAccuracy(:bose, τGrid, ωGrid, β)
+
+    τGrid=[-1e-6, -1e-8, -1e-10, 1e-10, 1e-8, 1e-6]
+    ωGrid=[w for w in LinRange(-Euv, Euv, 100)]
+    maxErr, τ0, ω0, macheps=testAccuracy(:fermi, τGrid, ωGrid, β)
+    maxErr, τ0, ω0, macheps=testAccuracy(:bose, τGrid, ωGrid, β)
+
+    τGrid=[β-1e-6, β-1e-8, β-1e-10, -β+1e-10,-β+1e-8,-β+1e-6]
+    ωGrid=[w for w in LinRange(-Euv, Euv, 100)]
+    maxErr, τ0, ω0, macheps=testAccuracy(:fermi, τGrid, ωGrid, β)
+    maxErr, τ0, ω0, macheps=testAccuracy(:bose, τGrid, ωGrid, β)
 end
 
 @testset "Correlator Representation" begin
-    S(ω) = sqrt(1.0 - ω^2) # semicircle -1<ω<1
-    Euv = 1.0
-    β = 1000.0
+    Euv = 10.0
+    β = 10000.0
     eps = 1e-10
-    dlr = Basis.dlrGrid(:fermi, Euv, β, eps)
-    G, err = Spectral.freq2Tau(:fermi, S, dlr[:τ], β, -1.0, 1.0, eps)
-    @test all(err .< eps) # make sure the Green's function is sufficiently accurate 
+    epsintegral=1e-12
+    S1(ω) = sqrt(1.0 - (ω/Euv)^2)/Euv # semicircle -1<ω<1
+    S2(ω) = sqrt(1.0/(((ω/Euv)-0.5)^2+1.0)+1.0/(((ω/Euv)+0.5)^2+1.0))/Euv
 
-    coeff = Basis.tau2dlr(:fermi, G, dlr, β, rtol=eps)
-    Gp = Basis.dlr2tau(:fermi, coeff, dlr, β)
-    @test all(abs.(G - Gp) .< 10eps) # dlr should represent the Green's function up to accuracy of the order eps
+    dlr = Basis.dlrGrid(:fermi, Euv, β, eps)
+    τSample=[t for t in LinRange(eps, β-eps, 1000)]
+
+    #get imaginary-time Green's function
+    G1, err1 = Spectral.freq2tau(:fermi, S1, dlr[:τ], β, -Euv, Euv, epsintegral)
+    @test all(err1 .< epsintegral) # make sure the Green's function is sufficiently accurate 
+    G2, err2 = Spectral.freq2tau(:fermi, S2, dlr[:τ], β, -Euv, Euv, epsintegral)
+    @test all(err2 .< epsintegral) # make sure the Green's function is sufficiently accurate 
+    G=zeros(Float64, (2, length(G1)))
+    G[1, :]=G1
+    G[2, :]=G2
+
+    #get imaginary-time Green's function for τ sample
+    G1, err1 = Spectral.freq2tau(:fermi, S1, τSample, β, -Euv, Euv, epsintegral)
+    @test all(err1 .< epsintegral) # make sure the Green's function is sufficiently accurate 
+    G2, err2 = Spectral.freq2tau(:fermi, S2, τSample, β, -Euv, Euv, epsintegral)
+    @test all(err2 .< epsintegral) # make sure the Green's function is sufficiently accurate 
+    Gsample=zeros(Float64, (2, length(G1)))
+    Gsample[1, :]=G1
+    Gsample[2, :]=G2
+
+    #imaginary-time to dlr
+    coeff = Basis.tau2dlr(:fermi, G, dlr, β, axis=2, rtol=eps)
+    # Gp = Basis.dlr2tau(:fermi, coeff, dlr, β, axis=2)
+    # @test all(abs.(G - Gp) .< 10eps) # dlr should represent the Green's function up to accuracy of the order eps
+
+    Gsamplep = Basis.dlr2tau(:fermi, coeff, dlr, τSample, β, axis=2)
+    println(maximum(abs.(Gsample[1, :])), ", ", maximum(abs.(Gsample[1, :]-Gsamplep[1, :])))
+    println(maximum(abs.(Gsample[2, :])), ", ", maximum(abs.(Gsample[2, :]-Gsamplep[2, :])))
+    # for (ti, t) in enumerate(τSample)
+    #     println(t, " ", Gsamplep[1, ti]-Gsample[1, ti])
+    # end
+    @test all(abs.(Gsample - Gsamplep) .< 10eps) # dlr should represent the Green's function up to accuracy of the order eps
+
+    # #get Matsubara-frequency Green's function
+    # Gn1, errn1 = Spectral.freq2matfreq(:fermi, S1, dlr[:ωn], β, -Euv, Euv, eps)
+    # @test all(abs.(errn1) .< eps) # make sure the Green's function is sufficiently accurate 
+    # Gn2, errn2 = Spectral.freq2matfreq(:fermi, S2, dlr[:ωn], β, -Euv, Euv, eps)
+    # @test all(abs.(errn2) .< eps) # make sure the Green's function is sufficiently accurate 
+    # Gn=zeros(Complex{Float64}, (2, length(Gn1)))
+    # Gn[1, :]=Gn1
+    # Gn[2, :]=Gn2
+
+    # #Matsubara frequency to dlr
+    # coeffn = Basis.matfreq2dlr(:fermi, Gn, dlr, β, axis=2, rtol=eps)
+    # Gnp = Basis.dlr2matfreq(:fermi, coeffn, dlr, β, axis=2)
+    # @test all(abs.(Gn - Gnp) .< 10eps) # dlr should represent the Green's function up to accuracy of the order eps
+
+    # #imaginary-time to Matsubar-frequency
+    # Gnpp = Basis.tau2matfreq(:fermi, G, dlr, β, axis=2, rtol=eps)
+    # # for i in 1:length(Gn[1, :])
+    # #     println(Gn[1, i]*β, "   ", Gnpp[1, i])
+    # # end
+    # # @test all(abs.(Gn - Gnpp/β) .< 100eps) # dlr should represent the Green's function up to accuracy of the order eps
+    # @test all(abs.(Gn - Gnpp) .< 100eps) # dlr should represent the Green's function up to accuracy of the order eps
+
+    # #Matsubara-freqeuncy to imaginary-time
+    # Gpp = Basis.matfreq2tau(:fermi, Gn, dlr, β, axis=2, rtol=eps)
+    # # for i in 1:length(G[1, :])
+    # #     println(G[1, i], "   ", Gpp[1, i]*β)
+    # # end
+    # # @test all(abs.(G - Gpp*β) .< 100eps) # dlr should represent the Green's function up to accuracy of the order eps
+    # println(maximum(abs.(G-Gpp)))
+    # @test all(abs.(G - Gpp) .< 100eps) # dlr should represent the Green's function up to accuracy of the order eps
 end
