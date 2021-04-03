@@ -94,15 +94,23 @@ end
 end
 
 @testset "Correlator Representation" begin
-    Euv = 10.0
-    β = 1000.0
-    eps = 1e-10
-    epsintegral=1e-12
+    Euv = 1.0
+    β = 10000.0
+    eps = 1e-8
+    epsintegral=1e-15
     S1(ω) = sqrt(1.0 - (ω/Euv)^2)/Euv # semicircle -1<ω<1
     S2(ω) = sqrt(1.0/(((ω/Euv)-0.5)^2+1.0)+1.0/(((ω/Euv)+0.5)^2+1.0))/Euv
 
+    function Case(τGrid)
+        g=zeros(Float64, length(τGrid))
+        for (τi, τ) in enumerate(τGrid)
+            g[τi]=Spectral.kernelT(:fermi, τ, -0.5, β)+Spectral.kernelT(:fermi, τ, 0.5, β)
+            g[τi]+=Spectral.kernelT(:fermi, τ, -0.2, β)+Spectral.kernelT(:fermi, τ, 0.8, β)
+        end
+        return g
+    end
+
     dlr = Basis.dlrGrid(:fermi, Euv, β, eps)
-    τSample=[t for t in LinRange(eps, β-eps, 1000)]
 
     #get imaginary-time Green's function
     G1, err1 = Spectral.freq2tau(:fermi, S1, dlr[:τ], β, -Euv, Euv, epsintegral)
@@ -111,16 +119,24 @@ end
     @test all(err2 .< epsintegral) # make sure the Green's function is sufficiently accurate 
     G=zeros(Float64, (2, length(G1)))
     G[1, :]=G1
-    G[2, :]=G2
+    # G[2, :]=G2
+    G[2, :] .= Case(dlr[:τ])
 
     #get imaginary-time Green's function for τ sample
+    τSample=[t for t in LinRange(0.0, β, 100)]
     G1, err1 = Spectral.freq2tau(:fermi, S1, τSample, β, -Euv, Euv, epsintegral)
+
+    # for (gi, g) in enumerate(G1)
+    #     println(τSample[gi]/β, "  ", g, "  ", err1[gi])
+    # end
+
     @test all(err1 .< epsintegral) # make sure the Green's function is sufficiently accurate 
     G2, err2 = Spectral.freq2tau(:fermi, S2, τSample, β, -Euv, Euv, epsintegral)
     @test all(err2 .< epsintegral) # make sure the Green's function is sufficiently accurate 
     Gsample=zeros(Float64, (2, length(G1)))
     Gsample[1, :]=G1
-    Gsample[2, :]=G2
+    # Gsample[2, :]=G2
+    Gsample[2, :] .= Case(τSample)
 
     #imaginary-time to dlr
     coeff = Basis.tau2dlr(:fermi, G, dlr, β, axis=2, rtol=eps)
