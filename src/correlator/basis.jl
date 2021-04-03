@@ -22,7 +22,7 @@ function dlrGrid(type, Euv, β=1.0, eps=1e-10)
     end
 
     if type == :fermi
-        filename = string(@__DIR__, "/basis/dlr_fermi/dlr$(Λ)_1e$(epspower).dat")
+        filename = string(@__DIR__, "/dlr/basis/fermi/dlr$(Λ)_1e$(epspower).dat")
         grid = readdlm(filename)
 
         ω = grid[:, 2] / β
