@@ -95,7 +95,7 @@ end
 
 @testset "Correlator Representation" begin
     Euv = 10.0
-    β = 10000.0
+    β = 1000.0
     eps = 1e-10
     epsintegral=1e-12
     S1(ω) = sqrt(1.0 - (ω/Euv)^2)/Euv # semicircle -1<ω<1
