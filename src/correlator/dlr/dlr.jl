@@ -204,8 +204,8 @@ function dlr(type, Λ, rtol)
     
     ##########  dlr grid for ωn  ###################
     Nωn = Int(para.Λ) # expect Nω ~ para.Λ/2π, drop 2π on the safe side
-    ωnkernel = zeros(Complex{Float64}, (rank, Nωn + 1))
-    ωnGrid = [w for w in 0:Nωn] # fermionic Matsubara frequency ωn=(2n+1)π
+    ωnkernel = zeros(Complex{Float64}, (rank, 2Nωn + 1))
+    ωnGrid = [w for w in -Nωn:Nωn] # fermionic Matsubara frequency ωn=(2n+1)π
     for (ni, n) in enumerate(ωnGrid)
         for r in 1:rank
             ωnkernel[r, ni] = Spectral.kernelΩ(:fermi, n, ωGridDLR[r])
@@ -223,5 +223,33 @@ function dlr(type, Λ, rtol)
     dlr = Dict([(:ω, ωGridDLR), (:τ, τGridDLR), (:ωn, nGridDLR)])
     return dlr
 end
+
+# function freq2tau(type, τList, spectral, Λ, rtol)
+#     Λ = Float64(Λ)
+#     @assert 0.0 < rtol < 1.0
+#     para = Params(Λ, rtol)
+#     τGrid, ωGrid, kernel = kernalFineGrid(type, para)
+
+#     ############ ω discretization ##################
+#     # Panel break points
+#     pbpo = zeros(Float64, 2npo + 1)
+#     pbpo[npo + 1] = 0.0
+#     for i in 1:npo
+#         pbpo[npo + i + 1] = Λ / 2^(npo - i)
+#     end
+    
+#     pbpo[1:npo] = -pbpo[2npo + 1:-1:npo + 2]
+
+#     # Grid points
+    
+#     ωGrid = zeros(Float64, 2npo * p)
+#     for i in 1:2npo
+#         a = pbpo[i]
+#         b = pbpo[i + 1]
+#         ωGrid[(i - 1) * p + 1:i * p] = a .+ (b - a) .* (xc .+ 1.0) ./ 2
+#     end
+    
+#     kernel = Spectral.kernelT(type, τGrid, ωGrid, 1.0)
+# end
 
 end

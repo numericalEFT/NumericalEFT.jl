@@ -4,7 +4,9 @@ Spectral representation related functions
 module Spectral
 export kernelT, kernelΩ, density, freq2Tau, freq2MatFreq
 export kernelFermiT, kernelFermiΩ, kernelBoseT, kernelBoseΩ, fermiDirac, boseEinstein
-using QuadGK
+using QuadGK, Cuba
+include("../fastmath.jl")
+using .FastMath
 
 """
     kernelT(type, τ, ω, β=1.0)
@@ -17,20 +19,20 @@ Compute the imaginary-time kernel of different type.
 - `ω`: frequency
 - `β = 1.0`: the inverse temperature 
 """
-@inline function kernelT(type::Symbol, τ::T, ω::T, β::T=1.0) where {T <: AbstractFloat}
+@inline function kernelT(type::Symbol, τ::T, ω::T, β=T(1)) where {T <: AbstractFloat}
     if type == :fermi
         return kernelFermiT(τ, ω, β)
     elseif type == :bose
         return kernelBoseT(τ, ω, β)
     else
-        @error "Type $type   is not implemented!"
+        @error "Type $type      is not implemented!"
     end
 end
 """
     kernelT(type::Symbol, τGrid::Vector{T}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
 Compute kernel with given τ and ω grids.
 """
-function kernelT(type::Symbol, τGrid::Vector{T}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
+function kernelT(type::Symbol, τGrid::Vector{T}, ωGrid::Vector{T}, β=T(1)) where {T <: AbstractFloat}
     kernel = zeros(T, (length(τGrid), length(ωGrid)))
     for (τi, τ) in enumerate(τGrid)
         for (ωi, ω) in enumerate(ωGrid)
@@ -54,23 +56,23 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
 - `ω`: frequency
 - `β = 1.0`: the inverse temperature 
 """
-@inline function kernelFermiT(τ::T, ω::T, β::T=1.0) where {T <: AbstractFloat}
-    (-β < τ <= β) || error("τ must be (-β, β]")
+@inline function kernelFermiT(τ::T, ω::T, β=T(1)) where {T <: AbstractFloat}
+    (-β < τ <= β) || error("τ=$τ must be (-β, β] where β=$β")
     if τ == T(0.0)
         τ = -eps(T)
     end
     G = sign(τ)
-    if τ>T(0.0)
-        if ω>T(0.0)
-            return exp(-ω*τ)/(1+exp(-ω*β))
+        if τ > T(0.0)
+            if ω > T(0.0)
+            return exp(-ω * τ) / (1 + exp(-ω * β))
         else
-            return exp(ω*(β-τ))/(1+exp(ω*β))
+            return exp(ω * (β - τ)) / (1 + exp(ω * β))
         end
     else
-        if ω>T(0.0)
-            return -exp(-ω*(τ+β))/(1+exp(-ω*β))
+            if ω > T(0.0)
+            return -exp(-ω * (τ + β)) / (1 + exp(-ω * β))
         else
-            return -exp(-ω*τ)/(1+exp(ω*β))
+            return -exp(-ω * τ) / (1 + exp(ω * β))
         end
     end
 end
@@ -88,24 +90,24 @@ g(τ>0) = e^{-ωτ}/(1+e^{-ω}), g(τ≤0) = -e^{-ωτ}/(1+e^{ω})
 - `ω`: frequency
 - `β = 1.0`: the inverse temperature 
 """
-@inline function kernelBoseT(τ::T, ω::T, β::T=1.0) where {T <: AbstractFloat}
+@inline function kernelBoseT(τ::T, ω::T, β=T(1)) where {T <: AbstractFloat}
     (-β < τ <= β) || error("τ must be (-β, β]")
     if τ == T(0.0)
         τ = -eps(T)
     end
     G = sign(τ)
-    if τ>T(0.0)
-        if ω>T(0.0)
-            #expm1(x)=exp(x)-1 fixes the accuracy for x-->0^+
-            return exp(-ω*τ)/(-expm1(-ω*β)) 
+    if τ > T(0.0)
+        if ω > T(0.0)
+            # expm1(x)=exp(x)-1 fixes the accuracy for x-->0^+
+            return exp(-ω * τ) / (-expm1(-ω * β)) 
         else
-            return exp(ω*(β-τ))/expm1(ω*β)
+            return exp(ω * (β - τ)) / expm1(ω * β)
         end
     else
-        if ω>T(0.0)
-            return exp(-ω*(τ+β))/(-expm1(-ω*β))
+        if ω > T(0.0)
+            return exp(-ω * (τ + β)) / (-expm1(-ω * β))
         else
-            return exp(-ω*τ)/expm1(ω*β)
+            return exp(-ω * τ) / expm1(ω * β)
         end
     end
 end
@@ -146,13 +148,13 @@ Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
 - `ω`: energy 
 - `β`: the inverse temperature 
 """
-@inline function kernelΩ(type::Symbol, n::Int, ω::T, β::T=1.0) where {T <: AbstractFloat}
+@inline function kernelΩ(type::Symbol, n::Int, ω::T, β=T(1)) where {T <: AbstractFloat}
     if type == :fermi
         return kernelFermiΩ(n, ω, β)
     elseif type == :bose
         return kernelBoseΩ(n, ω, β)
     else
-        @error "Type $type   is not implemented!"
+    @error "Type $type      is not implemented!"
     end
 end
 
@@ -160,11 +162,11 @@ end
     kernelΩ(type::Symbol, nGrid::Vector{Int}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
 Compute kernel matrix with given ωn (integer!) and ω grids.
 """
-function kernelΩ(type::Symbol, nGrid::Vector{Int}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
+function kernelΩ(type::Symbol, nGrid::Vector{Int}, ωGrid::Vector{T}, β=T(1)) where {T <: AbstractFloat}
     kernel = zeros(Complex{T}, (length(nGrid), length(ωGrid)))
     for (ni, n) in enumerate(nGrid)
         for (ωi, ω) in enumerate(ωGrid)
-            kernel[ni, ωi] = kernelΩ(:fermi, n, ω, β)
+        kernel[ni, ωi] = kernelΩ(:fermi, n, ω, β)
         end
     end
     return kernel
@@ -184,7 +186,7 @@ where ``ω_n=(2n+1)π/β``. The convention here is consist with the book "Quantu
 - `ω`: energy 
 - `β`: the inverse temperature 
 """
-@inline function kernelFermiΩ(n::Int, ω::T, β::T=1.0) where {T <: AbstractFloat}
+@inline function kernelFermiΩ(n::Int, ω::T, β=T(1)) where {T <: AbstractFloat}
     # fermionic Matsurbara frequency
     ω_n = (2 * n + 1) * π / β
     G = -1.0 / (ω_n * im - ω)
@@ -205,7 +207,7 @@ where ``ω_n=2nπ/β``. The convention here is consist with the book "Quantum Ma
 - `ω`: energy 
 - `β`: the inverse temperature 
 """
-@inline function kernelBoseΩ(n::Int, ω::T, β::T=1.0) where {T <: AbstractFloat}
+@inline function kernelBoseΩ(n::Int, ω::T, β=T(1)) where {T <: AbstractFloat}
     # fermionic Matsurbara frequency
     ω_n = (2 * n) * π / β
     G = -1.0 / (ω_n * im - ω)
@@ -225,13 +227,13 @@ Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
 - `ω`: energy 
 - `β`: the inverse temperature 
 """
-@inline function density(type::Symbol, ω::T, β::T=1.0) where {T <: AbstractFloat}
+@inline function density(type::Symbol, ω::T, β=T(1)) where {T <: AbstractFloat}
     if type == :fermi
         return fermiDirac(ω, β)
     elseif type == :bose
         return boseEinstein(ω, β)
     else
-        @error "Type $type   is not implemented!"
+        @error "Type $type      is not implemented!"
     end
 end
 
@@ -247,7 +249,7 @@ f(ω) = 1/(1+e^{-ω})
 - `ω`: frequency
 - `β`: the inverse temperature 
 """
-@inline function fermiDirac(ω::T, β::T=1.0) where {T <: AbstractFloat}
+@inline function fermiDirac(ω::T, β=T(1)) where {T <: AbstractFloat}
     x = ω * β
     if -T(50.0) < x < T(50.0)
     return 1.0 / (1.0 + exp(x))
@@ -270,9 +272,9 @@ f(ω) = 1/(1-e^{-ω})
 - `ω`: frequency
 - `β`: the inverse temperature 
 """
-@inline function boseEinstein(ω::T, β::T=1.0) where {T <: AbstractFloat}
+@inline function boseEinstein(ω::T, β=T(1)) where {T <: AbstractFloat}
     # if -eps(T)<ω<eps(T)
-    #     return 0.0
+        #     return 0.0
     # end
     n = 0.0
     x = ω * β
@@ -284,7 +286,7 @@ f(ω) = 1/(1-e^{-ω})
         n = -1.0 - exp(x)
     end
     if !isfinite(n)
-        throw(DomainError(-1, "Got $n for the parameter $ω and $β"))
+throw(DomainError(-1, "Got $n for the parameter $ω and $β"))
     end
     return n
 end
@@ -299,6 +301,7 @@ G(τ≤0) = -∫dω e^{-ωτ}/(1±e^{ωβ}) S(ω)
 ```
 # Arguments
 - `type`: :fermi, :boson
+- `integrator`: :quadgk, :vegas, :cuhre
 - `spectral`: call spectral(ω) returns the spectral density
 - `τGrid`: array of imaginary times to evaluate
 - `β=1.0`: inverse temperature
@@ -306,12 +309,21 @@ G(τ≤0) = -∫dω e^{-ωτ}/(1±e^{ωβ}) S(ω)
 - `Emax=Inf`: upper bound of frequency
 - `rtol=1e-12`: accuracy to achieve
 """
-function freq2tau(type, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
+function freq2tau(type, integrator, spectral, τGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1e-12)
     G = similar(τGrid)
     err = similar(τGrid)
-        for (τi, τ) in enumerate(τGrid)
+    for (τi, τ) in enumerate(τGrid)
         f(ω) = Spectral.kernelT(type, τ / β, ω * β) * spectral(ω)
-        G[τi], err[τi] = QuadGK.quadgk(f, Emin, Emax, rtol=rtol)
+        if integrator==:quadgk
+            # G[τi], err[τi] = QuadGK.quadgk(f, Emin, Emax, rtol=rtol)
+            if Emin < 0.0 && Emax > 0.0
+                G[τi], err[τi] = QuadGK.quadgk(f, Emin, 0.0, Emax, rtol=rtol) # integrate [Emin, 0.0] and [0.0, Emax] because the kernel is similar near 0.0
+            else
+                G[τi], err[τi] = QuadGK.quadgk(f, Emin, Emax, rtol=rtol)
+            end
+        else
+            G[τi], err[τi]=FastMath.integrator1D(integrator, f, Emin, Emax, rtol)
+        end
     end
     return G, err
 end
@@ -338,7 +350,11 @@ function freq2matfreq(type, spectral, nGrid, β=1.0, Emin=-Inf, Emax=Inf, rtol=1
     err = similar(G)
         for (ni, n) in enumerate(nGrid)
         f(ω) = Spectral.kernelΩ(type, n, ω * β) * spectral(ω)
-        G[ni], err[ni] = QuadGK.quadgk(f, Emin, Emax, rtol=rtol)
+        if Emin < 0.0 && Emax > 0.0
+            G[ni], err[ni] = QuadGK.quadgk(f, Emin, 0.0, Emax, rtol=rtol) # integrate [Emin, 0.0] and [0.0, Emax] because the kernel is similar near 0.0
+        else
+            G[ni], err[ni] = QuadGK.quadgk(f, Emin, Emax, rtol=rtol)
+        end
     end
     return G, err
 end 
