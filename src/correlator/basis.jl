@@ -51,8 +51,8 @@ function tau2dlr(type, green, dlrGrid, β=1.0; axis=1, rtol=1e-12)
         g = permutedims(green, [axis, 1])
     end
 
-    coeff = LAPACK.getrs!('N', kernel, ipiv, g) # LU linear solvor for coeff=kernel*green
-    # coeff = kernel \ g
+    coeff = LAPACK.getrs!('N', kernel, ipiv, g) # LU linear solvor for green=kernel*coeff
+    # coeff = kernel \ g #solve green=kernel*coeff
     # println("coeff: ", maximum(abs.(coeff)))
 
     if axis == 1
@@ -99,8 +99,8 @@ function matfreq2dlr(type, green, dlrGrid, β=1.0; axis=1, rtol=1e-12)
         g = permutedims(green, [axis, 1])
     end
 
-    # coeff = LAPACK.cgetrs!('N', kernel, ipiv, g) # LU linear solvor for coeff=kernel*green
-    coeff = kernel \ g
+    # coeff = LAPACK.cgetrs!('N', kernel, ipiv, g) # LU linear solvor for green=kernel*coeff
+    coeff = kernel \ g # solve green=kernel*coeff
 
     if axis == 1
         return coeff
