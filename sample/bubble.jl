@@ -16,10 +16,6 @@ addprocs(Ncpu)
     end
 
     function eval2(config)
-        # very important to specify the type, otherwise the code will be slow
-        # k = var[2][1]::SVector{3,Float64} 
-        # Tin = var[1][1]::Float64 
-        # Tout = var[1][2]::Float64
         k = config.var[2][1] 
         Tin = config.var[1][1] 
         Tout = config.var[1][2]
@@ -66,7 +62,7 @@ addprocs(Ncpu)
     obs2 = zeros(Float64, Ext.size...) # diag2 measures the bubble for different external q
     diag1 = MonteCarlo.Diagram(1, 0, [1, 0])
     diag2 = MonteCarlo.Diagram(2, 1, [2, 1])
-    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), Tuple{typeof(T),typeof(K)}((T, K)), Ext; pid=pid, rng=rng)
+    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K], Ext; pid=pid, rng=rng)
 
     # @code_warntype MonteCarlo.increaseOrder(config, integrand, var)
     # @code_warntype integrand(config, var)
