@@ -91,7 +91,6 @@ mutable struct Configuration{R}
     pid::Int
     totalStep::Int64
     diagrams::Vector{Diagram}
-    var::Vector{Any}
     # X::TX
     # K::TK
     ext::External
@@ -101,7 +100,7 @@ mutable struct Configuration{R}
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, var, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {R}
+    function Configuration(totalStep, diagrams, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {R}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -113,13 +112,24 @@ mutable struct Configuration{R}
         @assert length(diagrams) > 0 "diagrams should not be empty!"
         curr = diagrams[1]
 
-        _var = Vector{Any}(undef, length(var))
-        for (vi, v) in enumerate(var)
-            _var[vi] = v
-        end
-
-        config = new{R}(pid, Int64(totalStep), collect(diagrams), _var, ext, 0, curr, rng, 0.0)
+        config = new{R}(pid, Int64(totalStep), collect(diagrams), ext, 0, curr, rng, 0.0)
         return config
     end
 end
 
+# Macro to make struct
+# macro make_struct(struct_name, schema...)
+#     fields=[:($(entry.args[1])::$(entry.args[2])) for entry in schema]
+#     esc(quote struct $struct_name
+#         $(fields...)
+#         end
+#     end)
+# end
+
+macro configuration(schema...)
+    fields = [:($(entry.args[1])::$(entry.args[2])) for entry in schema]
+    esc(quote struct $struct_name
+            $(fields...)
+        end
+    end)
+end
