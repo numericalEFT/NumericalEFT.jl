@@ -1,5 +1,5 @@
 
-function increaseOrder(config, integrand, var)
+function increaseOrder(config, integrand)
     idx = rand(config.rng, 1:length(config.diagrams))
     curr = config.curr
     new = config.diagrams[idx]
@@ -14,16 +14,16 @@ function increaseOrder(config, integrand, var)
     # for pos = curr.nK + 1:new.nK
     #     prop *= create!(config.K, pos, config.rng)
     # end
-    for vi in 1:length(var)
+    for vi in 1:length(config.var)
         for pos = curr.nvar[vi] + 1:new.nvar[vi]
-            prop *= create!(var[vi], pos, config.rng)
+            prop *= create!(config.var[vi], pos, config.rng)
         end
     end
 
     currAbsWeight = config.absWeight
 
     config.curr = new
-    newAbsWeight = abs(integrand(config, var))
+    newAbsWeight = abs(integrand(config))
     R = prop * newAbsWeight * new.reWeightFactor / currAbsWeight / curr.reWeightFactor
 
     curr.propose[1] += 1.0
@@ -38,7 +38,7 @@ function increaseOrder(config, integrand, var)
     end
 end
 
-function decreaseOrder(config, integrand, var)
+function decreaseOrder(config, integrand)
     idx = rand(config.rng, 1:length(config.diagrams))
     new = config.diagrams[idx]
     curr = config.curr
@@ -54,16 +54,16 @@ function decreaseOrder(config, integrand, var)
     # for pos = new.nK + 1:curr.nK
     #     prop *= remove(config.K, pos, config.rng)
     # end
-    for vi in 1:length(var)
+    for vi in 1:length(config.var)
         for pos = new.nvar[vi] + 1:curr.nvar[vi]
             # println(vi, ", ", new.nvar[vi], " --> ", curr.nvar[vi])
-            prop *= remove(var[vi], pos, config.rng)
+            prop *= remove(config.var[vi], pos, config.rng)
         end
     end
 
     config.curr = new
     currAbsWeight = config.absWeight
-    newAbsWeight = abs(integrand(config, var))
+    newAbsWeight = abs(integrand(config))
     R = prop * newAbsWeight * new.reWeightFactor / currAbsWeight / curr.reWeightFactor
     curr.propose[2] += 1.0
     if rand(config.rng) < R
@@ -77,23 +77,23 @@ function decreaseOrder(config, integrand, var)
     end
 end
 
-function changeVar(config, integrand, var)
+function changeVar(config, integrand)
     curr = config.curr
     vi = rand(config.rng, 1:length(curr.nvar))
     (curr.nvar[vi] <= 0) && return # return if the var number is less than 1
     idx = rand(config.rng, 1:curr.nvar[vi]) # randomly choose one var to update
-    oldvar = var[vi][idx]
-    prop = shift!(var[vi], idx, config.rng)
+    oldvar = config.var[vi][idx]
+    prop = shift!(config.var[vi], idx, config.rng)
 
     currAbsWeight = config.absWeight
-    newAbsWeight = abs(integrand(config, var))
+    newAbsWeight = abs(integrand(config))
     R = prop * newAbsWeight / currAbsWeight
     curr.propose[2 + vi] += 1.0
     if rand(config.rng) < R
         curr.accept[2 + vi] += 1.0
         config.absWeight = newAbsWeight
     else
-        var[vi][idx] = oldvar
+        config.var[vi][idx] = oldvar
         # in case the user modifies config.absWeight when calculate integrand(config)
         config.absWeight = currAbsWeight 
     end
@@ -141,7 +141,7 @@ end
 #     end
 # end
 
-function changeExt(config, integrand, var)
+function changeExt(config, integrand)
     ext = config.ext
     size = ext.size
     (length(size) == 1 && size[1] == 1) && return # return if there is only one external bin
@@ -151,7 +151,7 @@ function changeExt(config, integrand, var)
     prop = shift!(ext, i, config.rng)
 
     currAbsWeight = config.absWeight
-    newAbsWeight = abs(integrand(config, var))
+    newAbsWeight = abs(integrand(config))
     R = prop * newAbsWeight / currAbsWeight
     curr.propose[5] += 1.0
     # curr.propose[Symbol(changeInternal)]+=1.0
