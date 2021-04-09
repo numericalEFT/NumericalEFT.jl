@@ -91,19 +91,18 @@ mutable struct Diagram
     end
 end
 
-mutable struct Configuration{V,R,P}
+mutable struct Configuration{V,R}
     pid::Int
     totalStep::Int64
     diagrams::Vector{Diagram}
     var::V
-    para::P
 
     step::Int64
     curr::Diagram
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, var, para::P; pid=nothing, rng::R=GLOBAL_RNG) where {R,P}
+    function Configuration(totalStep, diagrams, var; pid=nothing, rng::R=GLOBAL_RNG) where {R}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -117,7 +116,7 @@ mutable struct Configuration{V,R,P}
 
         _var = Tuple(var) # Tuple{typeof(var[1]), typeof(var[2]), ...}
         # println("type: ", typeof(_var))
-        config = new{typeof(_var),R,P}(pid, Int64(totalStep), collect(diagrams), _var, para, 0, curr, rng, 0.0)
+        config = new{typeof(_var),R}(pid, Int64(totalStep), collect(diagrams), _var, 0, curr, rng, 0.0)
         return config
     end
 end
