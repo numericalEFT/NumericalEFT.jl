@@ -87,12 +87,11 @@ mutable struct Diagram
     end
 end
 
-mutable struct Configuration{R}
+mutable struct Configuration{V,R}
     pid::Int
     totalStep::Int64
     diagrams::Vector{Diagram}
-    # X::TX
-    # K::TK
+    var::V
     ext::External
 
     step::Int64
@@ -100,7 +99,7 @@ mutable struct Configuration{R}
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {R}
+    function Configuration(totalStep, diagrams, var::V, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {V,R}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -112,7 +111,7 @@ mutable struct Configuration{R}
         @assert length(diagrams) > 0 "diagrams should not be empty!"
         curr = diagrams[1]
 
-        config = new{R}(pid, Int64(totalStep), collect(diagrams), ext, 0, curr, rng, 0.0)
+        config = new{V,R}(pid, Int64(totalStep), collect(diagrams), var, ext, 0, curr, rng, 0.0)
         return config
     end
 end

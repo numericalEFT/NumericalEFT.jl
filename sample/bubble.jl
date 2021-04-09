@@ -11,18 +11,18 @@ addprocs(Ncpu)
 @everywhere function MC(totalStep, pid, kF, β)
     rng = MersenneTwister(pid)
 
-    function eval1(config, var)
+    function eval1(config)
         return 1.0
     end
 
-    function eval2(config, var)
+    function eval2(config)
         # very important to specify the type, otherwise the code will be slow
         # k = var[2][1]::SVector{3,Float64} 
         # Tin = var[1][1]::Float64 
         # Tout = var[1][2]::Float64
-        k = var[2][1] 
-        Tin = var[1][1] 
-        Tout = var[1][2]
+        k = config.var[2][1] 
+        Tin = config.var[1][1] 
+        Tout = config.var[1][2]
         q = extQ[config.ext.idx[1]] # external momentum
         kq = k + q
         τ = (Tout - Tin) / β
@@ -35,23 +35,23 @@ addprocs(Ncpu)
         return g1 * g2 * spin * phase
     end
 
-    function integrand(config, var)
+    function integrand(config)
         if config.curr.id == 1
-            return eval1(config, var)
+            return eval1(config)
         elseif config.curr.id == 2
-            return eval2(config, var)
+            return eval2(config)
         else
             return 0.0
         end
     end
 
-    function measure(config, var)
+    function measure(config)
         diag = config.curr
         factor = 1.0 / diag.reWeightFactor
         if diag.id == 1
             obs1 += factor
         elseif diag.id == 2
-            weight = integrand(config, var)
+            weight = integrand(config)
             obs2[config.ext.idx[1]] += weight / abs(weight) * factor
         else
             return
@@ -66,13 +66,13 @@ addprocs(Ncpu)
     obs2 = zeros(Float64, Ext.size...) # diag2 measures the bubble for different external q
     diag1 = MonteCarlo.Diagram(1, 0, [1, 0])
     diag2 = MonteCarlo.Diagram(2, 1, [2, 1])
-    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), Ext; pid=pid, rng=rng)
+    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), Tuple{typeof(T),typeof(K)}((T, K)), Ext; pid=pid, rng=rng)
 
     # @code_warntype MonteCarlo.increaseOrder(config, integrand, var)
     # @code_warntype integrand(config, var)
     # exit()
 
-    MonteCarlo.montecarlo(config, integrand, measure, Tuple{typeof(T),typeof(K)}((T, K)))
+    MonteCarlo.montecarlo(config, integrand, measure)
 
     return obs2 / obs1 * Ext.size[1], extQ
 end
