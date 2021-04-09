@@ -1,11 +1,5 @@
-# getindex(X, i)	X[i], indexed element access
-# setindex!(X, v, i)	X[i] = v, indexed assignment
-# firstindex(X)	The first index, used in X[begin]
-# lastindex(X)	The last index, used in X[end]
-
 abstract type Variable end
 const MaxOrder = 16
-
 
 mutable struct FermiK{D} <: Variable
     data::Vector{SVector{D,Float64}}
@@ -86,7 +80,6 @@ mutable struct Diagram
     function Diagram(_id, _order, _nvar)
         propose = Vector{Float64}(undef, 0)
         accept = Vector{Float64}(undef, 0)
-
         return new(_id, _order, _nvar, 1.0, 1.0e-6, propose, accept)
     end
 end
@@ -102,7 +95,7 @@ mutable struct Configuration{V,R}
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, var; pid=nothing, rng::R=GLOBAL_RNG) where {R}
+    function Configuration(totalStep, diagrams, var::V; pid=nothing, rng::R=GLOBAL_RNG) where {V,R}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -114,10 +107,12 @@ mutable struct Configuration{V,R}
         @assert length(diagrams) > 0 "diagrams should not be empty!"
         curr = diagrams[1]
 
-        _var = Tuple(var) # Tuple{typeof(var[1]), typeof(var[2]), ...}
-        # println("type: ", typeof(_var))
-        config = new{typeof(_var),R}(pid, Int64(totalStep), collect(diagrams), _var, 0, curr, rng, 0.0)
-        return config
+        for d in diagrams
+            @assert length(d.nvar) == length(var)
+        end
+
+        @assert var isa Tuple "var must be a tuple to achieve better efficiency"
+        return new{V,R}(pid, Int64(totalStep), collect(diagrams), var, 0, curr, rng, 0.0)
     end
 end
 
