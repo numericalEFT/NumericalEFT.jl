@@ -67,9 +67,11 @@ addprocs(Ncpu)
     # @benchmark eval2(c) setup=(c=$config)
 
     # @code_warntype MonteCarlo.Configuration(block, (group1, group2), (K, T), Ext; pid = 1, rng=rng)
-    # @code_llvm MonteCarlo.increaseOrder(config, config.curr)
-    # @code_warntype MonteCarlo.increaseOrder(config, config.curr)
+    # @code_llvm MonteCarlo.increaseOrder(config, integrand)
+    @code_warntype MonteCarlo.increaseOrder(config, integrand)
     # @code_warntype eval2(config)
+    # @code_warntype integrand(config)
+    exit()
 
     MonteCarlo.montecarlo(config, integrand, measure)
 
