@@ -8,9 +8,9 @@ Propose to generate new index (uniformly) randomly in [1, size]
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline function create!(ext::External, idx::Int, rng=RNG)
-    ext.idx[idx] = rand(rng, 1:ext.size[idx])
-    return Float64(ext.size[idx])
+@inline function create!(d::Discrete, idx::Int, rng=RNG)
+    d[idx] = rand(rng, d.lower:d.upper)
+    return Float64(d.upper - d.lower + 1) # lower:upper has upper-lower+1 elements!
 end
 
 """
@@ -23,7 +23,7 @@ Propose to remove the old index in [1, size]
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline remove(ext::External, idx::Int, rng=RNG) = 1.0 / size
+@inline remove(d::Discrete, idx::Int, rng=RNG) = 1.0 / Float64(d.upper - d.lower + 1)
 
 """
     shiftIdx!(oldIdx::Int, newIdx::Int, size::Int, rng=GLOBAL_RNG)
@@ -36,8 +36,8 @@ Propose to shift the old index in [1, size] to a new index
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline function shift!(ext::External, idx::Int, rng=RNG)
-    ext.idx[idx] = rand(rng, 1:ext.size[idx])
+@inline function shift!(d::Discrete, idx::Int, rng=RNG)
+    d[idx] = rand(rng, d.lower:d.upper)
     return 1.0
 end
 

@@ -7,7 +7,7 @@ abstract type Variable end
 const MaxOrder = 16
 
 
-mutable struct FermiK{D} <: Variable
+struct FermiK{D} <: Variable
     data::Vector{SVector{D,Float64}}
     kF::Float64
     δk::Float64
@@ -24,7 +24,7 @@ mutable struct BoseK{D} <: Variable
     maxK::Float64
 end
 
-mutable struct Tau <: Variable
+struct Tau <: Variable
     data::Vector{Float64}
     λ::Float64
     β::Float64
@@ -39,6 +39,19 @@ mutable struct TauPair <: Variable
     λ::Float64
     β::Float64
 end
+
+struct Discrete <: Variable
+    data::Vector{Int}
+    lower::Int
+    upper::Int
+    size::Int
+    function Discrete(lower, upper, size=MaxOrder)
+        d = [1 for i in 1:size]
+        @assert upper > lower
+        return new(d, lower, upper, upper - lower + 1)
+    end
+end
+
 
 Base.getindex(Var::Variable, i::Int) = Var.data[i]
 function Base.setindex!(Var::Variable, v, i::Int)
@@ -92,14 +105,13 @@ mutable struct Configuration{V,R}
     totalStep::Int64
     diagrams::Vector{Diagram}
     var::V
-    ext::External
 
     step::Int64
     curr::Diagram
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, var, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {R}
+    function Configuration(totalStep, diagrams, var; pid=nothing, rng::R=GLOBAL_RNG) where {R}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -112,7 +124,8 @@ mutable struct Configuration{V,R}
         curr = diagrams[1]
 
         _var = Tuple(var) # Tuple{typeof(var[1]), typeof(var[2]), ...}
-        config = new{typeof(_var),R}(pid, Int64(totalStep), collect(diagrams), _var, ext, 0, curr, rng, 0.0)
+        # println("type: ", typeof(_var))
+        config = new{typeof(_var),R}(pid, Int64(totalStep), collect(diagrams), _var, 0, curr, rng, 0.0)
         return config
     end
 end
