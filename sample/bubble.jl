@@ -28,9 +28,6 @@ end
 @everywhere function eval2(config)
     para = config.para
     kF, β, m = para.kF, para.β, para.m
-    kF = 1.919
-    β = 25.0 / kF^2
-    m = 0.5
     T, K, Ext = config.var[1], config.var[2], config.var[3]
         # In case the compiler is too stupid, it is a good idea to explicitly specify the type here
     k = K[1]::SVector{3,Float64}
@@ -78,13 +75,13 @@ end
 
     config = MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K, Ext], para; pid=pid, rng=rng)
 
-    @code_warntype MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K, Ext], para; pid=pid, rng=rng)
+    # @code_warntype MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K, Ext], para; pid=pid, rng=rng)
     # @code_warntype MonteCarlo.Diagram(2, 1, [2, 1, 1], zeros(Float64, Ext.size))
     # @code_warntype MonteCarlo.increaseOrder(config, integrand)
     # @code_warntype integrand(config)
     # @code_warntype eval2(config)
     # @code_warntype measure(config)
-    exit()
+    # exit()
 
     MonteCarlo.montecarlo(config, integrand, measure)
 
