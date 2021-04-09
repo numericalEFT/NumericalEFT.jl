@@ -26,12 +26,12 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
         timer = [StopWatch(printTime, printStatus)]
     end
 
-    updates = [increaseOrder, decreaseOrder, changeX, changeK, changeExt]
+    updates = [increaseOrder, decreaseOrder, changeVar, changeExt]
 
     for diag in config.diagrams
-        diag.propose = zeros(Float64, length(updates)) .+ 1.0e-8
+        diag.propose = zeros(Float64, length(updates) + 1) .+ 1.0e-8
         # add a small number so that the ratio propose/accept=0 if there is no such update proposed and accepted
-        diag.accept = zeros(Float64, length(updates)) 
+        diag.accept = zeros(Float64, length(updates) + 1) 
     end
 
     ########### MC simulation ##################################

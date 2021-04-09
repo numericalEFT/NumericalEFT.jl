@@ -72,28 +72,28 @@ create a group of diagrams
 mutable struct Diagram
     id::Int
     order::Int
-    nX::Int
-    nK::Int
+    nvar::Vector{Int}
 
     reWeightFactor::Float64
     visitedSteps::Float64
     propose::Vector{Float64}
     accept::Vector{Float64}
 
-    function Diagram(_id, _order, _nX, _nK)
+    function Diagram(_id, _order, _nvar)
         propose = Vector{Float64}(undef, 0)
         accept = Vector{Float64}(undef, 0)
 
-        return new(_id, _order, _nX, _nK, 1.0, 1.0e-6, propose, accept)
+        return new(_id, _order, _nvar, 1.0, 1.0e-6, propose, accept)
     end
 end
 
-mutable struct Configuration{TX,TK,R}
+mutable struct Configuration{R}
     pid::Int
     totalStep::Int64
     diagrams::Vector{Diagram}
-    X::TX
-    K::TK
+    var::Vector{Any}
+    # X::TX
+    # K::TK
     ext::External
 
     step::Int64
@@ -101,7 +101,7 @@ mutable struct Configuration{TX,TK,R}
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, X::TX, K::TK, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {TX,TK,R}
+    function Configuration(totalStep, diagrams, var, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {R}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -112,7 +112,13 @@ mutable struct Configuration{TX,TK,R}
         @assert totalStep > 0 "Total step should be positive!"
         @assert length(diagrams) > 0 "diagrams should not be empty!"
         curr = diagrams[1]
-        config = new{TX,TK,R}(pid, Int64(totalStep), collect(diagrams), X, K, ext, 0, curr, rng, 0.0)
+
+        _var = Vector{Any}(undef, length(var))
+        for (vi, v) in enumerate(var)
+            _var[vi] = v
+        end
+
+        config = new{R}(pid, Int64(totalStep), collect(diagrams), _var, ext, 0, curr, rng, 0.0)
         return config
     end
 end
