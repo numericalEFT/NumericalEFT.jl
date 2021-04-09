@@ -49,7 +49,7 @@ Propose to generate new Fermi K in [Kf-δK, Kf+δK)
 # Arguments
 - `newK`:  vector of dimension of d=2 or 3
 """
-@inline function create!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
+function create!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     ############ Simple Way ########################
     # for i in 1:DIM
     #     newK[i] = Kf * (rand(rng) - 0.5) * 2.0
@@ -64,12 +64,12 @@ Propose to generate new Fermi K in [Kf-δK, Kf+δK)
     if D == 3 # dimension 3
         θ = π * rand(rng)
         # newK .= Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
-        K[idx] = [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
+        K[idx] = @SVector [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
         return 2 * K.δk * 2π * π * (sin(θ) * Kamp^2)
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi
         # prop density of Theta, Jacobian
     else  # DIM==2
-        K[idx] = [Kamp * cos(ϕ), Kamp * sin(ϕ)]
+        K[idx] = @SVector [Kamp * cos(ϕ), Kamp * sin(ϕ)]
         return 2 * K.δk * 2π * Kamp
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi, Jacobian
     end
@@ -83,7 +83,7 @@ Propose to remove an existing Fermi K in [Kf-δK, Kf+δK)
 # Arguments
 - `oldK`:  vector of dimension of d=2 or 3
 """
-@inline function remove(K::FermiK{D}, idx::Int, rng=RNG) where {D}
+function remove(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     ############## Simple Way #########################
     # for i in 1:DIM
     #     if abs(oldK[i]) > Kf
@@ -113,10 +113,11 @@ end
 
 Propose to shift oldK to newK. Work for generic momentum vector
 """
-@inline function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
+function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     x = rand(rng)
     if x < 1.0 / 3
-        K[idx] = K[idx] + (rand(rng, D) .- 0.5) .* K.δk
+        # K[idx] = K[idx] + (rand(rng, D) .- 0.5) .* K.δk
+        K[idx] += (rand(rng, D) .- 0.5) .* K.δk
         return 1.0
     elseif x < 2.0 / 3
         λ = 1.5

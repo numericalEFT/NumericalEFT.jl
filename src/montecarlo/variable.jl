@@ -40,7 +40,7 @@ mutable struct TauPair <: Variable
     β::Float64
 end
 
-struct Discrete <: Variable
+mutable struct Discrete <: Variable
     data::Vector{Int}
     lower::Int
     upper::Int
@@ -57,18 +57,9 @@ Base.getindex(Var::Variable, i::Int) = Var.data[i]
 function Base.setindex!(Var::Variable, v, i::Int)
     Var.data[i] = v
 end
-Base.firstindex(Var::Variable) = Var.data[1]
-Base.lastindex(Var::Variable) = Var.data[end]
+Base.firstindex(Var::Variable) = 1 # return index, not the value
+Base.lastindex(Var::Variable) = length(Var.data) # return index, not the value
 
-
-mutable struct External
-    idx::Vector{Int}
-    size::Vector{Int}
-    function External(size)
-        idx = [1 for i in size] # initialize all idx with 1
-        return new(idx, size)
-    end
-end
 
 """
     Group{A}(type::Int, internal::Tuple{Vararg{Int}}, external::Tuple{Vararg{Int}}, eval, obstype=Float64) 
@@ -82,22 +73,21 @@ create a group of diagrams
 - eval: function to evaluate the group
 - obstype: type of the diagram weight, e.g. Float64
 """
-mutable struct Diagram{O}
+mutable struct Diagram
     id::Int
     order::Int
     nvar::Vector{Int}
-    obs::O
 
     reWeightFactor::Float64
     visitedSteps::Float64
     propose::Vector{Float64}
     accept::Vector{Float64}
 
-    function Diagram(_id, _order, _nvar, _obs::O) where {O}
+    function Diagram(_id, _order, _nvar)
         propose = Vector{Float64}(undef, 0)
         accept = Vector{Float64}(undef, 0)
 
-        return new{O}(_id, _order, _nvar, _obs, 1.0, 1.0e-6, propose, accept)
+        return new(_id, _order, _nvar, 1.0, 1.0e-6, propose, accept)
     end
 end
 
