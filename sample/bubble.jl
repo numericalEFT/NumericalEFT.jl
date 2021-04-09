@@ -16,10 +16,16 @@ addprocs(Ncpu)
     end
 
     function eval2(config)
-        k = config.var[2][1] 
-        Tin = config.var[1][1] 
-        Tout = config.var[1][2]
-        q = extQ[config.ext.idx[1]] # external momentum
+        T, K, Ext = config.var[1], config.var[2], config.var[3]
+        # In case the compiler is too stupid, it is a good idea to explicitly specify the type here
+        k = K[1]::SVector{3,Float64}
+        Tin, Tout = T[1]::Float64, T[2]::Float64 
+        extidx = Ext[1]::Int
+        # k = config.var[2][1]
+        # Tin = config.var[1][1]
+        # Tout = config.var[1][2]
+        # extidx = config.var[3][1]
+        q = extQ[extidx] # external momentum
         kq = k + q
         τ = (Tout - Tin) / β
         ω1 = (dot(k, k) - kF^2) * β
@@ -48,7 +54,8 @@ addprocs(Ncpu)
             obs1 += factor
         elseif diag.id == 2
             weight = integrand(config)
-            obs2[config.ext.idx[1]] += weight / abs(weight) * factor
+            extidx = config.var[3][1]
+            obs2[extidx] += weight / abs(weight) * factor
         else
             return
         end
@@ -56,16 +63,18 @@ addprocs(Ncpu)
 
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
-    Ext = MonteCarlo.External([16]) # external variable is specified
-    extQ = [@SVector [q, 0.0, 0.0] for q in range(0.0, stop=3.0 * kF, length=Ext.size[1])]
+    Ext = MonteCarlo.Discrete(1, 16) # external variable is specified
+    extQ = [@SVector [q, 0.0, 0.0] for q in range(0.0, stop=3.0 * kF, length=Ext.size)]
     obs1 = 0.0 # diag1 is a constant for normalization
-    obs2 = zeros(Float64, Ext.size...) # diag2 measures the bubble for different external q
-    diag1 = MonteCarlo.Diagram(1, 0, [1, 0])
-    diag2 = MonteCarlo.Diagram(2, 1, [2, 1])
-    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K], Ext; pid=pid, rng=rng)
+    obs2 = zeros(Float64, Ext.size) # diag2 measures the bubble for different external q
+    diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1])
+    diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1])
+    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K, Ext]; pid=pid, rng=rng)
 
-    # @code_warntype MonteCarlo.increaseOrder(config, integrand, var)
-    # @code_warntype integrand(config, var)
+    # @code_warntype MonteCarlo.increaseOrder(config, integrand)
+    # @code_warntype integrand(config)
+    # @code_warntype eval2(config)
+    # @code_warntype measure(config)
     # exit()
 
     MonteCarlo.montecarlo(config, integrand, measure)
