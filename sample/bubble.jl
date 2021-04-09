@@ -2,7 +2,7 @@ using Distributed
 
 const Ncpu = 1
 const totalStep = 1e7
-const Repeat = 4
+const Repeat = 1
 
 addprocs(Ncpu)
 
@@ -16,9 +16,9 @@ addprocs(Ncpu)
     end
 
     function eval2(config)
-        k = config.K[1]
-        Tin = config.X[1]
-        Tout = config.X[2]
+        k = config.var[2][1]
+        Tin = config.var[1][1]
+        Tout = config.var[1][2]
         q = extQ[config.ext.idx[1]] # external momentum
         kq = k + q
         τ = (Tout - Tin) / β
@@ -60,9 +60,9 @@ addprocs(Ncpu)
     extQ = [@SVector [q, 0.0, 0.0] for q in range(0.0, stop=3.0 * kF, length=Ext.size[1])]
     obs1 = 0.0 # diag1 is a constant for normalization
     obs2 = zeros(Float64, Ext.size...) # diag2 measures the bubble for different external q
-    diag1 = MonteCarlo.Diagram(1, 0, 1, 0)
-    diag2 = MonteCarlo.Diagram(2, 1, 2, 1)
-    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), T, K, Ext; pid=pid, rng=rng)
+    diag1 = MonteCarlo.Diagram(1, 0, [1, 0])
+    diag2 = MonteCarlo.Diagram(2, 1, [2, 1])
+    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K], Ext; pid=pid, rng=rng)
 
     # @benchmark eval2(c) setup=(c=$config)
 
