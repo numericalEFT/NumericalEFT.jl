@@ -111,7 +111,7 @@ mutable struct Configuration{V,R}
             @assert length(d.nvar) == length(var)
         end
 
-        @assert var isa Tuple "var must be a tuple to achieve better efficiency"
+        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to achieve better efficiency"
         return new{V,R}(pid, Int64(totalStep), collect(diagrams), var, 0, curr, rng, 0.0)
     end
 end
