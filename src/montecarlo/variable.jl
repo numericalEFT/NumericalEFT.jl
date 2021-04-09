@@ -7,7 +7,7 @@ abstract type Variable end
 const MaxOrder = 16
 
 
-struct FermiK{D} <: Variable
+mutable struct FermiK{D} <: Variable
     data::Vector{SVector{D,Float64}}
     kF::Float64
     δk::Float64
@@ -24,7 +24,7 @@ mutable struct BoseK{D} <: Variable
     maxK::Float64
 end
 
-struct Tau <: Variable
+mutable struct Tau <: Variable
     data::Vector{Float64}
     λ::Float64
     β::Float64
@@ -82,36 +82,38 @@ create a group of diagrams
 - eval: function to evaluate the group
 - obstype: type of the diagram weight, e.g. Float64
 """
-mutable struct Diagram
+mutable struct Diagram{O}
     id::Int
     order::Int
     nvar::Vector{Int}
+    obs::O
 
     reWeightFactor::Float64
     visitedSteps::Float64
     propose::Vector{Float64}
     accept::Vector{Float64}
 
-    function Diagram(_id, _order, _nvar)
+    function Diagram(_id, _order, _nvar, _obs::O) where {O}
         propose = Vector{Float64}(undef, 0)
         accept = Vector{Float64}(undef, 0)
 
-        return new(_id, _order, _nvar, 1.0, 1.0e-6, propose, accept)
+        return new{O}(_id, _order, _nvar, _obs, 1.0, 1.0e-6, propose, accept)
     end
 end
 
-mutable struct Configuration{V,R}
+mutable struct Configuration{V,R,P}
     pid::Int
     totalStep::Int64
     diagrams::Vector{Diagram}
     var::V
+    para::P
 
     step::Int64
     curr::Diagram
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, var; pid=nothing, rng::R=GLOBAL_RNG) where {R}
+    function Configuration(totalStep, diagrams, var, para::P; pid=nothing, rng::R=GLOBAL_RNG) where {R,P}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -125,7 +127,7 @@ mutable struct Configuration{V,R}
 
         _var = Tuple(var) # Tuple{typeof(var[1]), typeof(var[2]), ...}
         # println("type: ", typeof(_var))
-        config = new{typeof(_var),R}(pid, Int64(totalStep), collect(diagrams), _var, 0, curr, rng, 0.0)
+        config = new{typeof(_var),R,P}(pid, Int64(totalStep), collect(diagrams), _var, para, 0, curr, rng, 0.0)
         return config
     end
 end
