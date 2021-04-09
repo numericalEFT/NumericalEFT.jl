@@ -99,7 +99,7 @@ mutable struct Configuration{V,R}
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, var::V, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {V,R}
+    function Configuration(totalStep, diagrams, var, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {R}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -111,7 +111,8 @@ mutable struct Configuration{V,R}
         @assert length(diagrams) > 0 "diagrams should not be empty!"
         curr = diagrams[1]
 
-        config = new{V,R}(pid, Int64(totalStep), collect(diagrams), var, ext, 0, curr, rng, 0.0)
+        _var = Tuple(var) # Tuple{typeof(var[1]), typeof(var[2]), ...}
+        config = new{typeof(_var),R}(pid, Int64(totalStep), collect(diagrams), _var, ext, 0, curr, rng, 0.0)
         return config
     end
 end
