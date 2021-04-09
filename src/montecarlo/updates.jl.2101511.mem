@@ -1,0 +1,88 @@
+        - 
+        - function increaseOrder(config, integrand)
+        0     idx = rand(config.rng, 1:length(config.diagrams))
+        0     curr = config.curr
+        0     new = config.diagrams[idx]
+        0     if (new.order != curr.order + 1)
+        0         return
+        -     end
+        - 
+        -     prop = 1.0
+        0     for vi in 1:length(config.var)
+        0         for pos = curr.nvar[vi] + 1:new.nvar[vi]
+        0             prop *= create!(config.var[vi], pos, config.rng)
+        -         end
+        -     end
+        - 
+        0     currAbsWeight = config.absWeight
+        - 
+        0     config.curr = new
+ 30055312     newAbsWeight = abs(integrand(config))
+240442400     R = prop * newAbsWeight * new.reWeightFactor / currAbsWeight / curr.reWeightFactor
+        - 
+        0     curr.propose[1] += 1.0
+ 30055296     if rand(config.rng) < R
+        0         curr.accept[1] += 1.0
+        0         config.curr = new
+        0         config.absWeight = newAbsWeight
+        -     else
+        0         config.curr = curr
+        -         # in case the user modifies config.absWeight when calculate integrand(config)
+ 28999024         config.absWeight = currAbsWeight
+        -     end
+        - end
+        - 
+        - function decreaseOrder(config, integrand)
+        0     idx = rand(config.rng, 1:length(config.diagrams))
+        0     new = config.diagrams[idx]
+        0     curr = config.curr
+        - 
+        0     if (new.order != curr.order - 1)
+        0         return
+        -     end
+        - 
+        -     prop = 1.0
+        0     for vi in 1:length(config.var)
+        0         for pos = new.nvar[vi] + 1:curr.nvar[vi]
+        0             prop *= remove(config.var[vi], pos, config.rng)
+        -         end
+        -     end
+        - 
+        0     config.curr = new
+        0     currAbsWeight = config.absWeight
+  1971360     newAbsWeight = abs(integrand(config))
+ 15770832     R = prop * newAbsWeight * new.reWeightFactor / currAbsWeight / curr.reWeightFactor
+        0     curr.propose[2] += 1.0
+  1971344     if rand(config.rng) < R
+        0         curr.accept[2] += 1.0
+        0         config.absWeight = newAbsWeight
+        0         config.curr = new
+        -     else
+        -         # in case the user modifies config.absWeight when calculate integrand(config)
+        0         config.absWeight = currAbsWeight
+        0         config.curr = curr
+        -     end
+        - end
+        - 
+        - function changeVar(config, integrand)
+        0     curr = config.curr
+        0     vi = rand(config.rng, 1:length(curr.nvar))
+        0     var = config.var[vi]
+        0     (curr.nvar[vi] <= 0) && return # return if the var number is less than 1
+        0     idx = rand(config.rng, 1:curr.nvar[vi]) # randomly choose one var to update
+        0     oldvar = var[idx]
+        0     prop = shift!(var, idx, config.rng)
+        - 
+        0     currAbsWeight = config.absWeight
+131919904     newAbsWeight = abs(integrand(config))
+527679584     R = prop * newAbsWeight / currAbsWeight
+        0     curr.propose[2 + vi] += 1.0
+131919888     if rand(config.rng) < R
+        0         curr.accept[2 + vi] += 1.0
+        0         config.absWeight = newAbsWeight
+        -     else
+  6809440         var[idx] = oldvar
+        -         # in case the user modifies config.absWeight when calculate integrand(config)
+  7363136         config.absWeight = currAbsWeight 
+        -     end
+        - end

@@ -8,11 +8,23 @@ addprocs(Ncpu)
 
 @everywhere using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, Statistics, BenchmarkTools, InteractiveUtils, Parameters
 
-@everywhere struct Para
-    β::Float64
-    kF::Float64
-    m::Float64
-    extQ::Vector{SVector{3,Float64}}
+# kF = 1.919
+# β = 25.0 / kF^2
+# m = 0.5
+# QSize = 16
+# extQ = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, QSize)]
+
+# const obs1 = zeros(Float64, 16)
+# const obs2 = zeros(Float64, 16)
+
+@everywhere @with_kw struct Para
+    kF::Float64 = 1.919
+    β::Float64 = 25.0 / kF^2 
+    m::Float64 = 0.5
+    Qsize::Int = 16
+    extQ::Vector{SVector{3,Float64}} = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
+    obs1::Vector{Float64} = zeros(Float64, 16)
+    obs2::Vector{Float64} = zeros(Float64, 16)
 end
 
 @everywhere function integrand(config)
@@ -30,10 +42,10 @@ end
     kF, β, m = para.kF, para.β, para.m
     T, K, Ext = config.var[1], config.var[2], config.var[3]
         # In case the compiler is too stupid, it is a good idea to explicitly specify the type here
-    k = K[1]::SVector{3,Float64}
-    Tin, Tout = T[1]::Float64, T[2]::Float64 
-    extidx = Ext[1]::Int
-    q = para.extQ[extidx]::SVector{3,Float64} # external momentum
+    k = K[1]
+    Tin, Tout = T[1], T[2] 
+    extidx = Ext[1]
+    q = para.extQ[extidx] # external momentum
     # q = [0.0, 0.0, 0.0] # external momentum
     kq = k + q
     τ = (Tout - Tin) / β
@@ -46,15 +58,20 @@ end
     return g1 * g2 * spin * phase
 end
 
+# const obs1 = zeros(Float64, 16)
+# const obs2 = zeros(Float64, 16)
+
 @everywhere function measure(config)
     diag = config.curr
     factor = 1.0 / diag.reWeightFactor
     extidx = config.var[3][1]
     if diag.id == 1
-        diag.obs[extidx] += factor
+        # diag.obs[extidx] += factor
+        config.para.obs1[extidx] += factor
     elseif diag.id == 2
         weight = integrand(config)
-        diag.obs[extidx] += weight / abs(weight) * factor
+        # diag.obs[extidx] += weight / abs(weight) * factor
+        config.para.obs2[extidx] += weight / abs(weight) * factor
     else
         return
     end
@@ -67,39 +84,41 @@ end
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
     Ext = MonteCarlo.Discrete(1, length(para.extQ)) # external variable is specified
-    diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1], zeros(Float64, Ext.size))
-    diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1], zeros(Float64, Ext.size))
+    diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1])
+    diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1])
 
     # _obs1 = 0.0 # diag1 is a constant for normalization
     # _obs2 = zeros(Float64, Ext.size) # diag2 measures the bubble for different external q
 
-    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K, Ext], para; pid=pid, rng=rng)
+    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext), para; pid=pid, rng=rng)
 
-    # @code_warntype MonteCarlo.Configuration(totalStep, (diag1, diag2), [T, K, Ext], para; pid=pid, rng=rng)
+    # @code_warntype MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext), para; pid=pid, rng=rng)
     # @code_warntype MonteCarlo.Diagram(2, 1, [2, 1, 1], zeros(Float64, Ext.size))
     # @code_warntype MonteCarlo.increaseOrder(config, integrand)
     # @code_warntype integrand(config)
     # @code_warntype eval2(config)
     # @code_warntype measure(config)
+    # @code_lowered MonteCarlo.changeVar(config, integrand)
     # exit()
 
     MonteCarlo.montecarlo(config, integrand, measure)
 
-    return diag2.obs / sum(diag1.obs) * Ext.size
+    # return diag2.obs / sum(diag1.obs) * Ext.size
+    return para.obs2 / sum(para.obs1) * Ext.size
 end
 
 function run(repeat, totalStep)
-    kF = 1.919
-    β = 25.0 / kF^2
-    m = 0.5
-    QSize = 16
-    extQ = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, QSize)]
-    para = Para(β, kF, m, extQ)
+    # kF = 1.919
+    # β = 25.0 / kF^2
+    # m = 0.5
+    # QSize = 16
+    # extQ = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, QSize)]
+    # para
 
     if Ncpu > 1
-        result = pmap((x) -> MC(totalStep, rand(1:10000), para), 1:repeat)
+        result = pmap((x) -> MC(totalStep, rand(1:10000), Para()), 1:repeat)
     else
-        result = map((x) -> MC(totalStep, rand(1:10000), para), 1:repeat)
+        result = map((x) -> MC(totalStep, rand(1:10000), Para()), 1:repeat)
     end
 
     # observable = []
@@ -111,7 +130,8 @@ function run(repeat, totalStep)
     obs = mean(observable)
     obserr = std(observable) / sqrt(length(observable))
 
-    for (idx, q) in enumerate(extQ)
+    @unpack kF, β, m, extQ = Para()
+    for (idx, q) in enumerate(Para().extQ)
         q = q[1]
         p, err = Diagram.bubble(q, 0.0im, 3, kF, β, m)
         p, err = real(p) * 2.0, real(err) * 2.0
@@ -120,4 +140,5 @@ function run(repeat, totalStep)
 end
 
 # @btime run(1, 10)
-run(Repeat, totalStep)
+@time run(Repeat, totalStep)
+@time run(Repeat, totalStep)
