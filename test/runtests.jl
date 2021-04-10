@@ -1,4 +1,4 @@
-using QuantumStatistics, Test, StaticArrays, LinearAlgebra
+using QuantumStatistics, Test, StaticArrays, LinearAlgebra, Printf
 # import Test: @test, @testset
 
 include("grid.jl")

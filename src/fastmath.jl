@@ -4,7 +4,7 @@ Provide a set of fast math functions
 module FastMath
 using LinearAlgebra
 using Cuba
-export dot, squaredNorm, norm
+export dot, squaredNorm, norm, integrator1D
 
 # include("Yeppp.jl")
 # using .Yeppp
@@ -43,6 +43,35 @@ end
     y = y * (1.5f0 - (x2 * y * y)) # 1st iteration
     y = y * (1.5f0 - (x2 * y * y))  # 2nd iteration, this can be removed
     return y
+end
+
+function integrator1D(type, f, xmin, xmax, rtol)
+    function integrand(x, g)
+        if xmin != -Inf && xmax != Inf
+            a, b = xmin, xmax
+            g[1] = f(a + (b - a) * x[1]) * (b - a)
+        elseif xmin != -Inf && xmax == Inf
+            a = xmin
+            g[1] = f(a + x[1] / (1 - x[1])) / (1 - x[1])^2
+        elseif xmin == -Inf && xmax != Inf
+            b = xmax
+            g[1] = - f(b + 1 - 1 / x[1]) / (x[1])^2
+        else
+            y = x[1]
+            denorm = (1 - y) * y
+            g[1] = - f((2y - 1) / denorm) * (2y^2 - 2y + 1) / denorm^2
+        end
+    end
+
+    if type == :vegas
+        result, err = Cuba.vegas(integrand, rtol=rtol)
+        return result[1], err[1]
+    elseif type == :cuhre
+        result, err = Cuba.cuhre(integrand, rtol=rtol)
+        return result[1], err[1]
+    else
+        @error "Not implemented!"
+    end
 end
 
 end
