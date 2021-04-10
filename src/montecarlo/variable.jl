@@ -1,11 +1,5 @@
-# getindex(X, i)	X[i], indexed element access
-# setindex!(X, v, i)	X[i] = v, indexed assignment
-# firstindex(X)	The first index, used in X[begin]
-# lastindex(X)	The last index, used in X[end]
-
 abstract type Variable end
 const MaxOrder = 16
-
 
 mutable struct FermiK{D} <: Variable
     data::Vector{SVector{D,Float64}}
@@ -40,22 +34,26 @@ mutable struct TauPair <: Variable
     β::Float64
 end
 
+mutable struct Discrete <: Variable
+    data::Vector{Int}
+    lower::Int
+    upper::Int
+    size::Int
+    function Discrete(lower, upper, size=MaxOrder)
+        d = [1 for i in 1:size]
+        @assert upper > lower
+        return new(d, lower, upper, upper - lower + 1)
+    end
+end
+
+
 Base.getindex(Var::Variable, i::Int) = Var.data[i]
 function Base.setindex!(Var::Variable, v, i::Int)
     Var.data[i] = v
 end
-Base.firstindex(Var::Variable) = Var.data[1]
-Base.lastindex(Var::Variable) = Var.data[end]
+Base.firstindex(Var::Variable) = 1 # return index, not the value
+Base.lastindex(Var::Variable) = length(Var.data) # return index, not the value
 
-
-mutable struct External
-    idx::Vector{Int}
-    size::Vector{Int}
-    function External(size)
-        idx = [1 for i in size] # initialize all idx with 1
-        return new(idx, size)
-    end
-end
 
 """
     Group{A}(type::Int, internal::Tuple{Vararg{Int}}, external::Tuple{Vararg{Int}}, eval, obstype=Float64) 
@@ -72,36 +70,32 @@ create a group of diagrams
 mutable struct Diagram
     id::Int
     order::Int
-    nX::Int
-    nK::Int
+    nvar::Vector{Int}
 
     reWeightFactor::Float64
     visitedSteps::Float64
     propose::Vector{Float64}
     accept::Vector{Float64}
 
-    function Diagram(_id, _order, _nX, _nK)
+    function Diagram(_id, _order, _nvar)
         propose = Vector{Float64}(undef, 0)
         accept = Vector{Float64}(undef, 0)
-
-        return new(_id, _order, _nX, _nK, 1.0, 1.0e-6, propose, accept)
+        return new(_id, _order, _nvar, 1.0, 1.0e-6, propose, accept)
     end
 end
 
-mutable struct Configuration{TX,TK,R}
+mutable struct Configuration{V,R}
     pid::Int
     totalStep::Int64
     diagrams::Vector{Diagram}
-    X::TX
-    K::TK
-    ext::External
+    var::V
 
     step::Int64
     curr::Diagram
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, X::TX, K::TK, ext::External; pid=nothing, rng::R=GLOBAL_RNG) where {TX,TK,R}
+    function Configuration(totalStep, diagrams, var::V; pid=nothing, rng::R=GLOBAL_RNG) where {V,R}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -112,8 +106,29 @@ mutable struct Configuration{TX,TK,R}
         @assert totalStep > 0 "Total step should be positive!"
         @assert length(diagrams) > 0 "diagrams should not be empty!"
         curr = diagrams[1]
-        config = new{TX,TK,R}(pid, Int64(totalStep), collect(diagrams), X, K, ext, 0, curr, rng, 0.0)
-        return config
+
+        for d in diagrams
+            @assert length(d.nvar) == length(var)
+        end
+
+        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to achieve better efficiency"
+        return new{V,R}(pid, Int64(totalStep), collect(diagrams), var, 0, curr, rng, 0.0)
     end
 end
 
+# Macro to make struct
+# macro make_struct(struct_name, schema...)
+#     fields=[:($(entry.args[1])::$(entry.args[2])) for entry in schema]
+#     esc(quote struct $struct_name
+#         $(fields...)
+#         end
+#     end)
+# end
+
+macro configuration(schema...)
+    fields = [:($(entry.args[1])::$(entry.args[2])) for entry in schema]
+    esc(quote struct $struct_name
+            $(fields...)
+        end
+    end)
+end
