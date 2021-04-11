@@ -208,3 +208,59 @@ Propose to shift the old tau to new tau, both in [0, β), return proposal probab
 
     return 1.0
 end
+
+
+"""
+    create!(theta::Angle, idx::Int, rng=GLOBAL_RNG)
+
+Propose to generate new angle (uniformly) randomly in [0, 2π), return proposal probability
+
+# Arguments
+- `theta`:  angle variable
+- `idx`: theta.t[idx] will be updated
+"""
+@inline function create!(theta::Angle, idx::Int, rng=RNG)
+    theta[idx] = rand(rng) * 2π
+    return 2π
+end
+
+"""
+    remove(theta::Angle, idx::Int, rng=GLOBAL_RNG)
+
+Propose to remove old theta in [0, 2π), return proposal probability
+
+# Arguments
+    - `theta`:  Tau variable
+- `idx`: theta.t[idx] will be updated
+"""
+@inline function remove(theta::Angle, idx::Int, rng=RNG)
+    return 1.0 / 2.0 /π
+end
+
+"""
+    shift!(theta::Angle, idx::Int, rng=GLOBAL_RNG)
+
+Propose to shift the old theta to new theta, both in [0, 2π), return proposal probability
+
+# Arguments
+- `theta`:  angle variable
+- `idx`: theta.t[idx] will be updated
+"""
+@inline function shift!(theta::Angle, idx::Int, rng=RNG)
+    x = rand(rng)
+    if x < 1.0 / 3
+        theta[idx] = theta[idx] + 2 * theta.λ * (rand(rng) - 0.5)
+    elseif x < 2.0 / 3
+        theta[idx] = 2π - theta[idx]
+    else
+        theta[idx] = rand(rng) * 2π
+    end
+
+    if theta[idx] < 0.0
+        theta[idx] += 2π
+    elseif theta[idx] > 2π
+        theta[idx] -= 2π
+    end
+
+    return 1.0
+end
