@@ -26,7 +26,11 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
         timer = [StopWatch(printTime, printStatus)]
     end
 
-    updates = [increaseOrder, decreaseOrder, changeX, changeK, changeExt]
+    updates = [increaseOrder, decreaseOrder]
+    for var in config.var
+        # changeVar should be call more often if there are more variables
+        append!(updates, [changeVar, ])
+    end
 
     for diag in config.diagrams
         diag.propose = zeros(Float64, length(updates)) .+ 1.0e-8
@@ -79,12 +83,18 @@ function printStatus(config)
     println("\nStep:", config.step)
     println(bar)
 
-    name = ["increaseOrder", "decreaseOrder", "changeX", "changeK", "changeExt"]
+    name = ["increaseOrder", "decreaseOrder"]
+    for (vi, var) in enumerate(config.var)
+        # typeof(Var) is something like QuantumStatistics.MonteCarlo.Tau, only the last block is the type name
+        typestr = "$(typeof(var))"
+        typestr = split(typestr, ".")[end]
+        append!(name, ["change_$typestr", ])
+    end
     totalproposed = 0.0
 
     for num = 1:length(name)
         @printf(
-            "%-14s %12s %12s %12s\n",
+            "%-20s %12s %12s %12s\n",
             String(name[num]),
             "Proposed",
             "Accepted",
@@ -92,7 +102,7 @@ function printStatus(config)
         )
         for (idx, diag) in enumerate(config.diagrams)
             @printf(
-                "  Order%2d:     %11.6f%% %11.6f%% %12.6f\n",
+                "    Order%2d:            %11.6f%% %11.6f%% %12.6f\n",
                 diag.id,
                 diag.propose[num] / config.step * 100.0,
                 diag.accept[num] / config.step * 100.0,
