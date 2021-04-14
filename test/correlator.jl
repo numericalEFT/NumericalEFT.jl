@@ -160,12 +160,12 @@ end
     function test(type; Euv, β, eps)
         printstyled("Testing DLR for $type, Euv=$Euv, β=$β, eps=$eps\n", color=:green)
 
-        dlr = Basis.dlrGrid(type, 1Euv, β, eps)
+        dlr = DLR.DLRGrid(type, 1Euv, β, eps)
         printstyled("Testing imaginary-time dlr\n", color=:green)
         # get imaginary-time Green's function
-        Gdlr = zeros(Float64, (2, length(dlr[:τ])))
-        Gdlr[1, :] = SemiCircle(type, dlr[:τ], β, Euv)[1]
-        Gdlr[2, :] = MultiPole(type, dlr[:τ], β, Euv)[1]
+        Gdlr = zeros(Float64, (2, dlr.size))
+        Gdlr[1, :] = SemiCircle(type, dlr.τ, β, Euv)[1]
+        Gdlr[2, :] = MultiPole(type, dlr.τ, β, Euv)[1]
 
         # get imaginary-time Green's function for τ sample
         τSample=[t for t in LinRange(eps, β-eps, 100)]
@@ -174,8 +174,8 @@ end
         Gsample[2, :] = MultiPole(type, τSample, β, Euv)[1]
 
         # imaginary-time to dlr
-        coeff = Basis.tau2dlr(type, Gdlr, dlr, β, axis=2, rtol=eps)
-        Gfitted = Basis.dlr2tau(type, coeff, dlr, τSample, β, axis=2)
+        coeff = DLR.tau2dlr(type, Gdlr, dlr, axis=2, rtol=eps)
+        Gfitted = DLR.dlr2tau(type, coeff, dlr, τSample, axis=2)
         println(maximum(abs.(Gsample[1, :])), ", ", maximum(abs.(Gsample[1, :] - Gfitted[1, :])))
         println(maximum(abs.(Gsample[2, :])), ", ", maximum(abs.(Gsample[2, :] - Gfitted[2, :])))
         for (ti, t) in enumerate(τSample)
@@ -185,9 +185,9 @@ end
 
         printstyled("Testing Matsubara frequency dlr\n", color=:green)
         # #get Matsubara-frequency Green's function
-        Gndlr=zeros(Complex{Float64}, (2, length(dlr[:ωn])))
-        Gndlr[1, :]=SemiCircle(type, dlr[:ωn], β, Euv, IsMatFreq=true)[1]
-        Gndlr[2, :]=MultiPole(type, dlr[:ωn], β, Euv, IsMatFreq=true)[1]
+        Gndlr=zeros(Complex{Float64}, (2, dlr.size))
+        Gndlr[1, :]=SemiCircle(type, dlr.n, β, Euv, IsMatFreq=true)[1]
+        Gndlr[2, :]=MultiPole(type, dlr.n, β, Euv, IsMatFreq=true)[1]
 
         δ=2Euv*β/100
         nSample=[Int(n*δ) for n in -100:100]
@@ -197,8 +197,8 @@ end
         Gnsample[2, :]=MultiPole(type, nSample, β, Euv, IsMatFreq=true)[1]
 
         # #Matsubara frequency to dlr
-        coeffn = Basis.matfreq2dlr(type, Gndlr, dlr, β, axis=2, rtol=eps)
-        Gnfitted = Basis.dlr2matfreq(type, coeffn, dlr, nSample, β, axis=2)
+        coeffn = DLR.matfreq2dlr(type, Gndlr, dlr, axis=2, rtol=eps)
+        Gnfitted = DLR.dlr2matfreq(type, coeffn, dlr, nSample, axis=2)
     #     for (ni, n) in enumerate(nSample)
     #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", n, imag(Gnsample[1, ni]),  imag(Gnfitted[1, ni]), abs(Gnsample[1, ni] - Gnfitted[1, ni]))
     # end
@@ -210,11 +210,11 @@ end
 
         # #imaginary-time to Matsubar-frequency (fourier transform)
         printstyled("Testing fourier transfer based on DLR\n", color=:green)
-        Gnfourier = Basis.tau2matfreq(type, Gdlr, dlr, nSample, β, axis=2, rtol=eps)
+        Gnfourier = DLR.tau2matfreq(type, Gdlr, dlr, nSample,axis=2, rtol=eps)
         println("fourier tau to Matfreq error =",  maximum(abs.(Gnsample - Gnfourier)))
         @test all(abs.(Gnsample - Gnfourier) .< 500eps) # dlr should represent the Green's function up to accuracy of the order eps
 
-        Gfourier = Basis.matfreq2tau(type, Gndlr, dlr, τSample, β, axis=2, rtol=eps)
+        Gfourier = DLR.matfreq2tau(type, Gndlr, dlr, τSample, axis=2, rtol=eps)
         # for (ti, t) in enumerate(τSample)
         #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, Gsample[2, ti],  real(Gfourier[2, ti]), abs(Gsample[2, ti] - Gfourier[2, ti]))
         # end
