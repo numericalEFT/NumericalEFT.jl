@@ -80,10 +80,15 @@ end
 
 function _tensor2matrix(tensor, axis)
     # internal function to move the axis dim to the first index, then reshape the tensor into a matrix
+    dim = length(size(tensor))
     n1 = size(tensor)[axis]
     partialsize = deleteat!(collect(size(tensor)), axis) # the size of the tensor except the axis-th dimension
     n2 = reduce(*, partialsize)
-    ntensor = permutedims(tensor, [axis, 1]) # permutate the axis-th and the 1st dim, a copy of the tensor is created even for axis=1
+    # println("working on size ", size(tensor))
+    # println(axis)
+    permu = [i for i in 1:dim]
+    permu[1], permu[axis] = axis, 1
+    ntensor = permutedims(tensor, permu) # permutate the axis-th and the 1st dim, a copy of the tensor is created even for axis=1
     ntensor = reshape(ntensor, (n1, n2)) # no copy is created
     return ntensor, partialsize
 end
@@ -93,7 +98,10 @@ function _matrix2tensor(mat, partialsize, axis)
     @assert size(mat)[2] == reduce(*, partialsize) # total number of elements of mat and the tensor must match
     tsize = vcat(size(mat)[1], partialsize)
     tensor = reshape(mat, Tuple(tsize))
-    return permutedims(tensor, [axis, 1]) # permutate the axis-th and the 1st dim, a copy of the tensor is created even for axis=1
+    dim = length(partialsize) + 1
+    permu = [i for i in 1:dim]
+    permu[1], permu[axis] = axis, 1
+    return permutedims(tensor, permu) # permutate the axis-th and the 1st dim, a copy of the tensor is created even for axis=1
 end
 
 """
