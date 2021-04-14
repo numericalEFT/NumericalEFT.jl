@@ -37,6 +37,24 @@ function dlrGrid(type, Euv, β=1.0, eps=1e-10)
     end
 end
 
+function _tensor2matrix(tensor, axis)
+    # internal function to move the axis dim to the first index, then reshape the tensor into a matrix
+    n1 = size(tensor)[1]
+    partialsize = deleteat!(size(tensor), axis) # the size of the tensor except the axis-th dimension
+    n2 = reduce(*, partialsize)
+    ntensor = permutedims(tensor, [axis, 1]) # permutate the axis-th and the 1st dim, a copy of the tensor is created even for axis=1
+    ntensor = reshape(ntensor, (n1, n2)) # no copy is created
+    return ntensor, partialsize
+end
+
+function _matrix2tensor(mat, partialsize, axis)
+    # internal function to reshape matrix to a tensor, then swap the first index with the axis-th dimension
+    @assert size(mat)[2] == reduce(*, partialsize) # total number of elements of mat and the tensor must match
+    tsize = vcat(size(mat)[1], partialsize)
+    tensor = reshape(mat, tsize)
+    return permutedims(tensor, [axis, 1]) # permutate the axis-th and the 1st dim, a copy of the tensor is created even for axis=1
+end
+
 function tau2dlr(type, green, dlrGrid, β=1.0; axis=1, rtol=1e-12)
     @assert length(size(green)) >= axis "dimension of the Green's function should be larger than axis!"
     τGrid = dlrGrid[:τ]
@@ -45,44 +63,24 @@ function tau2dlr(type, green, dlrGrid, β=1.0; axis=1, rtol=1e-12)
     # kernel, ipiv, info = LAPACK.getrf!(Float64.(kernel)) # LU factorization
     kernel, ipiv, info = LAPACK.getrf!(kernel) # LU factorization
 
-    if axis == 1
-        g = copy(green)
-    else
-        g = permutedims(green, [axis, 1])
-    end
+    g, partialsize = _tensor2matrix(green, axis)
 
     coeff = LAPACK.getrs!('N', kernel, ipiv, g) # LU linear solvor for green=kernel*coeff
     # coeff = kernel \ g #solve green=kernel*coeff
     # println("coeff: ", maximum(abs.(coeff)))
 
-    if axis == 1
-        return coeff
-    else
-        ############ test ######################
-        # kernel = kernelT(type, τGrid, ωGrid, β)
-        # gfitted = kernel * coeff
-        # println("LU error: ", maximum(abs.(gfitted' - green)))
-        ##########################################
-        return permutedims(coeff, [axis, 1])
-    end
+    return _matrix2tensor(coeff, partialsize, axis)
 end
 
 function dlr2tau(type, dlrcoeff, dlrGrid, τGrid, β=1.0; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
     kernel = kernelT(type, τGrid, dlrGrid[:ω], β)
-    if axis == 1
-        coeff = dlrcoeff
-    else
-        coeff = permutedims(dlrcoeff, [axis, 1])
-    end
+
+    coeff, partialsize = _tensor2matrix(dlrcoeff, axis)
 
     G = kernel * coeff # tensor dot product: \sum_i kernel[..., i]*coeff[i, ...]
 
-    if axis == 1
-        return G
-    else
-        return permutedims(G, [axis, 1])
-    end
+    return _matrix2tensor(G, partialsize, axis)
 end
 
 function matfreq2dlr(type, green, dlrGrid, β=1.0; axis=1, rtol=1e-12)
@@ -93,39 +91,24 @@ function matfreq2dlr(type, green, dlrGrid, β=1.0; axis=1, rtol=1e-12)
     kernel = kernelΩ(type, nGrid, ωGrid, β)
     kernel, ipiv, info = LAPACK.getrf!(Complex{Float64}.(kernel)) # LU factorization
 
-    if axis == 1
-        g = copy(green)
-    else
-        g = permutedims(green, [axis, 1])
-    end
+    g, partialsize = _tensor2matrix(green, axis)
 
     coeff = LAPACK.getrs!('N', kernel, ipiv, g) # LU linear solvor for green=kernel*coeff
     # coeff = kernel \ g # solve green=kernel*coeff
 
-    if axis == 1
-        return coeff
-    else
-        return permutedims(coeff, [axis, 1])
-    end
+    return _matrix2tensor(coeff, partialsize, axis)
 end
 
 function dlr2matfreq(type, dlrcoeff, dlrGrid, nGrid, β=1.0; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
     # kernel = kernelΩ(type, nGrid, dlrGrid[:ω], β) / β 
     kernel = kernelΩ(type, nGrid, dlrGrid[:ω], β) 
-    if axis == 1
-        coeff = dlrcoeff
-    else
-        coeff = permutedims(dlrcoeff, [axis, 1])
-    end
+
+    coeff, partialsize = _tensor2matrix(dlrcoeff, axis)
 
     G = kernel * coeff # tensor dot product: \sum_i kernel[..., i]*coeff[i, ...]
 
-    if axis == 1
-        return G
-    else
-        return permutedims(G, [axis, 1])
-    end
+    return _matrix2tensor(G, partialsize, axis)
 end
 
 function tau2matfreq(type, green, dlrGrid, nGrid, β=1.0; axis=1, rtol=1e-12)
