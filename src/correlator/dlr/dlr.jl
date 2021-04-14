@@ -9,6 +9,24 @@ using DelimitedFiles, LinearAlgebra
 using ..Spectral
 include("builder.jl")
 
+
+"""
+struct DLRGrid
+
+    DLR grids for imaginary-time/Matsubara frequency correlators
+
+#Members:
+- `type`: symbol :fermi, :bose, :corr
+- `Euv` : the UV energy scale of the spectral density 
+- `β` : inverse temeprature
+- `Λ`: cutoff = UV Energy scale of the spectral density * inverse temperature
+- `rtol`: tolerance absolute error
+- `size` : number of DLR basis
+- `ω` : selected representative real-frequency grid
+- `n` : selected representative Matsubara-frequency grid (integer)
+- `ωn` : (2n+1)π/β
+- `τ` : selected representative imaginary-time grid
+"""
 struct DLRGrid
     type::Symbol
     Euv::Float64
@@ -23,7 +41,12 @@ struct DLRGrid
     ωn::Vector{Float64} # (2n+1)π/β
     τ::Vector{Float64}
 
-    function DLRGrid(type, Euv, β, rtol=1e-10)
+    """
+    function DLRGrid(type, Euv, β, rtol=1e-12)
+
+        Create DLR grids
+    """
+    function DLRGrid(type, Euv, β, rtol=1e-12)
         Λ = Euv * β # dlr only depends on this dimensionless scale
         @assert rtol > 0.0 "eps=$eps is not positive and nonzero!"
         @assert 0 < Λ <= 1000000 "Energy scale $Λ must be in (0, 1000000)!"
@@ -73,6 +96,17 @@ function _matrix2tensor(mat, partialsize, axis)
     return permutedims(tensor, [axis, 1]) # permutate the axis-th and the 1st dim, a copy of the tensor is created even for axis=1
 end
 
+"""
+function tau2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
+
+    imaginary-time domain to DLR representation
+
+#Members:
+- `type`: symbol :fermi, :bose, :corr
+- `green` : green's function in imaginary-time domain
+- `axis`: the imaginary-time axis in the data `green`
+- `rtol`: tolerance absolute error
+"""
 function tau2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
     @assert length(size(green)) >= axis "dimension of the Green's function should be larger than axis!"
     τGrid = dlrGrid.τ
@@ -90,6 +124,19 @@ function tau2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
     return _matrix2tensor(coeff, partialsize, axis)
 end
 
+"""
+function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
+
+    DLR representation to imaginary-time representation
+
+#Members:
+- `type`: symbol :fermi, :bose, :corr
+- `dlrcoeff` : DLR coefficients
+- `dlrGrid` : DLRGrid
+- `τGrid` : expected fine imaginary-time grids
+- `axis`: imaginary-time axis in the data `dlrcoeff`
+- `rtol`: tolerance absolute error
+"""
 function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
     kernel = kernelT(type, τGrid, dlrGrid.ω, dlrGrid.β)
@@ -101,6 +148,17 @@ function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
     return _matrix2tensor(G, partialsize, axis)
 end
 
+"""
+function matfreq2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
+
+    Matsubara-frequency representation to DLR representation
+
+#Members:
+- `type`: symbol :fermi, :bose, :corr
+- `green` : green's function in Matsubara-frequency domain
+- `axis`: the Matsubara-frequency axis in the data `green`
+- `rtol`: tolerance absolute error
+"""
 function matfreq2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
     @assert length(size(green)) >= axis "dimension of the Green's function should be larger than axis!"
     nGrid = dlrGrid.n
@@ -117,6 +175,19 @@ function matfreq2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
     return _matrix2tensor(coeff, partialsize, axis)
 end
 
+"""
+function dlr2matfreq(type, dlrcoeff, dlrGrid::DLRGrid, nGrid, β=1.0; axis=1)
+
+    DLR representation to Matsubara-frequency representation
+
+#Members:
+- `type`: symbol :fermi, :bose, :corr
+- `dlrcoeff` : DLR coefficients
+- `dlrGrid` : DLRGrid
+- `nGrid` : expected fine Matsubara-freqeuncy grids (integer)
+- `axis`: Matsubara-frequency axis in the data `dlrcoeff`
+- `rtol`: tolerance absolute error
+"""
 function dlr2matfreq(type, dlrcoeff, dlrGrid::DLRGrid, nGrid, β=1.0; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
     # kernel = kernelΩ(type, nGrid, dlrGrid[:ω], β) / β 
@@ -129,11 +200,37 @@ function dlr2matfreq(type, dlrcoeff, dlrGrid::DLRGrid, nGrid, β=1.0; axis=1)
     return _matrix2tensor(G, partialsize, axis)
 end
 
+"""
+function tau2matfreq(type, green, dlrGrid, nGrid; axis=1, rtol=1e-12)
+
+    Fourier transform from imaginary-time to Matsubara-frequency using the DLR representation
+
+#Members:
+- `type`: symbol :fermi, :bose, :corr
+- `green` : green's function in imaginary-time domain
+- `dlrGrid` : DLRGrid
+- `nGrid` : expected fine Matsubara-freqeuncy grids (integer)
+- `axis`: the imaginary-time axis in the data `green`
+- `rtol`: tolerance absolute error
+"""
 function tau2matfreq(type, green, dlrGrid, nGrid; axis=1, rtol=1e-12)
     coeff = tau2dlr(type, green, dlrGrid; axis=axis, rtol=rtol)
     return dlr2matfreq(type, coeff, dlrGrid, nGrid, axis=axis)
 end
 
+"""
+function matfreq2tau(type, green, dlrGrid, τGrid; axis=1, rtol=1e-12)
+
+    Fourier transform from Matsubara-frequency to imaginary-time using the DLR representation
+
+#Members:
+- `type`: symbol :fermi, :bose, :corr
+- `green` : green's function in Matsubara-freqeuncy repsentation
+- `dlrGrid` : DLRGrid
+- `τGrid` : expected fine imaginary-time grids
+- `axis`: Matsubara-frequency axis in the data `green`
+- `rtol`: tolerance absolute error
+"""
 function matfreq2tau(type, green, dlrGrid, τGrid; axis=1, rtol=1e-12)
     coeff = matfreq2dlr(type, green, dlrGrid; axis=axis, rtol=rtol)
     return dlr2tau(type, coeff, dlrGrid, τGrid, axis=axis)
