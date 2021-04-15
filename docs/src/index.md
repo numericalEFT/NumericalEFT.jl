@@ -7,8 +7,10 @@ A toolbox for quantum many-body field theory.
 Pages = [
     "lib/grid.md",
     "lib/spectral.md",
+    "lib/dlr.md",
     "lib/green.md",
     "lib/twopoint.md",
+    "lib/diagram.md",
     "lib/montecarlo.md",
     "lib/fastmath.md",
     "lib/utility.md",
