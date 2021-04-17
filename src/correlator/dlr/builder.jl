@@ -8,7 +8,7 @@ gridparams(Λ, p, npt, npo, nt, no)
 
 #Arguments:
 - `Λ`: cutoff = UV Energy scale of the spectral density * inverse temperature
-- `rtol`: tolerance absolute error
+- `rtol`: tolerance relative error
 """
 struct Params
     Λ::Float64 
@@ -29,12 +29,12 @@ struct Params
 end
 
 """
-kernalFineGrid(type, Λ, npt, npo)
+kernalFineGrid(type, para::Params)
 
-Discretization of kernel K(tau,omega) on composite Chebyshev fine grids in tau and omega
+Discretization of kernel K(tau,omega) on composite Chebyshev fine grids for tau and omega
 
 #Arguments:
-- `type`: :fermi or :bose
+- `type`: :fermi, :bose or :corr
 - `para':  Paramaters
 
 #Returns
