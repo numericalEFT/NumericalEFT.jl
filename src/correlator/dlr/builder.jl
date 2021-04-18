@@ -2,7 +2,7 @@ include("chebyshev.jl")
 using Printf
 
 """
-gridparams(Λ, p, npt, npo, nt, no)
+Params(Λ, p, npt, npo, nt, no)
 
     Set parameters for composite Chebyshev fine grid
 
@@ -127,6 +127,9 @@ function kernalFineGrid(type, para::Params)
     println("fine grid points for ω     = ", length(ωGrid))
     println("Max relative L∞ error in τ = ", err[1])
     println("Max relative L∞ error in ω = ", err[2])
+
+    @assert err[1] ≈ 1.2311823419789538e-15 
+    @assert err[2] ≈ 1.347973805373878e-15
     
     return τGrid, ωGrid, kernel
 end
@@ -170,6 +173,8 @@ function dlr(type, Λ, rtol)
     end
     println("Kernel ϵ-rank = ", rank, ", rtol ≈ ", err)
 
+    @assert err ≈ 9.61311623566252e-13
+
     for idx in rank:min(Nτ, Nω) 
         R22 = R[idx:Nτ, idx:Nω]
         u2, s2, v2 = svd(R22)
@@ -181,6 +186,8 @@ function dlr(type, Λ, rtol)
         end
     end
     println("DLR rank      = ", rank,  ", rtol ≈ ", err)
+
+    @assert err ≈ 4.58983288255442e-13
 
     ###########  dlr grid for ω  ###################
     ωGridDLR = sort(ωGrid[p[1:rank]])

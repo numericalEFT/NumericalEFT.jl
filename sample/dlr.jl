@@ -1,8 +1,10 @@
 using QuantumStatistics
 using Printf
 
-rtol = [-4, -6, -8, -10, -12]
-Λ = [100, 1000, 10000, 100000, 1000000]
+# rtol = [-4, -6, -8, -10, -12]
+# Λ = [100, 1000, 10000, 100000, 1000000]
+rtol = [-12]
+Λ = [1000]
 
 for lambda in Λ
     for err in rtol
