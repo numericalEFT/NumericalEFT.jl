@@ -60,21 +60,20 @@ struct DLRGrid
             epspower = 4
         end
         
-        if type == :fermi
-            filename = string(@__DIR__, "/basis/fermi/dlr$(Λ)_1e$(epspower).dat")
-        # filename = string(@__DIR__, "/basis/dlr_fermi/dlr$(Λ)_1e$(epspower).dat")
-            println(filename)
-            grid = readdlm(filename)
+        filename = string(@__DIR__, "/basis/$(string(type))/dlr$(Λ)_1e$(epspower).dat")
+        grid = readdlm(filename)
 
-            ω = grid[:, 2] / β
-            n = Int.(grid[:, 4])
-            ωn = @. (2.0 * n + 1.0) * π / β
-            tgrid = [((t >= 0.0) ? t : 1.0 + t) for t in grid[:, 3]]
-            τ = sort(tgrid * β)
-            return new(type, Euv, β, Λ, rtol, length(ω), ω, n, ωn, τ)
+        ω = grid[:, 2] / β
+        n = Int.(grid[:, 4])
+        if type==:fermi
+            ωn = @. (2n + 1.0) * π / β
+        elseif type ==:corr || type==:boson
+            ωn = @. 2n * π / β
         else
-            @error "Not implemented!"
+            error("$type not implemented!")
         end
+        τ = grid[:, 3] * β
+        return new(type, Euv, β, Λ, rtol, length(ω), ω, n, ωn, τ)
     end
 end
 
