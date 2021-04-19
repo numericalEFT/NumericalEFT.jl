@@ -60,14 +60,24 @@ function kernalDiscretization(type, Dτ, Dω, Λ, rtol)
     pbpt[npt + 2:2npt + 1] = 1 .- pbpt[npt:-1:1]
 
     ############ ω discretization ##################
-    # Panel break points for the real frequency ∈ (-Λ, Λ)
-    # get exponentially dense near 0⁻ and 0⁺
-    pbpo = zeros(Float64, 2npo + 1)
-    pbpo[npo + 1] = 0.0
-    for i in 1:npo
-        pbpo[npo + i + 1] = Λ / 2^(npo - i)
+    if type == :corr
+        # Panel break points for the real frequency ∈ [0, Λ]
+        # get exponentially dense near 0⁺
+        pbpo = zeros(Float64, npo + 1)
+        pbpo[1] = 0.0
+        for i in 1:npo
+            pbpo[i + 1] = Λ / 2^(npo - i + 1)
+        end
+    else
+        # Panel break points for the real frequency ∈ [-Λ, Λ]
+        # get exponentially dense near 0⁻ and 0⁺
+        pbpo = zeros(Float64, 2npo + 1)
+        pbpo[npo + 1] = 0.0
+        for i in 1:npo
+            pbpo[npo + i + 1] = Λ / 2^(npo - i)
+        end
+        pbpo[1:npo] = -pbpo[2npo + 1:-1:npo + 2]
     end
-    pbpo[1:npo] = -pbpo[2npo + 1:-1:npo + 2]
 
     # Grid points
     τ = CompositeChebyshevGrid(Dτ, pbpt)
