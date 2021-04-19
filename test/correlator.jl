@@ -198,11 +198,11 @@ end
         coeff = DLR.tau2dlr(type, Gdlr, dlr, axis=2, rtol=eps)
         Gfitted = DLR.dlr2tau(type, coeff, dlr, τSample, axis=2)
 
-        println("SemiCircle test case rtol=", rtol(Gsample[1, :], Gfitted[1, :]))
-        println("Multi pole test case rtol=", rtol(Gsample[2, :], Gfitted[2, :]))
-        for (ti, t) in enumerate(τSample)
-        @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, Gsample[2, ti],  Gfitted[2, ti], Gsample[2, ti] - Gfitted[2, ti])
-    end
+        println("SemiCircle test case fit τ rtol=", rtol(Gsample[1, :], Gfitted[1, :]))
+        println("Multi pole test case fit τ rtol=", rtol(Gsample[2, :], Gfitted[2, :]))
+    #     for (ti, t) in enumerate(τSample)
+    #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, Gsample[2, ti],  Gfitted[2, ti], Gsample[2, ti] - Gfitted[2, ti])
+    # end
         @test rtol(Gsample[1, :], Gfitted[1, :]) .< 50eps # dlr should represent the Green's function up to accuracy of the order eps
         @test rtol(Gsample[2, :], Gfitted[2, :]) .< 50eps # dlr should represent the Green's function up to accuracy of the order eps
 
@@ -215,14 +215,7 @@ end
         Gndlr[1, :]=SemiCircle(type, dlr.n, β, Euv, IsMatFreq=true)[1]
         Gndlr[2, :]=MultiPole(type, dlr.n, β, Euv, IsMatFreq=true)[1]
 
-        # δ=2Euv*β/100
-        # if type == :corr
-        #     nSample=[Int(n*δ) for n in 0:100]
-        # else
-        #     nSample=[Int(n*δ) for n in -100:100]
-        # end
         nSample = dlr10.n
-        # nSample=[Int(floor(n)) for n in LinRange(-Int(2Euv*β), Int(2Euv*β), 200)]
         Gnsample=zeros(Complex{Float64}, (2, length(nSample)))
         Gnsample[1, :]=SemiCircle(type, nSample, β, Euv, IsMatFreq=true)[1]
         Gnsample[2, :]=MultiPole(type, nSample, β, Euv, IsMatFreq=true)[1]
@@ -238,8 +231,8 @@ end
     # end
         # println(maximum(abs.(Gnsample-Gnfitted)))
         # @test all(abs.(Gnsample - Gnfitted) .< 50eps) # dlr should represent the Green's function up to accuracy of the order eps
-        println("SemiCircle test case rtol=", rtol(Gnsample[1, :], Gnfitted[1, :]))
-        println("Multi pole test case rtol=", rtol(Gnsample[2, :], Gnfitted[2, :]))
+        println("SemiCircle test case fit iω rtol=", rtol(Gnsample[1, :], Gnfitted[1, :]))
+        println("Multi pole test case fit iω rtol=", rtol(Gnsample[2, :], Gnfitted[2, :]))
         @test rtol(Gnsample[1, :], Gnfitted[1, :]) .< 50eps # dlr should represent the Green's function up to accuracy of the order eps
         @test rtol(Gnsample[2, :], Gnfitted[2, :]) .< 50eps # dlr should represent the Green's function up to accuracy of the order eps
 
@@ -250,20 +243,24 @@ end
         printstyled("Testing fourier transfer based on DLR\n", color=:green)
         Gnfourier = DLR.tau2matfreq(type, Gdlr, dlr, nSample,axis=2, rtol=eps)
 
-        for (ti, t) in enumerate(τSample)
-            @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, real(Gnsample[2, ti]),  real(Gnfourier[2, ti]), abs(Gnsample[2, ti] - Gnfourier[2, ti]))
-        end
+        # for (ti, t) in enumerate(τSample)
+        #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, real(Gnsample[2, ti]),  real(Gnfourier[2, ti]), abs(Gnsample[2, ti] - Gnfourier[2, ti]))
+        # end
 
-        println("fourier tau to Matfreq error =",  maximum(abs.(Gnsample - Gnfourier)))
-        @test all(abs.(Gnsample - Gnfourier) .< 500eps) # dlr should represent the Green's function up to accuracy of the order eps
+        println("SemiCircle test case fourier τ to iω rtol=", rtol(Gnsample[1, :], Gnfourier[1, :]))
+        println("Multipole test case fourier τ to iω rtol=", rtol(Gnsample[1, :], Gnfourier[1, :]))
+        @test rtol(Gnsample[1, :], Gnfourier[1, :]) .< 500eps # dlr should represent the Green's function up to accuracy of the order eps
+        @test rtol(Gnsample[2, :], Gnfourier[2, :]) .< 500eps # dlr should represent the Green's function up to accuracy of the order eps
 
         Gfourier = DLR.matfreq2tau(type, Gndlr, dlr, τSample, axis=2, rtol=eps)
         # for (ti, t) in enumerate(τSample)
         #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, Gsample[2, ti],  real(Gfourier[2, ti]), abs(Gsample[2, ti] - Gfourier[2, ti]))
         # end
 
-        println("fourier Matfreq to tau error =",  maximum(abs.(Gsample - Gfourier)))
-        @test all(abs.(Gsample - Gfourier) .< 500eps) # dlr should represent the Green's function up to accuracy of the order eps
+        println("SemiCircle test case fourier iω to τ rtol=", rtol(Gsample[1, :], Gfourier[1, :]))
+        println("Multipole test case fourier  iω to τ rtol=", rtol(Gsample[1, :], Gfourier[1, :]))
+        @test rtol(Gsample[1, :], Gfourier[1, :]) .< 500eps # dlr should represent the Green's function up to accuracy of the order eps
+        @test rtol(Gsample[2, :], Gfourier[2, :]) .< 500eps # dlr should represent the Green's function up to accuracy of the order eps
 
         printstyled("========================================================================\n", color=:yellow)
     end
