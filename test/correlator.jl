@@ -188,8 +188,7 @@ end
         Gdlr[2, :] = MultiPole(type, dlr.τ, β, Euv)[1]
 
         ############# get imaginary-time Green's function for τ sample ###################
-        # τSample=[t for t in LinRange(eps, β-eps, 100)]
-        τSample = dlr10.τ
+        τSample = vcat(dlr10.τ, dlr10.τ[end:-1:2]) #make τ ∈ (0, β)
         Gsample = zeros(Float64, (2, length(τSample)))
         Gsample[1, :] = SemiCircle(type, τSample, β, Euv)[1]
         Gsample[2, :] = MultiPole(type, τSample, β, Euv)[1]

@@ -148,6 +148,7 @@ function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
 function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
     @assert all(τGrid .> 0.0) && all(τGrid .<= dlrGrid.β)
+    β=dlrGrid.β
     ωGrid=dlrGrid.ω
 
     kernel = kernelT(type, τGrid, ωGrid, dlrGrid.β)
