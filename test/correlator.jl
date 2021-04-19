@@ -200,9 +200,9 @@ end
 
         println("SemiCircle test case rtol=", rtol(Gsample[1, :], Gfitted[1, :]))
         println("Multi pole test case rtol=", rtol(Gsample[2, :], Gfitted[2, :]))
-    #     for (ti, t) in enumerate(τSample)
-    #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, Gsample[2, ti],  Gfitted[2, ti], Gsample[2, ti] - Gfitted[2, ti])
-    # end
+        for (ti, t) in enumerate(τSample)
+        @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, Gsample[2, ti],  Gfitted[2, ti], Gsample[2, ti] - Gfitted[2, ti])
+    end
         @test rtol(Gsample[1, :], Gfitted[1, :]) .< 50eps # dlr should represent the Green's function up to accuracy of the order eps
         @test rtol(Gsample[2, :], Gfitted[2, :]) .< 50eps # dlr should represent the Green's function up to accuracy of the order eps
 
@@ -230,12 +230,12 @@ end
         # #Matsubara frequency to dlr
         coeffn = DLR.matfreq2dlr(type, Gndlr, dlr, axis=2, rtol=eps)
         Gnfitted = DLR.dlr2matfreq(type, coeffn, dlr, nSample, axis=2)
-        for (ni, n) in enumerate(nSample)
-        @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", n, real(Gnsample[1, ni]),  real(Gnfitted[1, ni]), abs(Gnsample[1, ni] - Gnfitted[1, ni]))
-    end
-        for (ni, n) in enumerate(nSample)
-        @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", n, real(Gnsample[2, ni]),  real(Gnfitted[2, ni]), abs(Gnsample[2, ni] - Gnfitted[2, ni]))
-    end
+    #     for (ni, n) in enumerate(nSample)
+    #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", n, real(Gnsample[1, ni]),  real(Gnfitted[1, ni]), abs(Gnsample[1, ni] - Gnfitted[1, ni]))
+    # end
+    #     for (ni, n) in enumerate(nSample)
+    #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", n, real(Gnsample[2, ni]),  real(Gnfitted[2, ni]), abs(Gnsample[2, ni] - Gnfitted[2, ni]))
+    # end
         # println(maximum(abs.(Gnsample-Gnfitted)))
         # @test all(abs.(Gnsample - Gnfitted) .< 50eps) # dlr should represent the Green's function up to accuracy of the order eps
         println("SemiCircle test case rtol=", rtol(Gnsample[1, :], Gnfitted[1, :]))
@@ -249,6 +249,11 @@ end
         # #imaginary-time to Matsubar-frequency (fourier transform)
         printstyled("Testing fourier transfer based on DLR\n", color=:green)
         Gnfourier = DLR.tau2matfreq(type, Gdlr, dlr, nSample,axis=2, rtol=eps)
+
+        for (ti, t) in enumerate(τSample)
+            @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, real(Gnsample[2, ti]),  real(Gnfourier[2, ti]), abs(Gnsample[2, ti] - Gnfourier[2, ti]))
+        end
+
         println("fourier tau to Matfreq error =",  maximum(abs.(Gnsample - Gnfourier)))
         @test all(abs.(Gnsample - Gnfourier) .< 500eps) # dlr should represent the Green's function up to accuracy of the order eps
 
