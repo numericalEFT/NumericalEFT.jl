@@ -118,11 +118,21 @@ function tau2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
     @assert length(size(green)) >= axis "dimension of the Green's function should be larger than axis!"
     τGrid = dlrGrid.τ
     ωGrid = dlrGrid.ω
+    if type==:corr
+        #for :corr, extend ω ∈ [0, Λ] to ω ∈ [-Λ, Λ] and τ from [0, β/2] to [0, β] greatly improve the fitting accuracy
+        τGrid = vcat(τGrid, dlrGrid.β.-τGrid[end:-1:2])
+        ωGrid = vcat(ωGrid[end:-1:2], ωGrid)
+        # println(τGrid)
+    end
     kernel = kernelT(type, τGrid, ωGrid, dlrGrid.β)
     # kernel, ipiv, info = LAPACK.getrf!(Float64.(kernel)) # LU factorization
     kernel, ipiv, info = LAPACK.getrf!(kernel) # LU factorization
 
     g, partialsize = _tensor2matrix(green, axis)
+
+    if type==:corr
+        g = vcat(g[end:-1:2, :], g)
+    end
 
     coeff = LAPACK.getrs!('N', kernel, ipiv, g) # LU linear solvor for green=kernel*coeff
     # coeff = kernel \ g #solve green=kernel*coeff
@@ -147,8 +157,12 @@ function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
 function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
     @assert all(τGrid .> 0.0) && all(τGrid .<= dlrGrid.β)
-
-    kernel = kernelT(type, τGrid, dlrGrid.ω, dlrGrid.β)
+    ωGrid=dlrGrid.ω
+    if type==:corr
+        #for :corr, extend ω ∈ [0, Λ] to ω ∈ [-Λ, Λ] and τ from [0, β/2] to [0, β] greatly improve the fitting accuracy
+        ωGrid = vcat(ωGrid[end:-1:2], ωGrid)
+    end
+    kernel = kernelT(type, τGrid, ωGrid, dlrGrid.β)
 
     coeff, partialsize = _tensor2matrix(dlrcoeff, axis)
 
@@ -172,14 +186,25 @@ function matfreq2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
     @assert length(size(green)) >= axis "dimension of the Green's function should be larger than axis!"
     nGrid = dlrGrid.n
     ωGrid = dlrGrid.ω
-    # kernel = kernelΩ(type, nGrid, ωGrid, β) / β 
+    if type==:corr
+        #for :corr, extend ω ∈ [0, Λ] to ω ∈ [-Λ, Λ] and ωn from [0, ω_max] to [-ω_max, ωmax] greatly improve the fitting accuracy
+        nGrid = vcat(-nGrid[end:-1:2], nGrid)
+        ωGrid = vcat(ωGrid[end:-1:2], ωGrid)
+    end
+
     kernel = kernelΩ(type, nGrid, ωGrid, dlrGrid.β)
-    kernel, ipiv, info = LAPACK.getrf!(Complex{Float64}.(kernel)) # LU factorization
+    # kernel, ipiv, info = LAPACK.getrf!(Complex{Float64}.(kernel)) # LU factorization
+    kernel, ipiv, info = LAPACK.getrf!(kernel) # LU factorization
 
     g, partialsize = _tensor2matrix(green, axis)
 
+    if type==:corr
+        g = vcat(g[end:-1:2, :], g)
+    end
+
     coeff = LAPACK.getrs!('N', kernel, ipiv, g) # LU linear solvor for green=kernel*coeff
     # coeff = kernel \ g # solve green=kernel*coeff
+    # coeff/=dlrGrid.Euv
 
     return _matrix2tensor(coeff, partialsize, axis)
 end
@@ -199,8 +224,14 @@ function dlr2matfreq(type, dlrcoeff, dlrGrid::DLRGrid, nGrid, β=1.0; axis=1)
 """
 function dlr2matfreq(type, dlrcoeff, dlrGrid::DLRGrid, nGrid, β=1.0; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
-    # kernel = kernelΩ(type, nGrid, dlrGrid[:ω], β) / β 
-    kernel = kernelΩ(type, nGrid, dlrGrid.ω, dlrGrid.β) 
+    ωGrid = dlrGrid.ω
+
+    if type==:corr
+        #for :corr, extend ω ∈ [0, Λ] to ω ∈ [-Λ, Λ] greatly improve fitting accuracy
+        ωGrid = vcat(ωGrid[end:-1:2], ωGrid)
+    end
+
+    kernel = kernelΩ(type, nGrid, ωGrid, dlrGrid.β) 
 
     coeff, partialsize = _tensor2matrix(dlrcoeff, axis)
 
