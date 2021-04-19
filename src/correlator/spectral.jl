@@ -38,7 +38,7 @@ function kernelT(type::Symbol, τGrid::Vector{T}, ωGrid::Vector{T}, β=T(1)) wh
     kernel = zeros(T, (length(τGrid), length(ωGrid)))
     for (τi, τ) in enumerate(τGrid)
         for (ωi, ω) in enumerate(ωGrid)
-            kernel[τi, ωi] = kernelT(:fermi, τ, ω, β)
+            kernel[τi, ωi] = kernelT(type, τ, ω, β)
         end
     end
     return kernel
@@ -164,7 +164,7 @@ function kernelΩ(type::Symbol, nGrid::Vector{Int}, ωGrid::Vector{T}, β=T(1)) 
     kernel = zeros(Complex{T}, (length(nGrid), length(ωGrid)))
     for (ni, n) in enumerate(nGrid)
         for (ωi, ω) in enumerate(ωGrid)
-        kernel[ni, ωi] = kernelΩ(:fermi, n, ω, β)
+        kernel[ni, ωi] = kernelΩ(type, n, ω, β)
         end
     end
     return kernel
