@@ -245,6 +245,8 @@ function dlr(type, Λ, rtol)
         Nωn = Int(ceil(Λ)) * 2 # expect Nω ~ para.Λ/2π, drop 2π on the safe side
         ωnkernel = zeros(Float64, (rank, Nωn + 1))
         ωnGrid = [w for w in 0:Nωn] # fermionic Matsubara frequency ωn=(2n+1)π
+        # ωnkernel = zeros(Complex{Float64}, (rank, 2Nωn + 1))
+        # ωnGrid = [w for w in -Nωn:Nωn] # fermionic Matsubara frequency ωn=(2n+1)π
     else
         Nωn = Int(ceil(Λ)) * 2 # expect Nω ~ para.Λ/2π, drop 2π on the safe side
         ωnkernel = zeros(Complex{Float64}, (rank, 2Nωn + 1))

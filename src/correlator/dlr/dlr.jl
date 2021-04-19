@@ -140,12 +140,14 @@ function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
 - `type`: symbol :fermi, :bose, :corr
 - `dlrcoeff` : DLR coefficients
 - `dlrGrid` : DLRGrid
-- `τGrid` : expected fine imaginary-time grids
+- `τGrid` : expected fine imaginary-time grids ∈ (0, β]
 - `axis`: imaginary-time axis in the data `dlrcoeff`
 - `rtol`: tolerance absolute error
 """
 function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
+    @assert all(τGrid .> 0.0) && all(τGrid .<= dlrGrid.β)
+
     kernel = kernelT(type, τGrid, dlrGrid.ω, dlrGrid.β)
 
     coeff, partialsize = _tensor2matrix(dlrcoeff, axis)
