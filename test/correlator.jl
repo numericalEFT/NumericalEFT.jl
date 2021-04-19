@@ -55,21 +55,21 @@ end
                 maxErr = abs(ker1 - ker2)
                 τ0, ω0, macheps = τ, ω, eps(ker1) # get the machine accuracy for the float number ker1
             end
-            if (τ>0.0 && τ<β && type==:fermi)
-                ker3 = Spectral.kernelT(type, β-τ, -ω, β)
-                if abs(ker1 - ker3) > maxErr
-                    maxErr = abs(ker1 - ker3)
-                    τ0, ω0, macheps = τ, ω, eps(ker1) # get the machine accuracy for the float number ker1
-                end
-                if (maxErr>2macheps)
-                    println("$type, $τ $ω ($(β-τ)) : $ker1, $ker3")
-                    println(Spectral.kernelT(type, τ, ω, β))
-                    println(Spectral.kernelT(type, β-τ, -ω, β))
-                    println(Spectral.kernelT(type, BigFloat(τ), BigFloat(ω), BigFloat(β)))
-                    println(Spectral.kernelT(type, BigFloat(β)-BigFloat(τ), -BigFloat(ω), BigFloat(β)))
-                    println(Spectral.kernelT(type, BigFloat(β-τ), -BigFloat(ω), BigFloat(β)))
-                end
-            end
+            # if (τ>0.0 && τ<β && type==:fermi)
+            #     ker3 = Spectral.kernelT(type, β-τ, -ω, β)
+            #     if abs(ker1 - ker3) > maxErr
+            #         maxErr = abs(ker1 - ker3)
+            #         τ0, ω0, macheps = τ, ω, eps(ker1) # get the machine accuracy for the float number ker1
+            #     end
+            #     if (maxErr>2macheps)
+            #         println("$type, $τ $ω ($(β-τ)) : $ker1, $ker3")
+            #         println(Spectral.kernelT(type, τ, ω, β))
+            #         println(Spectral.kernelT(type, β-τ, -ω, β))
+            #         println(Spectral.kernelT(type, BigFloat(τ), BigFloat(ω), BigFloat(β)))
+            #         println(Spectral.kernelT(type, BigFloat(β)-BigFloat(τ), -BigFloat(ω), BigFloat(β)))
+            #         println(Spectral.kernelT(type, BigFloat(β-τ), -BigFloat(ω), BigFloat(β)))
+            #     end
+            # end
         end
     end
     @test maxErr < 2macheps
