@@ -1,3 +1,5 @@
+# This example demonstrated how to calculate the bubble diagram of free electrons using the Monte Carlo module
+
 using Distributed
 
 const Ncpu = 8 
