@@ -47,7 +47,7 @@ end
 
 if abspath(PROGRAM_FILE) == @__FILE__
     using Gaston
-    kF, β, spin = 1.919, 25.0, 2
+    kF, β, spin = 1.919, 100.0, 2
     m, e = 0.5, sqrt(2.0) # Rydberg units
     EF = kF^2 / (2m)
     β = β / EF

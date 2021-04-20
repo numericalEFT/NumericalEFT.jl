@@ -98,7 +98,7 @@ function run(repeat, totalStep)
         p, err = real(p) * 2.0, real(err) * 2.0
         @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
     end
-    println(TwoPoint.LindhardΩn(3, 1.919, 1, β, kF, m, 2))
+    println(TwoPoint.LindhardΩn(3, 1.0 * kF, 0, β, kF, m, 2))
 end
 
 # @btime run(1, 10)
