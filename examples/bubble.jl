@@ -11,6 +11,7 @@ addprocs(Ncpu)
 # claim all globals to be constant, otherwise, global variables could impact the efficiency
 @everywhere const kF, m, Qsize = 1.919, 0.5, 16
 @everywhere const β = 25.0 / kF^2
+@everywhere const n = 1 # external Matsubara frequency
 @everywhere const extQ = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
 @everywhere const obs1, obs2 = zeros(Float64, Qsize), zeros(Float64, Qsize)
 
@@ -39,7 +40,7 @@ end
     g2 = Spectral.kernelFermiT(-τ, ω2)
     spin = 2
     phase = 1.0 / (2π)^3
-    return g1 * g2 * spin * phase * cos(2π * τ)
+    return g1 * g2 * spin * phase * cos(2π * n * τ)
     # return g1 * g2 * spin * phase
 end
 
@@ -94,13 +95,9 @@ function run(repeat, totalStep)
 
     for (idx, q) in enumerate(extQ)
         q = q[1]
-        # p, err = Diagram.bubble(3, q, 0.0im, kF, β, m)
-        p, err = Diagram.bubble(3, q, 1, kF, β, m, rtol=1e-10)
-        p, err = real(p) * 2.0, real(err) * 2.0
+        p, err = TwoPoint.LindhardΩnFiniteTemperature(3, q, n, kF, β, m, 2)
         @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
     end
-    println(Diagram.bubble(3, kF, 1, kF, β, m, rtol=1e-10) .* 2)
-
 end
 
 # @btime run(1, 10)
