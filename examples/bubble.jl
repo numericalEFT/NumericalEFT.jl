@@ -39,7 +39,8 @@ end
     g2 = Spectral.kernelFermiT(-τ, ω2)
     spin = 2
     phase = 1.0 / (2π)^3
-    return g1 * g2 * spin * phase * cos(2π / β)
+    return g1 * g2 * spin * phase * cos(2π * τ)
+    # return g1 * g2 * spin * phase
 end
 
 @everywhere function measure(config)
