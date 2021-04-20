@@ -55,12 +55,17 @@ struct DLRGrid
         else
             Λ = 10^(Int(ceil(log10(Λ)))) # get smallest n so that Λ<10^n
         end
-        epspower = Int(floor(log10(rtol))) # get the biggest n so that rtol>1e-n
-        if abs(epspower) < 4
-            epspower = 4
+        rtolpower = Int(floor(log10(rtol))) # get the biggest n so that rtol>1e-n
+        if abs(rtolpower) < 4
+            rtolpower = 4
         end
         
-        filename = string(@__DIR__, "/basis/$(string(type))/dlr$(Λ)_1e$(epspower).dat")
+        filename = string(@__DIR__, "/basis/$(string(type))/dlr$(Λ)_1e$(rtolpower).dlr")
+
+        if isfile(filename) == false
+            error("$filename doesn't exist. DLR basis hasn't been generated.")
+        end
+
         grid = readdlm(filename)
 
         ω = grid[:, 2] / β
