@@ -18,9 +18,6 @@ export Spectral
 include("correlator/twopoint.jl")
 export TwoPoint
 
-include("correlator/diagram.jl")
-export Diagram
-
 include("correlator/dlr/dlr.jl")
 export DLR
 

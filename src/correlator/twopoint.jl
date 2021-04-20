@@ -6,6 +6,7 @@ module TwoPoint
 export freePropagatorT, freePropagatorΩ
 export freePolarizationT
 using ..Spectral
+using Cuba
 
 """
     freePropagatorT(type, τ, ω, β)
@@ -46,28 +47,80 @@ end
     end
 end
 
-function LindhardΩn(dim, q, n, β, kF, m, spin)
-    q < 0.0 && (q = -q) # Lindhard function is q symmetric
+# function LindhardΩn(dim, q, ω, β, kF, m, spin)
+#     q < 0.0 && (q = -q) # Lindhard function is q symmetric
 
-    q2 = q^2
-    kFq = 2kF * q
-    ωn = 2π * n / β
-    D = 1 / (8kF * q)
-    NF = freeFermiDoS(dim, kF, m, spin)
+#     q2 = q^2
+#     kFq = 2kF * q
+#     ωn = 2π * n / β
+#     D = 1 / (8kF * q)
+#     NF = freeFermiDoS(dim, kF, m, spin)
 
-    # if ωn<=20*(q2+kFq)/(2m)
-        # careful for small q or large w
-    iw = ωn * im
-    wmq2 = iw * 2m - q^2
-    wpq2 = iw * 2m + q^2
-    C1 = log(wmq2 - kFq) - log(wmq2 + kFq)
-    C2 = log(wpq2 - kFq) - log(wpq2 + kFq)
-    res = real(-NF / 2 * (1 - D * (wmq2^2 / q^2 - 4 * kF^2) * C1 + D * (wpq2^2 / q^2 - 4 * kF^2) * C2))
-    # else
-    #     b2 = q2 * ( q2 + 12/5 * kF^2 )
-    #     c = 2*EF*kF*q2/(3*pi**2)
-    #     res = -c/(w**2 + b2)
-    # end
-    return res
+#     # if ωn<=20*(q2+kFq)/(2m)
+#         # careful for small q or large w
+#     iw = ωn * im
+#     wmq2 = iw * 2m - q^2
+#     wpq2 = iw * 2m + q^2
+#     C1 = log(wmq2 - kFq) - log(wmq2 + kFq)
+#     C2 = log(wpq2 - kFq) - log(wpq2 + kFq)
+#     res = real(-NF / 2 * (1 - D * (wmq2^2 / q^2 - 4 * kF^2) * C1 + D * (wpq2^2 / q^2 - 4 * kF^2) * C2))
+#     # else
+#     #     b2 = q2 * ( q2 + 12/5 * kF^2 )
+#     #     c = 2*EF*kF*q2/(3*pi**2)
+#     #     res = -c/(w**2 + b2)
+#     # end
+#     return res
+# end
+
+"""
+    LindhardΩnFiniteTemperature(dim::Int, q::T, n::Int, kF::T, β::T, m::T; rtol=T(1.0e-6)) where {T <: AbstractFloat}
+
+Compute the polarization function of free electrons at a given frequency. Relative Accuracy is about ~ 1e-6
+
+# Arguments
+- `dim`: dimension
+- `q`: external momentum, q<1e-4 will be treated as q=0 
+- `n`: externel Matsubara frequency, ωn=2π*n/β
+- `kF`: Fermi momentum 
+- `β`: inverse temperature
+- `m`: mass
+- `rtol=1.0e-6`: relative accuracy goal
+"""
+@inline function LindhardΩnFiniteTemperature(dim::Int, q::T, n::Int, kF::T, β::T, m::T, spin) where {T <: AbstractFloat}
+    if q < 0.0
+        q = -q
+    end
+
+    if q / kF < 1.0e-10
+        q = 1.0e-10 * kF
+    end
+
+    function polar(k)
+        phase = T(1.0)
+        if dim == 3
+            phase *= k^2 / (4π^2)
+        else
+            error("not implemented")
+        end
+        ω = 2π * n / β
+        ϵ = β * (k^2 - kF^2) / (2m)
+
+        p = phase * fermiDirac(ϵ) * m / k / q * log(((q^2 - 2k * q)^2 + 4m^2 * ω^2) / ((q^2 + 2k * q)^2 + 4m^2 * ω^2)) * spin
+
+        if isnan(p)
+            println("ω=$ω, q=$q, k=$k leads to NaN!")
+        end
+        # println(p)
+        return p
+    end
+
+    function integrand(x, f)
+        # x[1]:k
+        f[1] = polar(x[1] / (1 - x[1])) / (1 - x[1])^2
+    end
+
+    result, err = Cuba.cuhre(integrand, 2, 1, rtol=1.0e-10)
+    # result, err = Cuba.vegas(integrand, 1, 1, rtol=rtol)
+    return result[1], err[1]
 end
 end
