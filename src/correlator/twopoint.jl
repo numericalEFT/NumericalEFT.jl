@@ -108,7 +108,7 @@ Compute the polarization function of free electrons at a given frequency. Relati
         p = phase * fermiDirac(ϵ) * m / k / q * log(((q^2 - 2k * q)^2 + 4m^2 * ω^2) / ((q^2 + 2k * q)^2 + 4m^2 * ω^2)) * spin
 
         if isnan(p)
-            println("ω=$ω, q=$q, k=$k leads to NaN!")
+            println("warning: integrand at ω=$ω, q=$q, k=$k is NaN!")
         end
         # println(p)
         return p
