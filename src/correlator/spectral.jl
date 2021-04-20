@@ -34,7 +34,7 @@ end
     kernelT(type::Symbol, τGrid::Vector{T}, ωGrid::Vector{T}, β::T=1.0) where {T<:AbstractFloat}
 Compute kernel with given τ and ω grids.
 """
-function kernelT(type::Symbol, τGrid::Vector{T}, ωGrid::Vector{T}, β=T(1)) where {T <: AbstractFloat}
+function kernelT(type::Symbol, τGrid::AbstractVector{T}, ωGrid::AbstractVector{T}, β=T(1)) where {T <: AbstractFloat}
     kernel = zeros(T, (length(τGrid), length(ωGrid)))
     for (τi, τ) in enumerate(τGrid)
         for (ωi, ω) in enumerate(ωGrid)
