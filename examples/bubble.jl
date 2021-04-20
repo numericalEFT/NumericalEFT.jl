@@ -94,11 +94,12 @@ function run(repeat, totalStep)
     for (idx, q) in enumerate(extQ)
         q = q[1]
         # p, err = Diagram.bubble(3, q, 0.0im, kF, β, m)
-        p, err = Diagram.bubble(3, q, 2π / β * im, kF, β, m)
+        p, err = Diagram.bubble(3, q, 1, kF, β, m, rtol=1e-10)
         p, err = real(p) * 2.0, real(err) * 2.0
         @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
     end
-    println(TwoPoint.LindhardΩn(3, 1.0 * kF, 0, β, kF, m, 2))
+    println(Diagram.bubble(3, kF, 1, kF, β, m, rtol=1e-10) .* 2)
+
 end
 
 # @btime run(1, 10)
