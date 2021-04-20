@@ -19,12 +19,11 @@ Note that this dynamic contribution ``dW_0'' diverges at small q. For this reaso
 """
 function dWRPA(qgrid, τgrid, kF, β, spin, mass, e)
     @assert all(qgrid .!= 0.0)
-    # instantaneous interaction (Coulomb interaction)
-    vq = [4π * e^2 / (q^2) for q in qgrid]
+    vq = [4π * e^2 / (q^2) for q in qgrid] # instantaneous interaction (Coulomb interaction)
     EF = kF^2 / (2mass)
     dlr = DLR.DLRGrid(:corr, 10EF, β, 1e-10) # effective interaction is a correlation function of the form <O(τ)O(0)>
     Nq, Nτ = length(qgrid), length(τgrid)
-    Π = zeros(Complex{Float64}, (Nq, dlr.size))
+    Π = zeros(Complex{Float64}, (Nq, dlr.size)) # Matsubara grid is the optimized sparse DLR grid 
     dW0norm = similar(Π)
     for (ni, n) in enumerate(dlr.n)
         for (qi, q) in enumerate(qgrid)
@@ -33,8 +32,8 @@ function dWRPA(qgrid, τgrid, kF, β, spin, mass, e)
         dW0norm[:, ni] = @. vq * Π[:, ni] / (1 - vq * Π[:, ni])
         println("ω_n=2π/β*$(n), Π(q=0, n=0)=$(Π[1, ni])")
     end
-    dW0norm = DLR.matfreq2tau(:corr, dW0norm, dlr, τgrid, axis=2)
-    return vq, real.(dW0norm)
+    dW0norm = DLR.matfreq2tau(:corr, dW0norm, dlr, τgrid, axis=2) # dW0/vq in imaginary-time representation, real-valued but in complex format
+    return vq, real.(dW0norm) 
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
