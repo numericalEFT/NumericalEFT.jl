@@ -2,77 +2,72 @@
 Provide N-body response and correlation functions
 """
 module TwoPoint
-export fermiT, fermiΩ
-include("spectral.jl")
-using .Spectral
+
+export freePropagatorT, freePropagatorΩ
+export freePolarizationT
+using ..Spectral
 
 """
-    fermiT(τ, ϵ, β = 1.0)
+    freePropagatorT(type, τ, ω, β)
 
-Compute the bare fermionic Green's function. Assume ``k_B=\\hbar=1``
-```math
-g(τ>0) = e^{-ϵτ}/(1+e^{-βϵ}), g(τ≤0) = -e^{-ϵτ}/(1+e^{βϵ})
-```
+Imaginary-time propagator.
 
 # Arguments
+- `type`: symbol :fermi, :bose
 - `τ`: the imaginary time, must be (-β, β]
-- `ϵ`: dispersion minus chemical potential: ``E_k-μ``
-       it could also be the real frequency ω if the bare Green's function is used as the kernel in the Lehmann representation 
+- `ω`: dispersion ϵ_k-μ
 - `β = 1.0`: the inverse temperature 
 """
-@inline function fermiT(τ::T, ϵ::T, β::T=1.0) where {T <: AbstractFloat}
-    if τ <= 0.0 || τ > eps() * β
-        return kernelFermiT(τ / β, ϵ * β)
-    else # 0<τ<=eps()*β
-        return kernelFermiT(eps(), ϵ * β)
+@inline function freePropagatorT(type, τ, ω, β)
+    return kernelT(type, τ, ω, β)
+end
+
+"""
+    freePropagatorΩ(type, n, ω, β=1.0)
+
+Matsubara-frequency kernel of different type
+
+# Arguments
+- `type`: symbol :fermi, :bose, :corr
+- `n`: index of the Matsubara frequency
+- `ω`: dispersion ϵ_k-μ
+- `β`: the inverse temperature 
+"""
+@inline function freePropagatorΩ(type, n::Int, ω, β)
+    return kernelΩ(type, n, ω, β)
+end
+
+@inline function freeFermiDoS(dim, kF, m, spin)
+    if dim == 3
+        return spin * m * kF / 2 / π^2
+    else
+        error("Dimension $dim not implemented!")
+        # return spin/4/π
     end
 end
 
-"""
-    fermiΩ(n::Int, ε::T, β::T) where {T <: AbstractFloat}
+# function LindhardΩn(dim, q, n, β, kF, m, spin)
+#     q<0.0 && (q=-q) #Lindhard function is q symmetric
 
-Compute the bare Green's function for a given Matsubara frequency.
-```math
-g(iω_n) = -1/(iω_n-ε),
-```
-where ``ω_n=(2n+1)π/β``. The convention here is consist with the book "Quantum Many-particle Systems" by J. Negele and H. Orland, Page 95
+#     q2=q^2
+#     kFq=2kF*q
+#     ωn = 2π*n/β
+#     D = 1/(8kF*q)
+#     NF=freeFermiDoS(dim, kF, m, spin)
 
-# Arguments
-- `n`: index of the Matsubara frequency
-- `ε`: dispersion minus chemical potential: ``E_k-μ``; 
-       it could also be the real frequency ω if the bare Green's function is used as the kernel in the Lehmann representation 
-- `β`: the inverse temperature 
-"""
-@inline function fermiΩ(n::Int, ε::T, β::T) where {T <: AbstractFloat}
-    # fermionic Matsurbara frequency
-    ω_n = (2 * n + 1) * π / β
-    G = -1.0 / (ω_n * im - ε)
-    return T(G)
-end
-
-# """
-#     FermiDirac(β, ε)
-
-# Compute the Fermi Dirac function. Assume ``k_B=\\hbar=1``
-# ```math
-# f(ϵ) = 1/(1+e^{-βε})
-# ```
-
-# # Arguments
-# - `β`: the inverse temperature 
-# - `ε`: dispersion minus chemical potential: ``E_k-μ``
-#        it could also be the real frequency ω if the bare Green's function is used as the kernel in the Lehmann representation 
-# """
-# @inline function FermiDirac(β::T, ε::T) where {T<:AbstractFloat}
-#     x = β * ε
-#     if -T(50.0) < x < T(50.0)
-#         return 1.0 / (1.0 + exp(x))
-#     elseif x >= T(50.0)
-#         return exp(-x)
-#     else # x<=-50.0
-#         return 1.0 - exp(x)
+#     if ωn<=20*(q2+kFq)/(2m)
+#         # careful for small q or large w
+#         iw = ωi*im
+#         wmq2 = iw*2m-q^2
+#         wpq2 = iw*2m+q^2
+#         C1 = log(wmq2-kFq)-log(wmq2+kFq)
+#         C2 = log(wpq2-kFq)-log(wpq2+kFq)
+#         res = real(-NF/2 * (1- D*(wmq2^2/q^2-4*kF^2)*C1 + D*(wpq2^2/q^2-4*kF^2)*C2))
+#     else
+#         b2 = q2 * ( q2 + 12/5 * kF^2 )
+#         c = 2*EF*kF*q2/(3*pi**2)
+#         res = -c/(w**2 + b2)
 #     end
+#     return res
 # end
-
-
 end

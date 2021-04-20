@@ -12,11 +12,11 @@ export FastMath
 include("utility/utility.jl")
 export Utility
 
-include("correlator/twopoint.jl")
-export TwoPoint
-
 include("correlator/spectral.jl")
 export Spectral
+
+include("correlator/twopoint.jl")
+export TwoPoint
 
 include("correlator/diagram.jl")
 export Diagram

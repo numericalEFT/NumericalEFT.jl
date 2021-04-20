@@ -3,28 +3,25 @@ Calculator for some simple diagrams
 """
 module Diagram
 export bubble
-include("twopoint.jl")
-include("spectral.jl")
-using .TwoPoint
-using .Spectral
+using ..Spectral
 using Cuba
 
 """
-    bubble(q, ω, dim, kF, β)
+    bubble(dim::Int, q::T, ω::Complex{T}, kF=T(1.0), β=T(1.0), m=T(0.5), ϵk=(k) -> (k^2 - kF^2) / (2m); eps=T(1.0e-6)) where {T <: AbstractFloat}
 
 Compute the polarization function of free electrons at a given frequency. 
 
 # Arguments
+- `dim`: dimension
 - `q`: external momentum, q<1e-4 will be treated as q=0 
 - `ω`: externel frequency, make sure Im ω>0
-- `dim`: dimension
 - `kF=1.0`: Fermi momentum 
 - `β=1.0`: inverse temperature
 - `m=1/2`: mass
 - `dispersion': dispersion, default k^2/2m-kF^2/2m
 - `eps=1.0e-6`: the required absolute accuracy
 """
-@inline function bubble(q::T, ω::Complex{T}, dim::Int, kF=T(1.0), β=T(1.0), m=T(0.5), ϵk=(k) -> (k^2 - kF^2) / (2m); eps=T(1.0e-6)) where {T <: AbstractFloat}
+@inline function bubble(dim::Int, q::T, ω::Complex{T}, kF=T(1.0), β=T(1.0), m=T(0.5), ϵk=(k) -> (k^2 - kF^2) / (2m); eps=T(1.0e-6)) where {T <: AbstractFloat}
     # ω, q = ω * β, q / kF # make everything dimensionless 
     if (ω * β != 0.0 && imag(ω * β) < eps)
         println("Im ω>eps is expected unless ω=0!")
