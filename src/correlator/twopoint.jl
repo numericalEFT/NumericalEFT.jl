@@ -73,7 +73,7 @@ end
 # end
 
 """
-    LindhardΩnFiniteTemperature(dim::Int, q::T, n::Int, kF::T, β::T, m::T; rtol=T(1.0e-6)) where {T <: AbstractFloat}
+    LindhardΩnFiniteTemperature(dim::Int, q::T, n::Int, kF::T, β::T, m::T, spin) where {T <: AbstractFloat}
 
 Compute the polarization function of free electrons at a given frequency. Relative Accuracy is about ~ 1e-6
 
@@ -84,7 +84,7 @@ Compute the polarization function of free electrons at a given frequency. Relati
 - `kF`: Fermi momentum 
 - `β`: inverse temperature
 - `m`: mass
-- `rtol=1.0e-6`: relative accuracy goal
+- `spin` : number of spins
 """
 @inline function LindhardΩnFiniteTemperature(dim::Int, q::T, n::Int, kF::T, β::T, m::T, spin) where {T <: AbstractFloat}
     if q < 0.0
