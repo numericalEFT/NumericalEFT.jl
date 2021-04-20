@@ -1,8 +1,8 @@
 using Distributed
 
-const Ncpu = 1
+const Ncpu = 8 
 const totalStep = 1e7
-const Repeat = 4
+const Repeat = 8
 
 addprocs(Ncpu)
 
@@ -39,7 +39,7 @@ end
     g2 = Spectral.kernelFermiT(-τ, ω2)
     spin = 2
     phase = 1.0 / (2π)^3
-    return g1 * g2 * spin * phase
+    return g1 * g2 * spin * phase * cos(2π / β)
 end
 
 @everywhere function measure(config)
@@ -93,10 +93,12 @@ function run(repeat, totalStep)
 
     for (idx, q) in enumerate(extQ)
         q = q[1]
-        p, err = Diagram.bubble(q, 0.0im, 3, kF, β, m)
+        # p, err = Diagram.bubble(3, q, 0.0im, kF, β, m)
+        p, err = Diagram.bubble(3, q, 2π / β * im, kF, β, m)
         p, err = real(p) * 2.0, real(err) * 2.0
         @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
     end
+    println(TwoPoint.LindhardΩn(3, 1.919, 1, β, kF, m, 2))
 end
 
 # @btime run(1, 10)
