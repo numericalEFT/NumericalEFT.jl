@@ -46,28 +46,28 @@ end
     end
 end
 
-# function LindhardΩn(dim, q, n, β, kF, m, spin)
-#     q<0.0 && (q=-q) #Lindhard function is q symmetric
+function LindhardΩn(dim, q, n, β, kF, m, spin)
+    q < 0.0 && (q = -q) # Lindhard function is q symmetric
 
-#     q2=q^2
-#     kFq=2kF*q
-#     ωn = 2π*n/β
-#     D = 1/(8kF*q)
-#     NF=freeFermiDoS(dim, kF, m, spin)
+    q2 = q^2
+    kFq = 2kF * q
+    ωn = 2π * n / β
+    D = 1 / (8kF * q)
+    NF = freeFermiDoS(dim, kF, m, spin)
 
-#     if ωn<=20*(q2+kFq)/(2m)
-#         # careful for small q or large w
-#         iw = ωi*im
-#         wmq2 = iw*2m-q^2
-#         wpq2 = iw*2m+q^2
-#         C1 = log(wmq2-kFq)-log(wmq2+kFq)
-#         C2 = log(wpq2-kFq)-log(wpq2+kFq)
-#         res = real(-NF/2 * (1- D*(wmq2^2/q^2-4*kF^2)*C1 + D*(wpq2^2/q^2-4*kF^2)*C2))
-#     else
-#         b2 = q2 * ( q2 + 12/5 * kF^2 )
-#         c = 2*EF*kF*q2/(3*pi**2)
-#         res = -c/(w**2 + b2)
-#     end
-#     return res
-# end
+    # if ωn<=20*(q2+kFq)/(2m)
+        # careful for small q or large w
+    iw = ωn * im
+    wmq2 = iw * 2m - q^2
+    wpq2 = iw * 2m + q^2
+    C1 = log(wmq2 - kFq) - log(wmq2 + kFq)
+    C2 = log(wpq2 - kFq) - log(wpq2 + kFq)
+    res = real(-NF / 2 * (1 - D * (wmq2^2 / q^2 - 4 * kF^2) * C1 + D * (wpq2^2 / q^2 - 4 * kF^2) * C2))
+    # else
+    #     b2 = q2 * ( q2 + 12/5 * kF^2 )
+    #     c = 2*EF*kF*q2/(3*pi**2)
+    #     res = -c/(w**2 + b2)
+    # end
+    return res
+end
 end
