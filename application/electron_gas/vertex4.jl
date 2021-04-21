@@ -1,4 +1,5 @@
-# This example demonstrated how to calculate the bubble diagram of free electrons using the Monte Carlo module
+# This example demonstrated how to calculate one-loop diagram of free electrons using the Monte Carlo module
+#
 
 using Distributed
 
@@ -12,9 +13,9 @@ addprocs(Ncpu)
 
 # claim all globals to be constant, otherwise, global variables could impact the efficiency
 ########################### parameters ##################################
-@everywhere const kF, m, e, AngSize = 1.919, 0.5, sqrt(2), 32
-@everywhere const β, EF = 25.0 / (kF^2 / 2m), kF^2 / (2m)
+@everywhere const kF, m, e, spin, AngSize = 1.919, 0.5, sqrt(2), 2, 32
 @everywhere const mass2 = 1.0
+@everywhere const β, EF = 25.0 / (kF^2 / 2m), kF^2 / (2m)
 @everywhere const n = 0 # external Matsubara frequency
 @everywhere const IsF = false # calculate quasiparticle interaction F or not
 @everywhere const extAngle = collect(LinRange(0.0, π, AngSize)) # external angle grid
@@ -32,16 +33,6 @@ addprocs(Ncpu)
 @everywhere const τgrid = Grid.tau(β, EF, 128)
 @everywhere const vqinv = [(q^2 + mass2) / (4π * e^2) for q in qgrid.grid]
 @everywhere const dW0 = dWRPA(vqinv, qgrid.grid, τgrid.grid, kF, β, 2, m) # dynamic part of the effective interaction
-
-@everywhere function integrand(config)
-    if config.curr.id == 1
-        return Weight(1.0, 0.0) # return a weight!
-    elseif config.curr.id == 2
-        return eval2(config)
-    else
-        error("Not implemented!")
-    end
-end
 
 @everywhere function interaction(qd, qe, τIn, τOut)
     dτ = abs(τOut - τIn)
@@ -68,6 +59,21 @@ end
     end
 end
 
+@everywhere function integrand(config)
+    if config.curr.id == 1
+        return Weight(1.0, 0.0) # return a weight!
+    elseif config.curr.id == 2
+        return eval2(config)
+    else
+        error("Not implemented!")
+    end
+end
+
+@everywhere function absIntegrand(config)
+    w = integrand(config)
+    return abs(w[1]) + abs(w[2]) # define the |weight|, it will be used in MC for important sampling
+end
+
 @everywhere function eval2(config)
     T, K, Ang = config.var[1], config.var[2], config.var[3]
     k1, k2 = K[1], K[1] - Qd
@@ -82,6 +88,11 @@ end
     wd, we = 0.0, 0.0
     # possible green's functions on the top
     gt1 = Spectral.kernelFermiT(t2[1] - t1[1], ϵ1, β)
+
+    gt2 = Spectral.kernelFermiT(t1[1] - t2[1], ϵ2, β)
+
+    # wd += vld * vrd * gt1 * gt2 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
+    wd += spin * vld * vrd * gt1 * gt2 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
 
     ############## Diagram v x v ######################
     """
@@ -118,7 +129,7 @@ end
     """
     gd2 = Spectral.kernelFermiT(t1[2] - t2[1], ϵ2, β)
     G = gt1 * gd2 / (2π)^3 * phase(t1[1], t1[2], t2[1], t2[1])
-    we += G * (wle * vre)
+    we += G * (wle * vre) * 2
     ##################################################
 
     ############## Diagram v x w ######################
@@ -179,16 +190,16 @@ end
 @everywhere function MC(totalStep, pid)
     rng = MersenneTwister(pid)
 
-    K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.TauPair(β, β / 2.0)
+    K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     Ext = MonteCarlo.Discrete(1, length(extAngle)) # external variable is specified
     diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1]) # id, order, [T num, K num, Ext num]
     diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1]) # id, order, [T num, K num, Ext num]
 
     config = MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext); pid=pid, rng=rng)
-    MonteCarlo.montecarlo(config, integrand, measure)
+    MonteCarlo.montecarlo(config, absIntegrand, measure)
 
-    return obs2 / obs1[1] * β
+    return obs2 / obs1[1] * β * AngSize
 end
 
 function run(repeat, totalStep)
@@ -208,14 +219,17 @@ function run(repeat, totalStep)
         push!(exobservable, exobs)
     end
 
-    diobs = mean(diobservable)
-    diobserr = std(diobservable) / sqrt(length(diobservable))
+    NF = TwoPoint.LindhardΩnFiniteTemperature(3, 0.0, 0, kF, β, m, spin)[1]
 
-    exobs = mean(exobservable)
-    exobserr = std(exobservable) / sqrt(length(exobservable))
+    diobs = mean(diobservable) * NF
+    diobserr = std(diobservable) / sqrt(length(diobservable)) * NF
+
+    exobs = mean(exobservable) * NF
+    exobserr = std(exobservable) / sqrt(length(exobservable)) * NF
+
 
     for (idx, angle) in enumerate(extAngle)
-        @printf("%10.6f   %10.6f ± %10.6f  %10.6f ± %10.6f\n", angle, diobs[idx], diobserr[idx], exobs[idx] * π, exobserr[idx])
+        @printf("%10.6f   %10.6f ± %10.6f  %10.6f ± %10.6f\n", angle, diobs[idx], diobserr[idx], exobs[idx], exobserr[idx])
     end
 end
 

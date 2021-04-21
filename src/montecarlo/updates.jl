@@ -1,5 +1,5 @@
 
-function increaseOrder(config, integrand)
+function increaseOrder(config, absIntegrand)
     idx = rand(config.rng, 1:length(config.diagrams))
     curr = config.curr
     new = config.diagrams[idx]
@@ -17,7 +17,7 @@ function increaseOrder(config, integrand)
     currAbsWeight = config.absWeight
 
     config.curr = new
-    newAbsWeight = abs(integrand(config))
+    newAbsWeight = absIntegrand(config)
     R = prop * newAbsWeight * new.reWeightFactor / currAbsWeight / curr.reWeightFactor
 
     curr.propose[1] += 1.0
@@ -32,7 +32,7 @@ function increaseOrder(config, integrand)
     end
 end
 
-function decreaseOrder(config, integrand)
+function decreaseOrder(config, absIntegrand)
     idx = rand(config.rng, 1:length(config.diagrams))
     new = config.diagrams[idx]
     curr = config.curr
@@ -50,7 +50,7 @@ function decreaseOrder(config, integrand)
 
     config.curr = new
     currAbsWeight = config.absWeight
-    newAbsWeight = abs(integrand(config))
+    newAbsWeight = absIntegrand(config)
     R = prop * newAbsWeight * new.reWeightFactor / currAbsWeight / curr.reWeightFactor
     curr.propose[2] += 1.0
     if rand(config.rng) < R
@@ -64,7 +64,7 @@ function decreaseOrder(config, integrand)
     end
 end
 
-function changeVar(config, integrand)
+function changeVar(config, absIntegrand)
     curr = config.curr
     vi = rand(config.rng, 1:length(curr.nvar))
     var = config.var[vi]
@@ -74,7 +74,7 @@ function changeVar(config, integrand)
     prop = shift!(var, idx, config.rng)
 
     currAbsWeight = config.absWeight
-    newAbsWeight = abs(integrand(config))
+    newAbsWeight = absIntegrand(config)
     R = prop * newAbsWeight / currAbsWeight
     curr.propose[2 + vi] += 1.0
     if rand(config.rng) < R
