@@ -53,7 +53,7 @@ function kernalDiscretization(type, Dτ, Dω, Λ, rtol)
     if type == :corr
         ############# Tau discretization ##############
         # Panel break points for the imaginary time ∈ (0, 1)
-        # get exponentially dense near 0⁺ and 1⁻ 
+        # get exponentially dense near 0⁺ 
         pbpt = zeros(Float64, npt + 1)
         pbpt[1] = 0.0
         for i in 1:npt
