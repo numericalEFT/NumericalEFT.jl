@@ -60,21 +60,20 @@ struct DLRGrid
             epspower = 4
         end
         
-        if type == :fermi
-            filename = string(@__DIR__, "/basis/fermi/dlr$(Λ)_1e$(epspower).dat")
-        # filename = string(@__DIR__, "/basis/dlr_fermi/dlr$(Λ)_1e$(epspower).dat")
-            println(filename)
-            grid = readdlm(filename)
+        filename = string(@__DIR__, "/basis/$(string(type))/dlr$(Λ)_1e$(epspower).dat")
+        grid = readdlm(filename)
 
-            ω = grid[:, 2] / β
-            n = Int.(grid[:, 4])
-            ωn = @. (2.0 * n + 1.0) * π / β
-            tgrid = [((t >= 0.0) ? t : 1.0 + t) for t in grid[:, 3]]
-            τ = sort(tgrid * β)
-            return new(type, Euv, β, Λ, rtol, length(ω), ω, n, ωn, τ)
+        ω = grid[:, 2] / β
+        n = Int.(grid[:, 4])
+        if type==:fermi
+            ωn = @. (2n + 1.0) * π / β
+        elseif type ==:corr || type==:boson
+            ωn = @. 2n * π / β
         else
-            @error "Not implemented!"
+            error("$type not implemented!")
         end
+        τ = grid[:, 3] * β
+        return new(type, Euv, β, Λ, rtol, length(ω), ω, n, ωn, τ)
     end
 end
 
@@ -119,6 +118,7 @@ function tau2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
     @assert length(size(green)) >= axis "dimension of the Green's function should be larger than axis!"
     τGrid = dlrGrid.τ
     ωGrid = dlrGrid.ω
+
     kernel = kernelT(type, τGrid, ωGrid, dlrGrid.β)
     # kernel, ipiv, info = LAPACK.getrf!(Float64.(kernel)) # LU factorization
     kernel, ipiv, info = LAPACK.getrf!(kernel) # LU factorization
@@ -141,13 +141,17 @@ function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
 - `type`: symbol :fermi, :bose, :corr
 - `dlrcoeff` : DLR coefficients
 - `dlrGrid` : DLRGrid
-- `τGrid` : expected fine imaginary-time grids
+- `τGrid` : expected fine imaginary-time grids ∈ (0, β]
 - `axis`: imaginary-time axis in the data `dlrcoeff`
 - `rtol`: tolerance absolute error
 """
 function dlr2tau(type, dlrcoeff, dlrGrid::DLRGrid, τGrid; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
-    kernel = kernelT(type, τGrid, dlrGrid.ω, dlrGrid.β)
+    @assert all(τGrid .> 0.0) && all(τGrid .<= dlrGrid.β)
+    β=dlrGrid.β
+    ωGrid=dlrGrid.ω
+
+    kernel = kernelT(type, τGrid, ωGrid, dlrGrid.β)
 
     coeff, partialsize = _tensor2matrix(dlrcoeff, axis)
 
@@ -171,14 +175,16 @@ function matfreq2dlr(type, green, dlrGrid::DLRGrid; axis=1, rtol=1e-12)
     @assert length(size(green)) >= axis "dimension of the Green's function should be larger than axis!"
     nGrid = dlrGrid.n
     ωGrid = dlrGrid.ω
-    # kernel = kernelΩ(type, nGrid, ωGrid, β) / β 
+
     kernel = kernelΩ(type, nGrid, ωGrid, dlrGrid.β)
-    kernel, ipiv, info = LAPACK.getrf!(Complex{Float64}.(kernel)) # LU factorization
+    # kernel, ipiv, info = LAPACK.getrf!(Complex{Float64}.(kernel)) # LU factorization
+    kernel, ipiv, info = LAPACK.getrf!(kernel) # LU factorization
 
     g, partialsize = _tensor2matrix(green, axis)
 
     coeff = LAPACK.getrs!('N', kernel, ipiv, g) # LU linear solvor for green=kernel*coeff
     # coeff = kernel \ g # solve green=kernel*coeff
+    # coeff/=dlrGrid.Euv
 
     return _matrix2tensor(coeff, partialsize, axis)
 end
@@ -198,8 +204,9 @@ function dlr2matfreq(type, dlrcoeff, dlrGrid::DLRGrid, nGrid, β=1.0; axis=1)
 """
 function dlr2matfreq(type, dlrcoeff, dlrGrid::DLRGrid, nGrid, β=1.0; axis=1)
     @assert length(size(dlrcoeff)) >= axis "dimension of the dlr coefficients should be larger than axis!"
-    # kernel = kernelΩ(type, nGrid, dlrGrid[:ω], β) / β 
-    kernel = kernelΩ(type, nGrid, dlrGrid.ω, dlrGrid.β) 
+    ωGrid = dlrGrid.ω
+
+    kernel = kernelΩ(type, nGrid, ωGrid, dlrGrid.β) 
 
     coeff, partialsize = _tensor2matrix(dlrcoeff, axis)
 
