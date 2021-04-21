@@ -1,5 +1,5 @@
 # This example demonstrated how to calculate one-loop diagram of free electrons using the Monte Carlo module
-#
+# Observable is normalized: Γ₄*N_F where N_F is the free electron density of states
 
 using Distributed
 
@@ -14,7 +14,7 @@ addprocs(Ncpu)
 # claim all globals to be constant, otherwise, global variables could impact the efficiency
 ########################### parameters ##################################
 @everywhere const kF, m, e, spin, AngSize = 1.919, 0.5, sqrt(2), 2, 32
-@everywhere const mass2 = 1.0
+@everywhere const mass2 = 0.1
 @everywhere const β, EF = 25.0 / (kF^2 / 2m), kF^2 / (2m)
 @everywhere const n = 0 # external Matsubara frequency
 @everywhere const IsF = false # calculate quasiparticle interaction F or not
@@ -23,31 +23,43 @@ addprocs(Ncpu)
 ########################## variables for MC integration ##################
 @everywhere const Weight = SVector{2,Float64}
 # @everywhere const Weight = Vector{Float64}
-@everywhere Base.abs(w::Weight) = abs(w[1]) + abs(w[2]) # define abs function for Weight
 @everywhere const obs1, obs2 = [0.0, ], zeros(Weight, AngSize)
 @everywhere const KInL = [kF, 0.0, 0.0] # incoming momentum of the left particle
 @everywhere const Qd = [0.0, 0.0, 0.0] # transfer momentum is zero in the forward scattering channel
 
 ################ construct RPA interaction ################################
-@everywhere const qgrid = Grid.boseK(kF, 3kF, 0.2kF, 32) 
-@everywhere const τgrid = Grid.tau(β, EF, 128)
+@everywhere const qgrid = Grid.boseK(kF, 6kF, 0.2kF, 256) 
+@everywhere const τgrid = Grid.tau(β, EF / 20, 128)
 @everywhere const vqinv = [(q^2 + mass2) / (4π * e^2) for q in qgrid.grid]
 @everywhere const dW0 = dWRPA(vqinv, qgrid.grid, τgrid.grid, kF, β, 2, m) # dynamic part of the effective interaction
+
+# println(qgrid.grid)
+println(τgrid.grid)
 
 @everywhere function interaction(qd, qe, τIn, τOut)
     dτ = abs(τOut - τIn)
 
     kDiQ = sqrt(dot(qd, qd))
-    vd = -4π * e^2 / (kDiQ^2 + mass2)
-    wd = -vd * Grid.linear2D(dW0, qgrid, τgrid, kDiQ, dτ) # dynamic interaction, don't forget the singular factor vq
+    vd = 4π * e^2 / (kDiQ^2 + mass2)
+    if kDiQ <= qgrid.grid[1]
+        wd = vd * Grid.linear2D(dW0, qgrid, τgrid, qgrid.grid[1] + 1.0e-6, dτ) # the current interpolation vanishes at q=0, which needs to be corrected!
+    else
+        wd = vd * Grid.linear2D(dW0, qgrid, τgrid, kDiQ, dτ) # dynamic interaction, don't forget the singular factor vq
+    end
 
     kExQ = sqrt(dot(qe, qe))
     ve = 4π * e^2 / (kExQ^2 + mass2)
-    we = ve * Grid.linear2D(dW0, qgrid, τgrid, kExQ, dτ) # dynamic interaction, don't forget the singular factor vq
+    if kExQ <= qgrid.grid[1]
+        we = ve * Grid.linear2D(dW0, qgrid, τgrid, qgrid.grid[1] + 1.0e-6, dτ) # dynamic interaction, don't forget the singular factor vq
+    else
+        we = ve * Grid.linear2D(dW0, qgrid, τgrid, kExQ, dτ) # dynamic interaction, don't forget the singular factor vq
+    end
 
-    wd, we = 0.0, 0.0
+    # wd, we = 0.0, 0.0
+    vd, ve = 0.0, 0.0
+    # println(wd, ", ", we)
 
-    return vd / β, ve / β, wd, we
+    return -vd / β, ve / β, -wd, we
 end
 
 @everywhere function phase(tInL, tOutL, tInR, tOutR)
@@ -89,10 +101,11 @@ end
     # possible green's functions on the top
     gt1 = Spectral.kernelFermiT(t2[1] - t1[1], ϵ1, β)
 
-    gt2 = Spectral.kernelFermiT(t1[1] - t2[1], ϵ2, β)
 
+    # gt2 = Spectral.kernelFermiT(t1[1] - t2[1], ϵ2, β)
     # wd += vld * vrd * gt1 * gt2 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
-    wd += spin * vld * vrd * gt1 * gt2 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
+    # wd += spin * (vld + wld) * (vrd + wrd) * gt1 * gt2 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
+    # println(vld, ", ", wld, "; ", vrd, ", ", wld)
 
     ############## Diagram v x v ######################
     """
@@ -129,7 +142,7 @@ end
     """
     gd2 = Spectral.kernelFermiT(t1[2] - t2[1], ϵ2, β)
     G = gt1 * gd2 / (2π)^3 * phase(t1[1], t1[2], t2[1], t2[1])
-    we += G * (wle * vre) * 2
+    we += G * (wle * vre) 
     ##################################################
 
     ############## Diagram v x w ######################
@@ -175,13 +188,14 @@ end
 
 @everywhere function measure(config)
     diag = config.curr
-    factor = 1.0 / diag.reWeightFactor
+    factor = 1.0 / config.absWeight / diag.reWeightFactor
     if diag.id == 1
         obs1[1] += factor
     elseif diag.id == 2
         weight = integrand(config)
         angidx = config.var[3][1]
-        obs2[angidx] += weight / abs(weight) * factor
+        # obs2[angidx] += weight / abs(weight) * factor
+        obs2[angidx] += weight * factor
     else
         error("Not implemented!")
     end
