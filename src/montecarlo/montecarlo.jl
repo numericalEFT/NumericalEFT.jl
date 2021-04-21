@@ -19,7 +19,7 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
     ##############  initialization  ################################
 
     # don't forget to initialize the diagram weight
-    config.absWeight = integrand(config)
+    config.absWeight = abs(integrand(config))
 
     if timer === nothing
         printTime = 10
@@ -45,6 +45,7 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
     for i = 1:config.totalStep
         config.step += 1
         config.curr.visitedSteps += 1
+        println(config.step)
         _update = rand(config.rng, updates) # randomly select an update
         _update(config, integrand)
         (i % 10 == 0 && i >= config.totalStep / 100) && measure(config)
