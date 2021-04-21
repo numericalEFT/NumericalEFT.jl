@@ -272,6 +272,7 @@ Propose to shift an existing tau pair to a new tau pair, both in [0, β), return
     end
 
     return 1.0
+# return 0.0
 end
 
 
