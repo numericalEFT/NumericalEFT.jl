@@ -14,7 +14,7 @@ addprocs(Ncpu)
 ########################### parameters ##################################
 @everywhere const kF, m, e, AngSize = 1.919, 0.5, sqrt(2), 32
 @everywhere const β, EF = 25.0 / (kF^2 / 2m), kF^2 / (2m)
-@everywhere const mass2 = 0.001
+@everywhere const mass2 = 1.0
 @everywhere const n = 0 # external Matsubara frequency
 @everywhere const IsF = false # calculate quasiparticle interaction F or not
 @everywhere const extAngle = collect(LinRange(0.0, π, AngSize)) # external angle grid
@@ -23,7 +23,6 @@ addprocs(Ncpu)
 @everywhere const Weight = SVector{2,Float64}
 # @everywhere const Weight = Vector{Float64}
 @everywhere Base.abs(w::Weight) = abs(w[1]) + abs(w[2]) # define abs function for Weight
-@everywhere Base.abs2(w::Weight) = w[1]^2 + w[2]^2 # define abs2 function for Weight
 @everywhere const obs1, obs2 = [0.0, ], zeros(Weight, AngSize)
 @everywhere const KInL = [kF, 0.0, 0.0] # incoming momentum of the left particle
 @everywhere const Qd = [0.0, 0.0, 0.0] # transfer momentum is zero in the forward scattering channel
@@ -189,7 +188,7 @@ end
     config = MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext); pid=pid, rng=rng)
     MonteCarlo.montecarlo(config, integrand, measure)
 
-    return obs2 / obs1[1]
+    return obs2 / obs1[1] * β
 end
 
 function run(repeat, totalStep)
@@ -216,7 +215,7 @@ function run(repeat, totalStep)
     exobserr = std(exobservable) / sqrt(length(exobservable))
 
     for (idx, angle) in enumerate(extAngle)
-        @printf("%10.6f   %10.6f ± %10.6f  %10.6f ± %10.6f\n", angle, diobs[idx], diobserr[idx], exobs[idx], exobserr[idx])
+        @printf("%10.6f   %10.6f ± %10.6f  %10.6f ± %10.6f\n", angle, diobs[idx], diobserr[idx], exobs[idx] * π, exobserr[idx])
     end
 end
 
