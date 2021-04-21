@@ -34,7 +34,7 @@ addprocs(Ncpu)
 @everywhere const dW0 = dWRPA(vqinv, qgrid.grid, τgrid.grid, kF, β, 2, m) # dynamic part of the effective interaction
 
 # println(qgrid.grid)
-println(τgrid.grid)
+# println(τgrid.grid)
 
 @everywhere function interaction(qd, qe, τIn, τOut)
     dτ = abs(τOut - τIn)
@@ -90,6 +90,8 @@ end
     T, K, Ang = config.var[1], config.var[2], config.var[3]
     k1, k2 = K[1], K[1] - Qd
     t1, t2 = T[1], T[2] # t1, t2 both have two tau variables
+    # t1, t2 = [T[1], T[2]], [T[3], T[4]] # t1, t2 both have two tau variables
+    # println(T[1], ", ", T[2], ", ", T[3], ", ", T[4])
     θ = extAngle[Ang[1]] # angle of the external momentum on the right
     KInR = [kF * cos(θ), kF * sin(θ), 0.0]
 
@@ -209,6 +211,8 @@ end
     Ext = MonteCarlo.Discrete(1, length(extAngle)) # external variable is specified
     diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1]) # id, order, [T num, K num, Ext num]
     diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1]) # id, order, [T num, K num, Ext num]
+    # diag1 = MonteCarlo.Diagram(1, 0, [2, 0, 1]) # id, order, [T num, K num, Ext num]
+    # diag2 = MonteCarlo.Diagram(2, 1, [4, 1, 1]) # id, order, [T num, K num, Ext num]
 
     config = MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext); pid=pid, rng=rng)
     MonteCarlo.montecarlo(config, absIntegrand, measure)
