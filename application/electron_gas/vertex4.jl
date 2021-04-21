@@ -2,37 +2,43 @@
 
 using Distributed
 
-const Ncpu = 8 
-const totalStep = 1e7
-const Repeat = 8
-
-addprocs(Ncpu)
+const Ncpu = 1 # number of workers (CPU)
+const totalStep = 1e7 # MC steps of each worker
+const Repeat = Ncpu # total number of MC jobs
+addprocs(Ncpu) 
 
 @everywhere using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, Statistics, BenchmarkTools, InteractiveUtils, Parameters
 @everywhere include("RPA.jl")
 
 # claim all globals to be constant, otherwise, global variables could impact the efficiency
+########################### parameters ##################################
 @everywhere const kF, m, e, AngSize = 1.919, 0.5, sqrt(2), 32
-@everywhere const β = 25.0 / kF^2
+@everywhere const β, EF = 25.0 / (kF^2 / 2m), kF^2 / (2m)
 @everywhere const mass2 = 0.001
 @everywhere const n = 0 # external Matsubara frequency
-@everywhere const extAngle = collect(LinRange(0.0, π, AngSize))
-@everywhere const qgrid = Grid.boseK(kF, 3kF, 0.2kF, 32) 
-@everywhere const τgrid = Grid.tau(β, EF, 128)
-@everywhere const vqinv = [(q^2 + mass2) / (4π * e^2) for q in qgrid]
-@everywhere const dW0 = dWRPA(vqinv, qgrid, τgrid, kF, β, 2, m) # dynamic part of the effective interaction
-@everywhere const obs1, obs2 = zeros(Float64, AngSize), zeros(Float64, AngSize)
+@everywhere const IsF = false # calculate quasiparticle interaction F or not
+@everywhere const extAngle = collect(LinRange(0.0, π, AngSize)) # external angle grid
+
+########################## variables for MC integration ##################
 @everywhere const Weight = SVector{2,Float64}
+@everywhere Base.abs(w::Weight) = abs(w[1]) + abs(w[2]) # define abs function for Weight
+@everywhere const obs1, obs2 = [0.0, ], zeros(Weight, AngSize)
 @everywhere const KInL = [kF, 0.0, 0.0] # incoming momentum of the left particle
 @everywhere const Qd = [0.0, 0.0, 0.0] # transfer momentum is zero in the forward scattering channel
 
+################ construct RPA interaction ################################
+@everywhere const qgrid = Grid.boseK(kF, 3kF, 0.2kF, 32) 
+@everywhere const τgrid = Grid.tau(β, EF, 128)
+@everywhere const vqinv = [(q^2 + mass2) / (4π * e^2) for q in qgrid.grid]
+@everywhere const dW0 = dWRPA(vqinv, qgrid.grid, τgrid.grid, kF, β, 2, m) # dynamic part of the effective interaction
+
 @everywhere function integrand(config)
     if config.curr.id == 1
-        return 1.0
+        return Weight(1.0, 0.0) # return a weight!
     elseif config.curr.id == 2
-            return eval2(config)
-        else
-            return 0.0
+        return eval2(config)
+    else
+        error("Not implemented!")
     end
 end
 
@@ -47,73 +53,125 @@ end
     ve = 4π * e^2 / (kEiQ^2 + mass2)
     we = ve * Grid.linear2D(dW0, qgrid, τgrid, kEiQ, dτ) # dynamic interaction, don't forget the singular factor vq
 
-    return Weight(vd / β, ve / β), Weight(wd, we)
+    wd, we = 0.0, 0.0
+
+    return vd / β, ve / β, wd, we
 end
 
-"""
-      KInL                      KOutL
-       |                         | 
-       ↑                t2.L     ↑ 
-       |-------------->----------|
-       |       |    k1    |      |
-       |   L   |          |  R   |
-       |       |    k2    |      |
-       |--------------<----------|
-  t1.L ↑    t1.R                 ↑ t2.R
-       |                         | 
-      KInL                      KOutL
-"""
+@everywhere function phase(tInL, tOutL, tInR, tOutR)
+    # return 1.0;
+    if (IsF)
+        return cos(π * ((tInL + tOutL) - (tInR + tOutR)));
+    else
+        return cos(π * ((tInL - tOutL) + (tInR - tOutR)))
+    end
+end
+
 @everywhere function eval2(config)
     T, K, Ang = config.var[1], config.var[2], config.var[3]
-    # In case the compiler is too stupid, it is a good idea to explicitly specify the type here
-    k1 = K[1]
-    t1, t2 = T[1], T[2]
-    θ = extAngle[Ang[1]] # external momentum
+    k1, k2 = K[1], K[1] - Qd
+    t1, t2 = T[1], T[2] # t1, t2 both have two tau variables
+    θ = extAngle[Ang[1]] # angle of the external momentum on the right
     KInR = [kF * cos(θ), kF * sin(θ), 0.0]
 
-    k2 = k1 - Qd
-    vld, vle, wld, wle = interaction(Qd, KInL - k1, t1.L, t1.R)
-    vrd, vre, wrd, wre = interaction(Qd, KInR - k2, t2.L, t2.R)
+    vld, vle, wld, wle = interaction(Qd, KInL - k1, t1[1], t1[2])
+    vrd, vre, wrd, wre = interaction(Qd, KInR - k2, t2[1], t2[2])
 
     ϵ1, ϵ2 = (dot(k1, k1) - kF^2) / (2m), (dot(k2, k2) - kF^2) / (2m) 
     wd, we = 0.0, 0.0
+    # possible green's functions on the top
+    gt1 = Spectral.kernelFermiT(t2[1] - t1[1], ϵ1)
 
-    # possible green's function on the top
-    gu1 = Spectral.kernelFermiT(t2.L - t1.L, ϵ1, β)
-    gu2 = Spectral.kernelFermiT(t2.L - t1.R, ϵ1, β)
+    ############## Diagram v x v ######################
+    """
+      KInL                      KInR
+       |                         | 
+  t1.L ↑     t1.L       t2.L     ↑ t2.L
+       |-------------->----------|
+       |       |    k1    |      |
+       |   ve  |          |  ve  |
+       |       |    k2    |      |
+       |--------------<----------|
+  t1.L ↑    t1.L        t2.L     ↑ t2.L
+       |                         | 
+      KInL                      KInR
+"""
+    gd1 = Spectral.kernelFermiT(t1[1] - t2[1], ϵ2)
+    G = gt1 * gd1 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
+    we += G * (vle * vre)
+    ##################################################
 
-    # possible green's function on the down
-    gd1 = Spectral.kernelFermiT(t1.L - t2.L, ϵ2, β)
-    gd2 = Spectral.kernelFermiT(t1.L - t2.R, ϵ2, β)
+    ############## Diagram w x v ######################
+    """
+      KInL                      KInR
+       |                         | 
+  t1.R ↑     t1.L       t2.L     ↑ t2.L
+       |-------------->----------|
+       |       |    k1    |      |
+       |   we  |          |  ve  |
+       |       |    k2    |      |
+       |--------------<----------|
+  t1.L ↑    t1.R        t2.L     ↑ t2.L
+       |                         | 
+      KInL                      KInR
+    """
+    gd2 = Spectral.kernelFermiT(t1[2] - t2[1], ϵ2)
+    G = gt1 * gd2 / (2π)^3 * phase(t1[1], t1[2], t2[1], t2[1])
+    we += G * (wle * vre)
+    ##################################################
 
-    gd31 = Spectral.kernelFermiT(t[1] - t[3], ϵ2)
-    gd41 = Spectral.kernelFermiT(t[1] - t[4], ϵ2)
-    gd32 = Spectral.kernelFermiT(t[2] - t[3], ϵ2)
-    gd42 = Spectral.kernelFermiT(t[2] - t[4], ϵ2)
+    ############## Diagram v x w ######################
+    """
+      KInL                      KInR
+       |                         | 
+  t1.L ↑     t1.L       t2.L     ↑ t2.L
+       |-------------->----------|
+       |       |    k1    |      |
+       |   ve  |          |  we  |
+       |       |    k2    |      |
+       |--------------<----------|
+  t1.L ↑    t1.L        t2.R     ↑ t2.R
+       |                         | 
+      KInL                      KInR
+    """
+    gd3 = Spectral.kernelFermiT(t1[1] - t2[2], ϵ2)
+    G = gt1 * gd3 / (2π)^3 * phase(t1[1], t1[1], t2[2], t2[1])
+    we += G * (vle * wre)
+    ##################################################
 
-    kq = k + q
-    τ = (Tout - Tin) / β
-    ω1 = (dot(k, k) - kF^2) * β
-    g1 = Spectral.kernelFermiT(τ, ω1)
-    ω2 = (dot(kq, kq) - kF^2) * β
-    g2 = Spectral.kernelFermiT(-τ, ω2)
-    spin = 2
-    phase = 1.0 / (2π)^3
-    return g1 * g2 * spin * phase * cos(2π * n * τ)
-    # return g1 * g2 * spin * phase
+    ############## Diagram w x w ######################
+    """
+      KInL                      KInR
+       |                         | 
+  t1.R ↑     t1.L       t2.L     ↑ t2.L
+       |-------------->----------|
+       |       |    k1    |      |
+       |   we  |          |  we  |
+       |       |    k2    |      |
+       |--------------<----------|
+  t1.L ↑    t1.R        t2.R     ↑ t2.R
+       |                         | 
+      KInL                      KInR
+"""
+    gd4 = Spectral.kernelFermiT(t1[2] - t2[2], ϵ2)
+    G = gt1 * gd4 / (2π)^3 * phase(t1[1], t1[2], t2[2], t2[1])
+    we += G * (wle * wre)
+    ##################################################
+
+    return Weight(wd, we)
 end
 
 @everywhere function measure(config)
     diag = config.curr
     factor = 1.0 / diag.reWeightFactor
-    extidx = config.var[3][1]
     if diag.id == 1
-        obs1[extidx] += factor
+        obs1[1] += factor
     elseif diag.id == 2
         weight = integrand(config)
-        obs2[extidx] += weight / abs(weight) * factor
+        angidx = config.var[3][1]
+        obs2[angidx] += weight / abs(weight) * factor
     else
-        return
+        error("Not implemented!")
     end
 end
 
@@ -121,31 +179,30 @@ end
     rng = MersenneTwister(pid)
 
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
-    T = MonteCarlo.Tau(β, β / 2.0)
-    Ext = MonteCarlo.Discrete(1, length(extQ)) # external variable is specified
-    diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1])
-    diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1])
+    T = MonteCarlo.TauPair(β, β / 2.0)
+    Ext = MonteCarlo.Discrete(1, length(extAngle)) # external variable is specified
+    diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1]) # id, order, [T num, K num, Ext num]
+    diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1]) # id, order, [T num, K num, Ext num]
 
     config = MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext); pid=pid, rng=rng)
     MonteCarlo.montecarlo(config, integrand, measure)
 
-    return obs2 / sum(obs1) * Ext.size
+    return obs2 / obs1[1]
 end
 
 function run(repeat, totalStep)
     if Ncpu > 1
         observable = pmap((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
     else
-        observable = map((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
+        # observable = map((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
+        observable = map((x) -> MC(totalStep, 1), 1:repeat)
     end
 
     obs = mean(observable)
     obserr = std(observable) / sqrt(length(observable))
 
-    for (idx, q) in enumerate(extQ)
-        q = q[1]
-        p, err = TwoPoint.LindhardΩnFiniteTemperature(3, q, n, kF, β, m, 2)
-        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
+    for (idx, angle) in enumerate(extAngle)
+        @printf("%10.6f  %10.6f ± %10.6f\n", angle, obs[idx], obserr[idx])
     end
 end
 
