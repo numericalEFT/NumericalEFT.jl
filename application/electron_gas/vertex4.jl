@@ -2,7 +2,7 @@
 
 using Distributed
 
-const Ncpu = 1 # number of workers (CPU)
+const Ncpu = 8 # number of workers (CPU)
 const totalStep = 1e7 # MC steps of each worker
 const Repeat = Ncpu # total number of MC jobs
 addprocs(Ncpu) 
@@ -21,7 +21,9 @@ addprocs(Ncpu)
 
 ########################## variables for MC integration ##################
 @everywhere const Weight = SVector{2,Float64}
+# @everywhere const Weight = Vector{Float64}
 @everywhere Base.abs(w::Weight) = abs(w[1]) + abs(w[2]) # define abs function for Weight
+@everywhere Base.abs2(w::Weight) = w[1]^2 + w[2]^2 # define abs2 function for Weight
 @everywhere const obs1, obs2 = [0.0, ], zeros(Weight, AngSize)
 @everywhere const KInL = [kF, 0.0, 0.0] # incoming momentum of the left particle
 @everywhere const Qd = [0.0, 0.0, 0.0] # transfer momentum is zero in the forward scattering channel
@@ -45,13 +47,13 @@ end
 @everywhere function interaction(qd, qe, τIn, τOut)
     dτ = abs(τOut - τIn)
 
-    kDiQ = FastMath.norm(qd)
+    kDiQ = sqrt(dot(qd, qd))
     vd = -4π * e^2 / (kDiQ^2 + mass2)
     wd = -vd * Grid.linear2D(dW0, qgrid, τgrid, kDiQ, dτ) # dynamic interaction, don't forget the singular factor vq
 
-    kExQ = FastMath.norm(qe)
-    ve = 4π * e^2 / (kEiQ^2 + mass2)
-    we = ve * Grid.linear2D(dW0, qgrid, τgrid, kEiQ, dτ) # dynamic interaction, don't forget the singular factor vq
+    kExQ = sqrt(dot(qe, qe))
+    ve = 4π * e^2 / (kExQ^2 + mass2)
+    we = ve * Grid.linear2D(dW0, qgrid, τgrid, kExQ, dτ) # dynamic interaction, don't forget the singular factor vq
 
     wd, we = 0.0, 0.0
 
@@ -80,7 +82,7 @@ end
     ϵ1, ϵ2 = (dot(k1, k1) - kF^2) / (2m), (dot(k2, k2) - kF^2) / (2m) 
     wd, we = 0.0, 0.0
     # possible green's functions on the top
-    gt1 = Spectral.kernelFermiT(t2[1] - t1[1], ϵ1)
+    gt1 = Spectral.kernelFermiT(t2[1] - t1[1], ϵ1, β)
 
     ############## Diagram v x v ######################
     """
@@ -96,7 +98,7 @@ end
        |                         | 
       KInL                      KInR
 """
-    gd1 = Spectral.kernelFermiT(t1[1] - t2[1], ϵ2)
+    gd1 = Spectral.kernelFermiT(t1[1] - t2[1], ϵ2, β)
     G = gt1 * gd1 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
     we += G * (vle * vre)
     ##################################################
@@ -115,7 +117,7 @@ end
        |                         | 
       KInL                      KInR
     """
-    gd2 = Spectral.kernelFermiT(t1[2] - t2[1], ϵ2)
+    gd2 = Spectral.kernelFermiT(t1[2] - t2[1], ϵ2, β)
     G = gt1 * gd2 / (2π)^3 * phase(t1[1], t1[2], t2[1], t2[1])
     we += G * (wle * vre)
     ##################################################
@@ -134,7 +136,7 @@ end
        |                         | 
       KInL                      KInR
     """
-    gd3 = Spectral.kernelFermiT(t1[1] - t2[2], ϵ2)
+    gd3 = Spectral.kernelFermiT(t1[1] - t2[2], ϵ2, β)
     G = gt1 * gd3 / (2π)^3 * phase(t1[1], t1[1], t2[2], t2[1])
     we += G * (vle * wre)
     ##################################################
@@ -153,7 +155,7 @@ end
        |                         | 
       KInL                      KInR
 """
-    gd4 = Spectral.kernelFermiT(t1[2] - t2[2], ϵ2)
+    gd4 = Spectral.kernelFermiT(t1[2] - t2[2], ϵ2, β)
     G = gt1 * gd4 / (2π)^3 * phase(t1[1], t1[2], t2[2], t2[1])
     we += G * (wle * wre)
     ##################################################
@@ -198,11 +200,23 @@ function run(repeat, totalStep)
         observable = map((x) -> MC(totalStep, 1), 1:repeat)
     end
 
-    obs = mean(observable)
-    obserr = std(observable) / sqrt(length(observable))
+    diobservable = []
+    exobservable = []
+    for obs in observable
+        diobs = [w[1] for w in obs] # direct vertex4
+        push!(diobservable, diobs)
+        exobs = [w[2] for w in obs] # exchange vertex4
+        push!(exobservable, exobs)
+    end
+
+    diobs = mean(diobservable)
+    diobserr = std(diobservable) / sqrt(length(diobservable))
+
+    exobs = mean(exobservable)
+    exobserr = std(exobservable) / sqrt(length(exobservable))
 
     for (idx, angle) in enumerate(extAngle)
-        @printf("%10.6f  %10.6f ± %10.6f\n", angle, obs[idx], obserr[idx])
+        @printf("%10.6f   %10.6f ± %10.6f  %10.6f ± %10.6f\n", angle, diobs[idx], diobserr[idx], exobs[idx], exobserr[idx])
     end
 end
 
