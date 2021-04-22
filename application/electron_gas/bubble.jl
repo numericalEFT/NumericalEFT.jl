@@ -13,7 +13,7 @@ addprocs(Ncpu)
 # claim all globals to be constant, otherwise, global variables could impact the efficiency
 @everywhere const kF, m, Qsize = 1.919, 0.5, 16
 @everywhere const β = 25.0 / kF^2
-@everywhere const n = 1 # external Matsubara frequency
+@everywhere const n = 0 # external Matsubara frequency
 @everywhere const extQ = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
 @everywhere const obs1, obs2 = zeros(Float64, Qsize), zeros(Float64, Qsize)
 

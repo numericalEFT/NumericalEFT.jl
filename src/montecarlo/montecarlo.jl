@@ -15,11 +15,11 @@ include("variable.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(config::Configuration, absIntegrand::Function, measure::Function; timer=[], print=true)
+function montecarlo(config::Configuration, integrand::Function, measure::Function; timer=[], print=true)
     ##############  initialization  ################################
 
     # don't forget to initialize the diagram weight
-    config.absWeight = absIntegrand(config)
+    config.absWeight = abs(integrand(config))
 
     if print
         printTime = 10
@@ -48,7 +48,7 @@ function montecarlo(config::Configuration, absIntegrand::Function, measure::Func
         config.step += 1
         config.curr.visitedSteps += 1
         _update = rand(config.rng, updates) # randomly select an update
-        _update(config, absIntegrand)
+        _update(config, integrand)
         (i % 10 == 0 && i >= config.totalStep / 100) && measure(config)
         if i % 1000 == 0
             for t in timer

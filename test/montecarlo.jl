@@ -78,7 +78,7 @@ function Sphere2(totalstep, pid)
     diag2 = MonteCarlo.Diagram(2, 1, [1,]) # id, order, [T num, ]
 
     config = MonteCarlo.Configuration(totalstep, (diag1, diag2), (T,); pid=pid, rng=rng)
-    MonteCarlo.montecarlo(config, (x) -> abs(integrand(x)), measure, print=false)
+    MonteCarlo.montecarlo(config, integrand, measure, print=false)
 
     return obs2 / obs1
 end
