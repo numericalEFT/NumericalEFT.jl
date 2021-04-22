@@ -54,3 +54,4 @@ test/test_results
 
 *.dat
 *.txt
+docs/build/
