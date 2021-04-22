@@ -15,15 +15,15 @@ include("variable.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(config::Configuration, absIntegrand::Function, measure::Function; timer=nothing)
+function montecarlo(config::Configuration, absIntegrand::Function, measure::Function; timer=[], print=true)
     ##############  initialization  ################################
 
     # don't forget to initialize the diagram weight
     config.absWeight = absIntegrand(config)
 
-    if timer === nothing
+    if print
         printTime = 10
-        timer = [StopWatch(printTime, printStatus)]
+        push!(timer, StopWatch(printTime, printStatus))
     end
 
     updates = [increaseOrder, decreaseOrder]
@@ -39,7 +39,9 @@ function montecarlo(config::Configuration, absIntegrand::Function, measure::Func
     end
 
     ########### MC simulation ##################################
-    printstyled("PID $(config.pid) Start Simulation ...\n", color=:red)
+    if (print)
+        printstyled("PID $(config.pid) Start Simulation ...\n", color=:red)
+    end
     startTime = time()
 
     for i = 1:config.totalStep
@@ -58,8 +60,10 @@ function montecarlo(config::Configuration, absIntegrand::Function, measure::Func
         end
     end
 
-    printStatus(config)
-    printstyled("PID $(config.pid) End Simulation. Cost $(time() - startTime) seconds.\n\n", color=:red)
+    if (print)
+        printStatus(config)
+        printstyled("PID $(config.pid) End Simulation. Cost $(time() - startTime) seconds.\n\n", color=:red)
+    end
 end
 
 function reweight(config)
