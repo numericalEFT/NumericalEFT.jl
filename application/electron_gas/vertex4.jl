@@ -14,15 +14,15 @@ addprocs(Ncpu)
 # claim all globals to be constant, otherwise, global variables could impact the efficiency
 ########################### parameters ##################################
 @everywhere const kF, m, e, spin, AngSize = 1.919, 0.5, sqrt(2), 2, 32
-@everywhere const mass2 = 0.1
-@everywhere const β, EF = 25.0 / (kF^2 / 2m), kF^2 / (2m)
+@everywhere const mass2 = 0.01
+@everywhere const β, EF = 100.0 / (kF^2 / 2m), kF^2 / (2m)
 @everywhere const n = 0 # external Matsubara frequency
 @everywhere const IsF = false # calculate quasiparticle interaction F or not
 @everywhere const extAngle = collect(LinRange(0.0, π, AngSize)) # external angle grid
 
 ########################## variables for MC integration ##################
 @everywhere const Weight = SVector{2,Float64}
-# @everywhere const Weight = Vector{Float64}
+@everywhere const Base.abs(w::Weight) = abs(w[1]) + abs(w[2]) # define abs(Weight)
 @everywhere const obs1, obs2 = [0.0, ], zeros(Weight, AngSize)
 @everywhere const KInL = [kF, 0.0, 0.0] # incoming momentum of the left particle
 @everywhere const Qd = [0.0, 0.0, 0.0] # transfer momentum is zero in the forward scattering channel
@@ -55,10 +55,6 @@ addprocs(Ncpu)
         we = ve * Grid.linear2D(dW0, qgrid, τgrid, kExQ, dτ) # dynamic interaction, don't forget the singular factor vq
     end
 
-    # wd, we = 0.0, 0.0
-    vd, ve = 0.0, 0.0
-    # println(wd, ", ", we)
-
     return -vd / β, ve / β, -wd, we
 end
 
@@ -81,17 +77,10 @@ end
     end
 end
 
-@everywhere function absIntegrand(config)
-    w = integrand(config)
-    return abs(w[1]) + abs(w[2]) # define the |weight|, it will be used in MC for important sampling
-end
-
 @everywhere function eval2(config)
     T, K, Ang = config.var[1], config.var[2], config.var[3]
     k1, k2 = K[1], K[1] - Qd
     t1, t2 = T[1], T[2] # t1, t2 both have two tau variables
-    # t1, t2 = [T[1], T[2]], [T[3], T[4]] # t1, t2 both have two tau variables
-    # println(T[1], ", ", T[2], ", ", T[3], ", ", T[4])
     θ = extAngle[Ang[1]] # angle of the external momentum on the right
     KInR = [kF * cos(θ), kF * sin(θ), 0.0]
 
@@ -105,7 +94,12 @@ end
 
 
     # gt2 = Spectral.kernelFermiT(t1[1] - t2[1], ϵ2, β)
-    # wd += vld * vrd * gt1 * gt2 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
+    # wd += 1.0 / β * 1.0 / β * gt1 * gt2 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
+
+    # gt3 = Spectral.kernelFermiT(t1[1] - t2[2], ϵ2, β)
+    # G = gt1 * gt3 / (2π)^3 * phase(t1[1], t1[1], t2[2], t2[1])
+    # wd += G * (vld * wre)
+
     # wd += spin * (vld + wld) * (vrd + wrd) * gt1 * gt2 / (2π)^3 * phase(t1[1], t1[1], t2[1], t2[1])
     # println(vld, ", ", wld, "; ", vrd, ", ", wld)
 
@@ -211,11 +205,9 @@ end
     Ext = MonteCarlo.Discrete(1, length(extAngle)) # external variable is specified
     diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1]) # id, order, [T num, K num, Ext num]
     diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1]) # id, order, [T num, K num, Ext num]
-    # diag1 = MonteCarlo.Diagram(1, 0, [2, 0, 1]) # id, order, [T num, K num, Ext num]
-    # diag2 = MonteCarlo.Diagram(2, 1, [4, 1, 1]) # id, order, [T num, K num, Ext num]
 
     config = MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext); pid=pid, rng=rng)
-    MonteCarlo.montecarlo(config, absIntegrand, measure)
+    MonteCarlo.montecarlo(config, integrand, measure)
 
     return obs2 / obs1[1] * β * AngSize
 end
@@ -224,7 +216,6 @@ function run(repeat, totalStep)
     if Ncpu > 1
         observable = pmap((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
     else
-        # observable = map((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
         observable = map((x) -> MC(totalStep, 1), 1:repeat)
     end
 
@@ -238,6 +229,7 @@ function run(repeat, totalStep)
     end
 
     NF = TwoPoint.LindhardΩnFiniteTemperature(3, 0.0, 0, kF, β, m, spin)[1]
+    println("NF = $NF")
 
     diobs = mean(diobservable) * NF
     diobserr = std(diobservable) / sqrt(length(diobservable)) * NF
