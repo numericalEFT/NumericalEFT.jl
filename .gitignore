@@ -51,3 +51,4 @@ deps/build.log
 test/test_results
 .DS_Store
 *~
+docs/build/
