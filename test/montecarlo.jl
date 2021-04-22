@@ -84,8 +84,6 @@ function Sphere2(totalstep, pid)
 end
 
 @testset "MonteCarlo Sampler" begin
-    # test if the forward proposal probability is the inverse of the backward proposal probability
-
     repeat = 64
     totalStep = 100000
 
