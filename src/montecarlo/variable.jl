@@ -2,12 +2,14 @@ abstract type Variable end
 const MaxOrder = 16
 
 mutable struct FermiK{D} <: Variable
-    data::Vector{MVector{D,Float64}}
+    data::Vector{SVector{D,Float64}}
+    # data::Vector{Vector{Float64}}
     kF::Float64
     δk::Float64
     maxK::Float64
     function FermiK(dim, kF, δk, maxK, size=MaxOrder)
-        k0 = MVector{dim,Float64}([kF for i = 1:dim])
+        k0 = SVector{dim,Float64}([kF for i = 1:dim])
+        # k0 = @SVector [kF for i = 1:dim]
         k = [k0 for i = 1:size]
         return new{dim}(k, kF, δk, maxK)
     end

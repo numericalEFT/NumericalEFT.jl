@@ -15,9 +15,9 @@ include("variable.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function sample(Njob, config::Configuration, integrand::Function, measure::Function; timer=[], print=true)
-    observable = pmap((x) ->  , 1:Njob)
-end
+# function sample(Njob, config::Configuration, integrand::Function, measure::Function; timer=[], print=true)
+#     observable = pmap((x) ->  , 1:Njob)
+# end
 
 function montecarlo(config::Configuration, integrand::Function, measure::Function; timer=[], print=true, israndom=false)
     ##############  initialization  ################################

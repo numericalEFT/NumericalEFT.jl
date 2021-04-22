@@ -71,6 +71,7 @@ function changeVar(config, integrand)
     (curr.nvar[vi] <= 0) && return # return if the var number is less than 1
     idx = rand(config.rng, 1:curr.nvar[vi]) # randomly choose one var to update
     oldvar = copy(var[idx])
+    # var[end] = var[idx]
     prop = shift!(var, idx, config.rng)
 
     currAbsWeight = config.absWeight
@@ -82,6 +83,7 @@ function changeVar(config, integrand)
         config.absWeight = newAbsWeight
     else
         var[idx] = oldvar
+        # var[idx] = var[end]
         # in case the user modifies config.absWeight when calculate integrand(config)
         config.absWeight = currAbsWeight 
     end
