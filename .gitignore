@@ -52,3 +52,4 @@ test/test_results
 .DS_Store
 *~
 docs/build/
+*.dat
