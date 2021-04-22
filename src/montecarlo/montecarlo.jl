@@ -29,7 +29,7 @@ function montecarlo(config::Configuration, absIntegrand::Function, measure::Func
     updates = [increaseOrder, decreaseOrder]
     for var in config.var
         # changeVar should be call more often if there are more variables
-        append!(updates, [changeVar, ])
+        push!(updates, changeVar)
     end
 
     for diag in config.diagrams
