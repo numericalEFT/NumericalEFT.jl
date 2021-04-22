@@ -2,9 +2,9 @@
 
 using Distributed
 
-const Ncpu = 4 
+const Ncpu = 1 
 const totalStep = 1e7
-const Repeat = 4
+const Repeat = 1
 
 addprocs(Ncpu)
 
@@ -124,5 +124,6 @@ function run(repeat, totalStep)
 end
 
 # @btime run(1, 10)
+# @time run(Repeat, totalStep)
 run(Repeat, totalStep)
 # @time run(Repeat, totalStep)
