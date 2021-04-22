@@ -64,7 +64,10 @@ function create!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     if D == 3 # dimension 3
         θ = π * rand(rng)
         # newK .= Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
-        K[idx] = @SVector [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
+        # K[idx] = @SVector [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
+        K[idx][1] = Kamp * cos(ϕ) * sin(θ)
+        K[idx][2] = Kamp * sin(ϕ) * sin(θ)
+        K[idx][3] = Kamp * cos(θ)
         return 2 * K.δk * 2π * π * (sin(θ) * Kamp^2)
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi
         # prop density of Theta, Jacobian

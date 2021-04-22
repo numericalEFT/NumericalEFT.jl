@@ -2,12 +2,12 @@ abstract type Variable end
 const MaxOrder = 16
 
 mutable struct FermiK{D} <: Variable
-    data::Vector{SVector{D,Float64}}
+    data::Vector{MVector{D,Float64}}
     kF::Float64
     δk::Float64
     maxK::Float64
     function FermiK(dim, kF, δk, maxK, size=MaxOrder)
-        k0 = SVector{dim,Float64}([kF for i = 1:dim])
+        k0 = MVector{dim,Float64}([kF for i = 1:dim])
         k = [k0 for i = 1:size]
         return new{dim}(k, kF, δk, maxK)
     end
@@ -98,10 +98,12 @@ mutable struct Diagram
     end
 end
 
-mutable struct Configuration{V,R}
+mutable struct Configuration{V,R,P,O}
     pid::Int
+    para::P
     totalStep::Int64
     diagrams::Vector{Diagram}
+    obs::O
     var::V
 
     step::Int64
@@ -109,7 +111,7 @@ mutable struct Configuration{V,R}
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, var::V; pid=nothing, rng::R=GLOBAL_RNG) where {V,R}
+    function Configuration(totalStep, diagrams, var::V, para::P; obs::O=nothing, pid=nothing, rng::R=GLOBAL_RNG) where {V,R,P,O}
         if (pid === nothing)
             r = Random.RandomDevice()
             pid = abs(rand(r, Int)) % 1000000
@@ -126,7 +128,7 @@ mutable struct Configuration{V,R}
         end
 
         @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to achieve better efficiency"
-        return new{V,R}(pid, Int64(totalStep), collect(diagrams), var, 0, curr, rng, 0.0)
+        return new{V,R,P,O}(pid, para, Int64(totalStep), collect(diagrams), obs, var, 0, curr, rng, 0.0)
     end
 end
 

@@ -15,11 +15,21 @@ include("variable.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function montecarlo(config::Configuration, integrand::Function, measure::Function; timer=[], print=true)
+function sample(Njob, config::Configuration, integrand::Function, measure::Function; timer=[], print=true)
+    observable = pmap((x) ->  , 1:Njob)
+end
+
+function montecarlo(config::Configuration, integrand::Function, measure::Function; timer=[], print=true, israndom=false)
     ##############  initialization  ################################
 
     # don't forget to initialize the diagram weight
     config.absWeight = abs(integrand(config))
+
+    if israndom == true
+        r = Random.RandomDevice()
+        config.pid = r
+        Random.seed!(config.rng, pid) # pid will be used as the seed to initialize the random numebr generator
+    end
 
     if print
         printTime = 10
