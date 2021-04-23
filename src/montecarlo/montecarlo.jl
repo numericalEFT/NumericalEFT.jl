@@ -15,7 +15,50 @@ include("variable.jl")
 include("sampler.jl")
 include("updates.jl")
 
-function sample(totalStep, var, dof, obs, integrand::Function, measure::Function, normalize::Function=nothing; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reWeight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+"""
+
+ sample(totalStep, var, dof, obs, integrand::Function, measure::Function, normalize::Function=nothing; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+
+ sample the integrands, collect statistics, and return the expected values and errors
+
+ # Arguments
+
+ - `totalStep`: total number of updates
+ 
+ - `var`: TUPLE of variables, each variable should be derived from the abstract type Variable, see variable.jl for details). Use a tuple rather than a vector improves the performance.
+
+ - `dof`: degrees of freedom of each integrand, e.g., ([0, 1], [2, 3]) means the first integrand has zero var#1 and one var#2; while the second integrand has two var#1 and 3 var#2. 
+
+ - `obs`: observables that is required to calculate the integrands, will be used in the `measure` function call
+
+ - `integrand`: function call to evaluate the integrand. It should accept an argument of the type `Configuration`, and return a weight. 
+    Internally, MC only samples the absolute value of the weight. Therefore, it is also important to define Main.abs for the weight if its type is user-defined. 
+
+- `measure`: function call to measure. It should accept an argument of the type `Configuration`, then manipulate observables `obs`. 
+
+- `normalize`: function call to derive averages and errors from observables `obs`. It should accept an argument of the type `Configuration`.
+
+- `Nblock`: repeat times. The tasks will automatically distributed to multi-process if `Distributed` package is imported globally.
+
+- `para`: user-defined parameter that is useful in the functions `integrand`, `measure`, `normalize`.
+
+- `neighbor`: vectors that indicates the neighbors of each integrand. e.g., ([2, ], [1, ]) means the neighbor of the first integrand is the second one, while the neighbor of the second integrand is the first. 
+    There is a MC update proposes to jump from one integrand to another. If these two integrands' degrees of freedom are very different, then the update is unlikely to be accepted. To avoid this problem, one can specify neighbor to guide the update. 
+    By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([2, ], [1, 3], [2, 4], ..., [N-1,])
+    
+- `seed`: the seed for random number generator. If `seed` is set, then the random number generator of each blocks will be initialized with seed+1, seed+2, .... On the other hand, if `seed` is nothing, then MC will call `RandomDevice()` to get a system-generated seed for each block. Since `seed` is different for each block, it could also be used as the id of each block.
+
+- `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized as one.
+
+- `print`: -1 to not print anything, 0 to print minimal information, >0 to print summary for every `print` seconds
+
+- `printio`: `io` to print the information
+
+- `save`: -1 to not save anything, 0 to save observables `obs` in the end of sampling, >0 to save observables `obs` for every `save` seconds
+
+- `saveio`: `io` to save
+"""
+function sample(totalStep, var, dof, obs, integrand::Function, measure::Function, normalize::Function=nothing; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
 
     ################# diagram initialization #########################
     Nd = length(dof) # number of integrands
@@ -36,8 +79,8 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
     end
 
     ############# initialize reweight factors ########################
-    if isnothing(reWeight)
-        reWeight = [1.0 for d in 1:Nd]
+    if isnothing(reweight)
+        reweight = [1.0 for d in 1:Nd]
     end
 
     ############ initialized timer ####################################
@@ -56,7 +99,7 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
             seedi = i + abs(seed)
         end
         obscopied = deepcopy(obs) # copied observables for each block 
-        config = Configuration(seedi, steps, var, para, neighbor, dof, obscopied, reWeight)
+        config = Configuration(seedi, steps, var, para, neighbor, dof, obscopied, reweight)
         push!(configList, config)
     end
 

@@ -1,6 +1,53 @@
 abstract type Variable end
 const MaxOrder = 16
 
+"""
+mutable struct Configuration
+
+    Struct that saves everything needed by MC.
+
+    There are three different pieces of information:
+
+ # Members
+
+ ## Static parameters
+
+ - `seed`: seed to initialize random numebr generator, also serves as the unique pid of the configuration
+
+ - `rng`: a MersenneTwister random number generator, seeded by `seed`
+
+ - `para`: user-defined parameter, could be nothing if not needed
+
+ - `totalStep`: the total number of updates for this configuration
+
+ - `var`: TUPLE of variables, each variable should be derived from the abstract type Variable, see variable.jl for details). Use a tuple rather than a vector improves the performance.
+
+ ## integrand properties
+ 
+ - `neighbor`: vectors that indicates the neighbors of each integrand. e.g., ([2, ], [1, ]) means the neighbor of the first integrand is the second one, while the neighbor of the second integrand is the first. 
+    There is a MC update proposes to jump from one integrand to another. If these two integrands' degrees of freedom are very different, then the update is unlikely to be accepted. To avoid this problem, one can specify neighbor to guide the update. 
+    By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([2, ], [1, 3], [2, 4], ..., [N-1,])
+
+ - `dof`: degrees of freedom of each integrand, e.g., ([0, 1], [2, 3]) means the first integrand has zero var#1 and one var#2; while the second integrand has two var#1 and 3 var#2. 
+
+ - `observable`: observables that is required to calculate the integrands, will be used in the `measure` function call
+
+ - `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized as one.
+
+ - `visited`: how many times this integrand is visited by the Markov chain.
+
+ ## current MC state
+
+ - `step`: the number of MC updates performed up to now
+
+ - `curr`: the current integrand
+
+ - `absWeight`: the abolute weight of the current integrand
+
+ - `propose/accept`: array to store the proposed and accepted updates for each integrands and variables.
+    Their shapes are (number of updates X integrand number X max(integrand number, variable number).
+    The last index will waste some memory, but the dimension is small anyway.
+"""
 mutable struct Configuration{V,P,O}
     ########### static parameters ###################
     seed::Int # seed to initialize random numebr generator, also serves as the unique pid of the configuration
