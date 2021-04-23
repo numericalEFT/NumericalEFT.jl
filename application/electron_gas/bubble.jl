@@ -1,107 +1,95 @@
 # This example demonstrated how to calculate the bubble diagram of free electrons using the Monte Carlo module
 
 using Distributed
+using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkTools, InteractiveUtils, Parameters
 
-const Ncpu = 1 
-const totalStep = 1e7
-const Repeat = 1
+const Ncpu = 4
+const totalStep = 1e8
 
 addprocs(Ncpu)
 
-@everywhere using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, Statistics, BenchmarkTools, InteractiveUtils, Parameters
+@everywhere using QuantumStatistics, Parameters, StaticArrays, Random, LinearAlgebra
 
-# claim all globals to be constant, otherwise, global variables could impact the efficiency
-@everywhere const kF, m, Qsize = 1.919, 0.5, 16
-@everywhere const β = 25.0 / kF^2
-@everywhere const n = 0 # external Matsubara frequency
-@everywhere const extQ = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
-@everywhere const obs1, obs2 = zeros(Float64, Qsize), zeros(Float64, Qsize)
+@everywhere @with_kw struct Para
+    kF::Float64 = 1.919
+    m::Float64 = 0.5
+    β::Float64 = 25.0 / kF^2
+    spin::Int = 2
+    n::Int = 0 # external Matsubara frequency
+    Qsize::Int = 16
+    extQ::Vector{SVector{3,Float64}} = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
+end
 
 @everywhere function integrand(config)
-    if config.curr.id == 1
+    if config.curr == 1
         return 1.0
-    elseif config.curr.id == 2
+    elseif config.curr == 2
             return eval2(config)
-        else
-            return 0.0
+    else
+        error("impossible!")
     end
 end
 
 @everywhere function eval2(config)
+    para = config.para
+    β, kF, m, spin = para.β, para.kF, para.m, para.spin
+
     T, K, Ext = config.var[1], config.var[2], config.var[3]
-        # In case the compiler is too stupid, it is a good idea to explicitly specify the type here
     k = K[1]
     Tin, Tout = T[1], T[2] 
     extidx = Ext[1]
-    q = extQ[extidx] # external momentum
+    q = para.extQ[extidx] # external momentum
     kq = k + q
     τ = (Tout - Tin) / β
-    ω1 = (dot(k, k) - kF^2) * β
+    ω1 = (dot(k, k) - kF^2) / (2m) * β
     g1 = Spectral.kernelFermiT(τ, ω1)
-    ω2 = (dot(kq, kq) - kF^2) * β
+    ω2 = (dot(kq, kq) - kF^2) / (2m) * β
     g2 = Spectral.kernelFermiT(-τ, ω2)
     spin = 2
     phase = 1.0 / (2π)^3
-    return g1 * g2 * spin * phase * cos(2π * n * τ)
-    # return g1 * g2 * spin * phase
+    return g1 * g2 * spin * phase * cos(2π * para.n * τ)
 end
 
 @everywhere function measure(config)
-    diag = config.curr
-    factor = 1.0 / diag.reWeightFactor
+    obs = config.observable
+    curr = config.curr
+    factor = 1.0 / config.reweight[curr]
     extidx = config.var[3][1]
-    if diag.id == 1
-        obs1[extidx] += factor
-    elseif diag.id == 2
+    if curr == 1
+        obs[1][extidx] += factor
+    elseif curr == 2
         weight = integrand(config)
-        obs2[extidx] += weight / abs(weight) * factor
+        obs[2][extidx] += weight / abs(weight) * factor
     else
         return
     end
 end
 
-@everywhere function MC(totalStep, pid)
-    rng = MersenneTwister(pid)
+@everywhere normalize(config) = config.observable[2] / sum(config.observable[1]) * config.para.Qsize
+
+function run(totalStep)
+
+    para = Para()
+    @unpack kF, β, extQ, Qsize = para 
 
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
     Ext = MonteCarlo.Discrete(1, length(extQ)) # external variable is specified
-    diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1])
-    diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1])
 
-    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext); pid=pid, rng=rng)
+    dof = ([1, 0, 1], [2, 1, 1]) # degrees of freedom of the normalization diagram and the bubble
+    obs = (zeros(Float64, Qsize), zeros(Float64, Qsize)) # observable for the normalization diagram and the bubble
 
-    # @code_warntype MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext); pid=pid, rng=rng)
-    # @code_warntype MonteCarlo.Diagram(2, 1, [2, 1, 1], zeros(Float64, Ext.size))
-    # @code_warntype MonteCarlo.increaseOrder(config, integrand)
-    # @code_warntype integrand(config)
-    # @code_warntype eval2(config)
-    # @code_warntype measure(config)
-    # @code_lowered MonteCarlo.changeVar(config, integrand)
-    # exit()
+    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure, normalize; para=para, print=10)
 
-    MonteCarlo.montecarlo(config, integrand, measure)
 
-    return obs2 / sum(obs1) * Ext.size
-end
-
-function run(repeat, totalStep)
-    if Ncpu > 1
-        observable = pmap((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
-    else
-        observable = map((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
-    end
-
-    obs = mean(observable)
-    obserr = std(observable) / sqrt(length(observable))
+    @unpack kF, β, m, n, extQ = Para()
 
     for (idx, q) in enumerate(extQ)
         q = q[1]
         p, err = TwoPoint.LindhardΩnFiniteTemperature(3, q, n, kF, β, m, 2)
-        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
+        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, avg[idx], std[idx], p, err)
     end
 end
 
-# @btime run(1, 10)
-run(Repeat, totalStep)
-# @time run(Repeat, totalStep)
+run(totalStep)
+# @time run(totalStep)
