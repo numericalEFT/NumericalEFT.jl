@@ -84,19 +84,21 @@ create a group of diagrams
 - obstype: type of the diagram weight, e.g. Float64
 """
 mutable struct Diagram
-    id::Int
-    order::Int
     nvar::Vector{Int}
 
     reWeightFactor::Float64
     visitedSteps::Float64
-    propose::Vector{Float64}
-    accept::Vector{Float64}
+    proposeDiag::Vector{Float64}
+    acceptDiag::Vector{Float64}
+    proposeVar::Vector{Float64}
+    acceptVar::Vector{Float64}
 
-    function Diagram(_id, _order, _nvar)
-        propose = Vector{Float64}(undef, 0)
-        accept = Vector{Float64}(undef, 0)
-        return new(_id, _order, _nvar, 1.0, 1.0e-6, propose, accept)
+    function Diagram(_nvar)
+        proposeDiag = Vector{Float64}(undef, 0)
+        acceptDiag = Vector{Float64}(undef, 0)
+        proposeVar = Vector{Float64}(undef, 0)
+        acceptVar = Vector{Float64}(undef, 0)
+        return new(_nvar, 1.0, 1.0e-6, proposeDiag, acceptDiag, proposeVar, proposeVar)
     end
 end
 
@@ -105,32 +107,32 @@ mutable struct Configuration{V,R,P,O}
     para::P
     totalStep::Int64
     diagrams::Vector{Diagram}
+    neighbor::Vector{Vector{Int}}
     obs::O
     var::V
 
     step::Int64
-    curr::Diagram
+    curr::Int
     rng::R
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
-    function Configuration(totalStep, diagrams, var::V, para::P; obs::O=nothing, pid=nothing, rng::R=GLOBAL_RNG) where {V,R,P,O}
-        if (pid === nothing)
-            r = Random.RandomDevice()
-            pid = abs(rand(r, Int)) % 1000000
-        end
+    function Configuration(pid, totalStep, diagrams, neighbor, var::V, obs::O, para::P, rng::R) where {V,R,P,O}
         @assert pid >= 0 "pid should be positive!"
-        Random.seed!(rng, pid) # pid will be used as the seed to initialize the random numebr generator
-
         @assert totalStep > 0 "Total step should be positive!"
         @assert length(diagrams) > 0 "diagrams should not be empty!"
-        curr = diagrams[1]
-
+        @assert length(diagrams) == length(neighbor) 
         for d in diagrams
             @assert length(d.nvar) == length(var)
         end
 
-        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to achieve better efficiency"
-        return new{V,R,P,O}(pid, para, Int64(totalStep), collect(diagrams), obs, var, 0, curr, rng, 0.0)
+        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency"
+
+        curr = 1 # set the current diagram to be the first one
+        # a small initial absweight makes the initial configuaration quickly updated,
+        # so that no error is caused even if the intial absweight is wrong, 
+        absweight = 1.0e-10 
+
+        return new{V,R,P,O}(pid, para, Int64(totalStep), collect(diagrams), neighbor, obs, var, 0, curr, rng, absweight)
     end
 end
 

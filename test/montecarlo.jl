@@ -1,8 +1,4 @@
-
-function Sphere1(totalstep, pid)
-    obs1 = 0.0
-    obs2 = 0.0
-
+function Sphere1(totalstep)
     function integrand(config)
         if config.curr.id == 1
             return 1.0
@@ -20,25 +16,24 @@ function Sphere1(totalstep, pid)
         diag = config.curr
         factor = 1.0 / config.absWeight / diag.reWeightFactor
         if diag.id == 1
-            obs1 += factor
+            config.obs[1] += factor
         elseif diag.id == 2
             weight = integrand(config)
-            obs2 += weight * factor
+            config.obs[2] += weight * factor
         else
             error("Not implemented!")
         end
     end
 
-    rng = MersenneTwister(pid)
+    normalize(config) = config.obs[2] / config.obs[1]
 
     T = MonteCarlo.Tau(1.0, 1.0 / 2.0)
     diag1 = MonteCarlo.Diagram(1, 0, [0,]) # id, order, [T num, ]
     diag2 = MonteCarlo.Diagram(2, 1, [2,]) # id, order, [T num, ]
 
-    config = MonteCarlo.Configuration(totalstep, (diag1, diag2), (T,); pid=pid, rng=rng)
-    MonteCarlo.montecarlo(config, (x) -> abs(integrand(x)), measure, print=false)
+    avg, err = MonteCarlo.run(totalStep, (T,), (diag1, diag2), [0.0, 0.0], integrand, measure, normalize)
 
-    return obs2 / obs1
+    return ave, err
 end
 
 function Sphere2(totalstep, pid)
