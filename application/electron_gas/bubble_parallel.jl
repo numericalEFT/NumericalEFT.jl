@@ -5,7 +5,6 @@ using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkT
 
 const Ncpu = 4
 const totalStep = 1e8
-const Repeat = 1
 
 addprocs(Ncpu)
 
@@ -15,6 +14,7 @@ addprocs(Ncpu)
     kF::Float64 = 1.919
     m::Float64 = 0.5
     β::Float64 = 25.0 / kF^2
+    spin::Int = 2
     n::Int = 0 # external Matsubara frequency
     Qsize::Int = 16
     extQ::Vector{SVector{3,Float64}} = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
@@ -25,17 +25,16 @@ end
         return 1.0
     elseif config.curr == 2
             return eval2(config)
-        else
-            return 0.0
+    else
+        error("impossible!")
     end
 end
 
 @everywhere function eval2(config)
     para = config.para
-    β, kF, m = para.β, para.kF, para.m
+    β, kF, m, spin = para.β, para.kF, para.m, para.spin
 
     T, K, Ext = config.var[1], config.var[2], config.var[3]
-        # In case the compiler is too stupid, it is a good idea to explicitly specify the type here
     k = K[1]
     Tin, Tout = T[1], T[2] 
     extidx = Ext[1]
@@ -49,7 +48,6 @@ end
     spin = 2
     phase = 1.0 / (2π)^3
     return g1 * g2 * spin * phase * cos(2π * para.n * τ)
-    # return g1 * g2 * spin * phase
 end
 
 @everywhere function measure(config)
@@ -81,7 +79,7 @@ function run(totalStep)
     dof = ([1, 0, 1], [2, 1, 1]) # degrees of freedom of the normalization diagram and the bubble
     obs = (zeros(Float64, Qsize), zeros(Float64, Qsize)) # observable for the normalization diagram and the bubble
 
-    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure, normalize; Nblock=10,  para=para, print=10)
+    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure, normalize; para=para, print=10)
 
 
     @unpack kF, β, m, n, extQ = Para()
