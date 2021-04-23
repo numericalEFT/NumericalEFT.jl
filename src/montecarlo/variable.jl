@@ -1,6 +1,65 @@
 abstract type Variable end
 const MaxOrder = 16
 
+mutable struct Configuration{V,P,O}
+    ########### static parameters ###################
+    seed::Int # seed to initialize random numebr generator, also serves as the unique pid of the configuration
+    rng::MersenneTwister
+    para::P
+    totalStep::Int64
+    var::V
+
+    ########### integrand properties ##############
+    neighbor::Vector{Vector{Int}}
+    dof::Vector{Vector{Int}} # degrees of freedom
+    observable::O  # observables for each integrand
+    reweight::Vector{Float64}
+    visited::Vector{Float64}
+
+    ############# current state ######################
+    step::Int64
+    curr::Int # index of current integrand
+    absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
+
+    propose::Array{Float64,3} # updates index, integrand index, integrand index
+    accept::Array{Float64,3} # updates index, integrand index, integrand index 
+
+    function Configuration(seed, totalStep, var::V, para::P, neighbor, dof, obs::O, reweight) where {V,P,O}
+        @assert seed > 0 "seed should be positive!"
+        @assert totalStep > 0 "Total step should be positive!"
+        Nd = length(neighbor)
+        Nv = length(var)
+
+        @assert Nd > 0 "diagrams should not be empty!"
+        @assert Nd == length(dof) 
+        @assert Nd == length(reweight) 
+        for nv in dof
+            @assert length(nv) == Nv
+        end
+
+        rng = MersenneTwister(seed)
+
+        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency"
+
+        curr = 1 # set the current diagram to be the first one
+        # a small initial absweight makes the initial configuaration quickly updated,
+        # so that no error is caused even if the intial absweight is wrong, 
+        absweight = 1.0e-10 
+
+        visited = zeros(Float64, Nd) .+ 1.0e-8  # add a small initial value to avoid Inf when inverted
+
+        # propose and accept shape: number of updates X integrand number X max(integrand number, variable number)
+        # the last index will waste some memory, but the dimension is small anyway
+        propose = zeros(Float64, (2, Nd, max(Nd, Nv))) .+ 1.0e-8 # add a small initial value to avoid Inf when inverted
+        accept = zeros(Float64, (2, Nd, max(Nd, Nv))) 
+
+        return new{V,P,O}(seed, rng, para, totalStep, var,  # static parameters
+        collect(neighbor), collect(dof), obs, collect(reweight), visited, # integrand properties
+        0, curr, absweight, propose, accept  # current MC state
+         ) 
+    end
+end
+
 mutable struct FermiK{D} <: Variable
     data::Vector{SVector{D,Float64}}
     # data::Vector{Vector{Float64}}
@@ -69,86 +128,3 @@ function Base.setindex!(Var::Variable, v, i::Int)
 end
 Base.firstindex(Var::Variable) = 1 # return index, not the value
 Base.lastindex(Var::Variable) = length(Var.data) # return index, not the value
-
-
-"""
-    Group{A}(type::Int, internal::Tuple{Vararg{Int}}, external::Tuple{Vararg{Int}}, eval, obstype=Float64) 
-
-create a group of diagrams
-
-#Arguments:
-- type: integer identifier of the group
-- internal: internal variable numbers, e.g. [number of internal momentum, number of internal tau]
-- external: array of size of external index, e.g. [size of external momentum index, size of external tau]
-- eval: function to evaluate the group
-- obstype: type of the diagram weight, e.g. Float64
-"""
-mutable struct Diagram
-    nvar::Vector{Int}
-
-    reWeightFactor::Float64
-    visitedSteps::Float64
-    proposeDiag::Vector{Float64}
-    acceptDiag::Vector{Float64}
-    proposeVar::Vector{Float64}
-    acceptVar::Vector{Float64}
-
-    function Diagram(_nvar)
-        proposeDiag = Vector{Float64}(undef, 0)
-        acceptDiag = Vector{Float64}(undef, 0)
-        proposeVar = Vector{Float64}(undef, 0)
-        acceptVar = Vector{Float64}(undef, 0)
-        return new(_nvar, 1.0, 1.0e-6, proposeDiag, acceptDiag, proposeVar, proposeVar)
-    end
-end
-
-mutable struct Configuration{V,R,P,O}
-    pid::Int
-    para::P
-    totalStep::Int64
-    diagrams::Vector{Diagram}
-    neighbor::Vector{Vector{Int}}
-    obs::O
-    var::V
-
-    step::Int64
-    curr::Int
-    rng::R
-    absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
-
-    function Configuration(pid, totalStep, diagrams, neighbor, var::V, obs::O, para::P, rng::R) where {V,R,P,O}
-        @assert pid >= 0 "pid should be positive!"
-        @assert totalStep > 0 "Total step should be positive!"
-        @assert length(diagrams) > 0 "diagrams should not be empty!"
-        @assert length(diagrams) == length(neighbor) 
-        for d in diagrams
-            @assert length(d.nvar) == length(var)
-        end
-
-        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency"
-
-        curr = 1 # set the current diagram to be the first one
-        # a small initial absweight makes the initial configuaration quickly updated,
-        # so that no error is caused even if the intial absweight is wrong, 
-        absweight = 1.0e-10 
-
-        return new{V,R,P,O}(pid, para, Int64(totalStep), collect(diagrams), neighbor, obs, var, 0, curr, rng, absweight)
-    end
-end
-
-# Macro to make struct
-# macro make_struct(struct_name, schema...)
-#     fields=[:($(entry.args[1])::$(entry.args[2])) for entry in schema]
-#     esc(quote struct $struct_name
-#         $(fields...)
-#         end
-#     end)
-# end
-
-macro configuration(schema...)
-    fields = [:($(entry.args[1])::$(entry.args[2])) for entry in schema]
-    esc(quote struct $struct_name
-            $(fields...)
-        end
-    end)
-end

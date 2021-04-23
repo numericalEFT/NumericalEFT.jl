@@ -53,12 +53,13 @@ end
 end
 
 @everywhere function measure(config)
-    obs = config.obs
-    factor = 1.0 / config.diagrams[config.curr].reWeightFactor
+    obs = config.observable
+    curr = config.curr
+    factor = 1.0 / config.reweight[curr]
     extidx = config.var[3][1]
-    if config.curr == 1
+    if curr == 1
         obs[1][extidx] += factor
-    elseif config.curr == 2
+    elseif curr == 2
         weight = integrand(config)
         obs[2][extidx] += weight / abs(weight) * factor
     else
@@ -66,7 +67,7 @@ end
     end
 end
 
-@everywhere normalize(config) = config.obs[2] / sum(config.obs[1]) * config.para.Qsize
+@everywhere normalize(config) = config.observable[2] / sum(config.observable[1]) * config.para.Qsize
 
 function run(totalStep)
 
@@ -77,10 +78,10 @@ function run(totalStep)
     T = MonteCarlo.Tau(β, β / 2.0)
     Ext = MonteCarlo.Discrete(1, length(extQ)) # external variable is specified
 
-    diag = ([1, 0, 1], [2, 1, 1]) # degrees of freedom of the normalization diagram and the bubble
+    dof = ([1, 0, 1], [2, 1, 1]) # degrees of freedom of the normalization diagram and the bubble
     obs = (zeros(Float64, Qsize), zeros(Float64, Qsize)) # observable for the normalization diagram and the bubble
 
-    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), diag, obs, integrand, measure, normalize; Nblock=10,  para=para, print=10)
+    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure, normalize; Nblock=10,  para=para, print=10)
 
 
     @unpack kF, β, m, n, extQ = Para()
@@ -92,7 +93,5 @@ function run(totalStep)
     end
 end
 
-# @btime run(1, 10)
-# @time run(Repeat, totalStep)
 run(totalStep)
-# @time run(Repeat, totalStep)
+# @time run(totalStep)
