@@ -53,7 +53,7 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
 
     #################### distribute MC tasks  ##############################
     mymap = isdefined(Main, :pmap) ? Main.pmap : map # if Distributed module is imported, then use pmap for parallelization
-    config = mymap((c) -> montecarlo(c, integrand, measure; print=print, printio=printio, save=save, saveio=saveio, timer=timer), configList)
+    config = @sync mymap((c) -> montecarlo(c, integrand, measure; print=print, printio=printio, save=save, saveio=saveio, timer=timer), configList)
     # mymap((c) -> montecarlo(c, integrand, measure; print=print, printio=printio, save=save, saveio=saveio, timer=timer), configList)
     # @distributed 
     # config = configList
