@@ -3,7 +3,7 @@
 using Distributed
 using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkTools, InteractiveUtils, Parameters
 
-const Ncpu = 4
+const Ncpu = 1
 const totalStep = 1e7
 const Repeat = 1
 
@@ -82,7 +82,7 @@ function run(totalStep)
     diag = ([1, 0, 1], [2, 1, 1]) # degrees of freedom of the normalization diagram and the bubble
     obs = (zeros(Float64, Qsize), zeros(Float64, Qsize)) # observable for the normalization diagram and the bubble
 
-    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), diag, obs, integrand, measure, normalize;  Nblock=Ncpu, para=para, print=10)
+    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), diag, obs, integrand, measure, normalize;  Nblock=16, para=para, print=10)
 
 
     @unpack kF, β, m, n, extQ = Para()

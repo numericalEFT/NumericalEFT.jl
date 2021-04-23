@@ -54,7 +54,9 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
     #################### distribute MC tasks  ##############################
     mymap = isdefined(Main, :pmap) ? Main.pmap : map # if Distributed module is imported, then use pmap for parallelization
     config = mymap((c) -> montecarlo(c, integrand, measure; print=print, printio=printio, save=save, saveio=saveio, timer=timer), configList)
-
+    # mymap((c) -> montecarlo(c, integrand, measure; print=print, printio=printio, save=save, saveio=saveio, timer=timer), configList)
+    # @distributed 
+    # config = configList
     @assert length(config) == Nblock # make sure all tasks returns
 
     ##################### Extract Statistics  ################################
@@ -104,7 +106,7 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
         printstyled("PID $(config.pid) Start Simulation ...\n", color=:red)
     end
     startTime = time()
-
+        
     for i = 1:config.totalStep
         config.step += 1
         config.diagrams[config.curr].visitedSteps += 1
@@ -137,7 +139,7 @@ function reweight(config)
         if g.visitedSteps > 10000
             # g.reWeightFactor=g.reWeightFactor*0.5+totalstep/g.visitedSteps*0.5
             g.reWeightFactor *= avgstep / g.visitedSteps
-end
+        end
     end
 end
 
