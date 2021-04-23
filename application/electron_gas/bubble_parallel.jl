@@ -1,21 +1,15 @@
 # This example demonstrated how to calculate the bubble diagram of free electrons using the Monte Carlo module
 
 using Distributed
+using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkTools, InteractiveUtils, Parameters
 
-const Ncpu = 1 
+const Ncpu = 4
 const totalStep = 1e7
 const Repeat = 1
 
 addprocs(Ncpu)
 
-@everywhere using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, Statistics, BenchmarkTools, InteractiveUtils, Parameters
-
-# claim all globals to be constant, otherwise, global variables could impact the efficiency
-# @everywhere const kF, m, Qsize = 1.919, 0.5, 16
-# @everywhere const β = 25.0 / kF^2
-# @everywhere const n = 0 # external Matsubara frequency
-# @everywhere const extQ = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
-# @everywhere const obs1, obs2 = zeros(Float64, Qsize), zeros(Float64, Qsize)
+@everywhere using QuantumStatistics, Parameters, StaticArrays, Random, LinearAlgebra
 
 @everywhere @with_kw struct Para
     kF::Float64 = 1.919
@@ -23,15 +17,13 @@ addprocs(Ncpu)
     β::Float64 = 25.0 / kF^2
     n::Int = 0 # external Matsubara frequency
     Qsize::Int = 16
-    extQ::Vector{MVector{3,Float64}} = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
-    obs1::Vector{Float64} = zeros(Float64, Qsize)
-    obs2::Vector{Float64} = zeros(Float64, Qsize)
+    extQ::Vector{SVector{3,Float64}} = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
 end
 
 @everywhere function integrand(config)
-    if config.curr.id == 1
+    if config.curr == 1
         return 1.0
-    elseif config.curr.id == 2
+    elseif config.curr == 2
             return eval2(config)
         else
             return 0.0
@@ -61,69 +53,48 @@ end
 end
 
 @everywhere function measure(config)
-    para = config.para
-    diag = config.curr
-    factor = 1.0 / diag.reWeightFactor
+    obs = config.obs
+    factor = 1.0 / config.diagrams[config.curr].reWeightFactor
     extidx = config.var[3][1]
-    if diag.id == 1
-        para.obs1[extidx] += factor
-    elseif diag.id == 2
+    if config.curr == 1
+        obs[1][extidx] += factor
+    elseif config.curr == 2
         weight = integrand(config)
-        para.obs2[extidx] += weight / abs(weight) * factor
+        obs[2][extidx] += weight / abs(weight) * factor
     else
         return
     end
 end
 
-@everywhere function MC(totalStep, pid)
-    rng = MersenneTwister(pid)
+@everywhere normalize(config) = config.obs[2] / sum(config.obs[1]) * config.para.Qsize
+
+function run(totalStep)
 
     para = Para()
-    @unpack kF, β, extQ = para 
+    @unpack kF, β, extQ, Qsize = para 
 
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
     Ext = MonteCarlo.Discrete(1, length(extQ)) # external variable is specified
-    diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1])
-    diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1])
+    # diag1 = MonteCarlo.Diagram(1, 0, [1, 0, 1])
+    # diag2 = MonteCarlo.Diagram(2, 1, [2, 1, 1])
 
+    diag = ([1, 0, 1], [2, 1, 1]) # degrees of freedom of the normalization diagram and the bubble
+    obs = (zeros(Float64, Qsize), zeros(Float64, Qsize)) # observable for the normalization diagram and the bubble
 
-    config = MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext), para; pid=pid, rng=rng)
+    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), diag, obs, integrand, measure, normalize;  Nblock=Ncpu, para=para, print=10)
 
-    # @code_warntype MonteCarlo.Configuration(totalStep, (diag1, diag2), (T, K, Ext); pid=pid, rng=rng)
-    # @code_warntype MonteCarlo.Diagram(2, 1, [2, 1, 1], zeros(Float64, Ext.size))
-    # @code_warntype MonteCarlo.increaseOrder(config, integrand)
-    # @code_warntype integrand(config)
-    # @code_warntype eval2(config)
-    # @code_warntype measure(config)
-    # @code_lowered MonteCarlo.changeVar(config, integrand)
-    # exit()
-
-    MonteCarlo.montecarlo(config, integrand, measure)
-
-    return para.obs2 / sum(para.obs1) * Ext.size
-end
-
-function run(repeat, totalStep)
-    if Ncpu > 1
-        observable = pmap((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
-    else
-        observable = map((x) -> MC(totalStep, rand(1:10000)), 1:repeat)
-    end
-
-    obs = mean(observable)
-    obserr = std(observable) / sqrt(length(observable))
 
     @unpack kF, β, m, n, extQ = Para()
 
     for (idx, q) in enumerate(extQ)
         q = q[1]
         p, err = TwoPoint.LindhardΩnFiniteTemperature(3, q, n, kF, β, m, 2)
-        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, obs[idx], obserr[idx], p, err)
+        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, avg[idx], std[idx], p, err)
     end
 end
 
 # @btime run(1, 10)
 # @time run(Repeat, totalStep)
-run(Repeat, totalStep)
+run(totalStep)
 # @time run(Repeat, totalStep)
