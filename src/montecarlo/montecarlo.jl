@@ -79,8 +79,10 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
     end
 
     ############# initialize reweight factors ########################
+    doReweight = false
     if isnothing(reweight)
         reweight = [1.0 for d in 1:Nd]
+        doReweight = true
     end
 
     ############ initialized timer ####################################
@@ -105,7 +107,7 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
 
     #################### distribute MC tasks  ##############################
     mymap = isdefined(Main, :pmap) ? Main.pmap : map # if Distributed module is imported, then use pmap for parallelization
-    config = @sync mymap((c) -> montecarlo(c, integrand, measure, print, save, timer), configList)
+    config = @sync mymap((c) -> montecarlo(c, integrand, measure, print, save, timer, doReweight), configList)
     @assert length(config) == Nblock # make sure all tasks returns
 
     ##################### Extract Statistics  ################################
@@ -125,12 +127,13 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
     return avg, err
 end
 
-function montecarlo(config::Configuration, integrand::Function, measure::Function, print, save, timer)
+function montecarlo(config::Configuration, integrand::Function, measure::Function, print, save, timer, doReweight)
     ##############  initialization  ################################
     # don't forget to initialize the diagram weight
     config.absWeight = abs(integrand(config))
     
     updates = [changeIntegrand, changeVariable] # TODO: sample changeVariable more often
+    # updates = [changeVariable] # TODO: sample changeVariable more often
 
     ########### MC simulation ##################################
     if (print >= 0)
@@ -148,7 +151,7 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
             for t in timer
                 check(t, [config, ])
             end
-            if i > 1000_00 && i % 1000_00 == 0
+            if doReweight && i > 1000_00 && i % 1000_00 == 0
                 reweight(config)
         end
         end
@@ -163,8 +166,6 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
 end
 
 function reweight(config)
-    # config.diagrams[1].reWeightFactor = 1.0
-    # config.diagrams[2].reWeightFactor = 8.0
     avgstep = sum(config.visited) / length(config.visited)
     for (vi, v) in enumerate(config.visited)
         if v > 10000
