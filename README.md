@@ -1,24 +1,47 @@
 # Package QuantumStatistics
 
-A platform for numerical experiments on quantum statistics.
+Toolbox for numerical experiment on quantum many-body field theory.
 
-| Status | Coverage | Document
-| :----: | :----: | :----: |
+|                                                                   Status                                                                    |                                                                      Coverage                                                                      |                                                     Document                                                      |
+| :-----------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------: |
 | [![Build Status](https://travis-ci.org/kunyuan/QuantumStatistics.jl.svg?branch=master)](https://travis-ci.org/kunyuan/QuantumStatistics.jl) | [![codecov](https://codecov.io/gh/kunyuan/QuantumStatistics.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/kunyuan/QuantumStatistics.jl) | [![Document](https://img.shields.io/badge/docs-dev-blue.svg)](https://kunyuan.github.io/QuantumStatistics.jl/dev) |
 
 ## Installation
 
-The package can be installed with the Julia package manager. 
+Currently, this package is not yet registered. So, `Pkg.add("QuantumStatistics")` will not work (yet).
+
+There two ways to install this package:
+
+1. The package can be installed with the Julia package manager. 
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
-```
+```julia
 pkg> add https://github.com/kunyuan/QuantumStatistics.jl
 ```
-<!-- 
-Or, equivalently, via the `Pkg` API:
+
+2. From the Julia REPL, run:
 ```julia
-julia> import Pkg; Pkg.add("https://github.com/kunyuan/QuantumStatistics.jl")
-``` 
--->
+julia> using Pkg; Pkg.add(PackageSpec(url="https://github.com/kunyuan/QuantumStatistics.jl"))
+```
+
+## Development
+
+1. To develop or modify this package, you need to install this package first, then run from the Julia REPL:
+```julia
+julia> dev QuantumStatistics
+```
+This command will automatically create a copy of the package git repository in at ~/.julia/dev/QuantumStatistics.
+
+2. To check if the dev package is correctly activated,  you may enter the Pkg REPL mode and run,
+```julia
+pkg> st
+```
+you should be able to see the QuantumStatistics entry points to the above folder.
+
+3. You may make modifications to the dev package. When you load the package from somewhere,
+```julia
+using QuantumStatistics
+```
+you should be able to see the modifications.
 
 ## Documentation
 <!-- - [**STABLE**][docs-stable-url] &mdash; **documentation of the most recently tagged version.** -->
