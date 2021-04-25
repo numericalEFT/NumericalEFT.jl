@@ -2,13 +2,14 @@
 # Observable is normalized: Γ₄*N_F where N_F is the free electron density of states
 
 using Distributed
+using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkTools, InteractiveUtils, Parameters
 
 const Ncpu = 8 # number of workers (CPU)
 const totalStep = 1e7 # MC steps of each worker
-const Repeat = Ncpu # total number of MC jobs
+
 addprocs(Ncpu) 
 
-@everywhere using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, Statistics, BenchmarkTools, InteractiveUtils, Parameters
+@everywhere using QuantumStatistics, Parameters, StaticArrays, Random, LinearAlgebra
 @everywhere include("RPA.jl")
 
 # claim all globals to be constant, otherwise, global variables could impact the efficiency
