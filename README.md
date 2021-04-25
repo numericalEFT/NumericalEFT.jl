@@ -32,7 +32,7 @@ From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 pkg> add https://github.com/kunyuan/QuantumStatistics.jl
 ```
 
-2. From the Julia REPL, run:
+2. Alternatively, you can run the following command from the Julia REPL:
 ```julia
 julia> using Pkg; Pkg.add(PackageSpec(url="https://github.com/kunyuan/QuantumStatistics.jl"))
 ```
