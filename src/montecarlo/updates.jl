@@ -54,8 +54,10 @@ function changeVariable(config, integrand)
     currAbsWeight = config.absWeight
     R = prop * newAbsWeight / currAbsWeight
 
+    # curr == 2 && println("propose, $curr: old: $oldvar --> new: $(var[idx]), with R $newAbsWeight / $currAbsWeight * $prop = $R")
     config.propose[2, curr, vi] += 1.0
     if rand(config.rng) < R
+        # curr == 2 && println("accept, $curr")
         config.accept[2, curr, vi] += 1.0
         config.absWeight = newAbsWeight
     else
