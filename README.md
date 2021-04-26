@@ -41,7 +41,7 @@ julia> using Pkg; Pkg.add(PackageSpec(url="https://github.com/kunyuan/QuantumSta
 
 1. To develop or modify this package, you need to install this package first, then run from the Julia REPL:
 ```julia
-julia> dev QuantumStatistics
+pkg> dev QuantumStatistics
 ```
 This command will automatically create a copy of the package git repository in at ~/.julia/dev/QuantumStatistics.
 
