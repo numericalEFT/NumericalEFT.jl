@@ -39,7 +39,7 @@ julia> using Pkg; Pkg.add(PackageSpec(url="https://github.com/kunyuan/QuantumSta
 
 ## Development
 
-1. To develop or modify this package, you need to install this package first, then run from the Julia REPL:
+1. To develop or modify this package, you need to install this package first, then type `]` to enter the Pkg REPL mode and run:
 ```julia
 pkg> dev QuantumStatistics
 ```
