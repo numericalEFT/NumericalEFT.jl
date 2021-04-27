@@ -7,10 +7,13 @@ using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkT
 const Ncpu = 16 # number of workers (CPU)
 const totalStep = 1e8 # MC steps of each worker
 
+include("RPA.jl") # dW0 will be only calculated once in the master, then distributed to other workers. Therefore, there is no need to import RPA.jl for all workers.
+
 addprocs(Ncpu) 
 
 @everywhere using QuantumStatistics, Parameters, StaticArrays, Random, LinearAlgebra
 @everywhere include("parameter.jl")
+@everywhere include("interaction.jl")
 
 # claim all globals to be constant, otherwise, global variables could impact the efficiency
 ########################### parameters ##################################
@@ -18,52 +21,23 @@ addprocs(Ncpu)
 @everywhere const AngSize = 16
 
 ########################## variables for MC integration ##################
-@everywhere const Weight = SVector{2,Float64}
-@everywhere const Base.abs(w::Weight) = abs(w[1]) + abs(w[2]) # define abs(Weight)
 @everywhere const KInL = [kF, 0.0, 0.0] # incoming momentum of the left particle
 @everywhere const Qd = [0.0, 0.0, 0.0] # transfer momentum is zero in the forward scattering channel
 
-################ construct RPA interaction ################################
-@everywhere const qgrid = Grid.boseK(kF, 6kF, 0.2kF, 256) 
-@everywhere const τgrid = Grid.tau(β, EF / 20, 128)
-
-include("RPA.jl") # dW0 will be only calculated once in the master, then distributed to other workers. Therefore, there is no need to import RPA.jl for all workers.
-
-@everywhere struct Para
+@everywhere struct Para{Q,T}
     extAngle::Vector{Float64}
     dW0::Matrix{Float64}
+    qgrid::Q
+    τgrid::T
     function Para(AngSize)
         extAngle = collect(LinRange(0.0, π, AngSize)) # external angle grid
+        qgrid = Grid.boseK(kF, 6kF, 0.2kF, 256) 
+        τgrid = Grid.tau(β, EF / 20, 128)
+
         vqinv = [(q^2 + mass2) / (4π * e0^2) for q in qgrid.grid]
         dW0 = dWRPA(vqinv, qgrid.grid, τgrid.grid, kF, β, spin, me) # dynamic part of the effective interaction
-        # println(size(extAngle))
-        # println(size(dW0))
-        return new(extAngle, dW0)
+        return new{typeof(qgrid),typeof(τgrid)}(extAngle, dW0, qgrid, τgrid)
     end
-end
-
-@everywhere function interaction(config, qd, qe, τIn, τOut)
-    dW0 = config.para.dW0
-
-    dτ = abs(τOut - τIn)
-
-    kDiQ = sqrt(dot(qd, qd))
-    vd = 4π * e0^2 / (kDiQ^2 + mass2)
-    if kDiQ <= qgrid.grid[1]
-        wd = vd * Grid.linear2D(dW0, qgrid, τgrid, qgrid.grid[1] + 1.0e-6, dτ) # the current interpolation vanishes at q=0, which needs to be corrected!
-    else
-        wd = vd * Grid.linear2D(dW0, qgrid, τgrid, kDiQ, dτ) # dynamic interaction, don't forget the singular factor vq
-    end
-
-    kExQ = sqrt(dot(qe, qe))
-    ve = 4π * e0^2 / (kExQ^2 + mass2)
-    if kExQ <= qgrid.grid[1]
-        we = ve * Grid.linear2D(dW0, qgrid, τgrid, qgrid.grid[1] + 1.0e-6, dτ) # dynamic interaction, don't forget the singular factor vq
-    else
-        we = ve * Grid.linear2D(dW0, qgrid, τgrid, kExQ, dτ) # dynamic interaction, don't forget the singular factor vq
-    end
-
-    return -vd / β, ve / β, -wd, we
 end
 
 @everywhere function phase(tInL, tOutL, tInR, tOutR)
@@ -91,8 +65,8 @@ end
     θ = config.para.extAngle[Ang[1]] # angle of the external momentum on the right
     KInR = [kF * cos(θ), kF * sin(θ), 0.0]
 
-    vld, vle, wld, wle = interaction(config, Qd, KInL - k1, t1[1], t1[2])
-    vrd, vre, wrd, wre = interaction(config, Qd, KInR - k2, t2[1], t2[2])
+    vld, wld, vle, wle = vertexDynamic(config, Qd, KInL - k1, t1[1], t1[2])
+    vrd, wrd, vre, wre = vertexDynamic(config, Qd, KInR - k2, t2[1], t2[2])
 
     ϵ1, ϵ2 = (dot(k1, k1) - kF^2) / (2me), (dot(k2, k2) - kF^2) / (2me) 
     wd, we = 0.0, 0.0
