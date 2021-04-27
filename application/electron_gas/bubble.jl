@@ -82,7 +82,7 @@ function run(totalStep)
 
     for (idx, q) in enumerate(extQ)
         q = q[1]
-        p, err = TwoPoint.LindhardΩnFiniteTemperature(3, q, n, kF, β, me, 2)
+        p, err = TwoPoint.LindhardΩnFiniteTemperature(dim, q, n, kF, β, me, spin)
         @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, avg[idx], std[idx], p, err)
     end
 end

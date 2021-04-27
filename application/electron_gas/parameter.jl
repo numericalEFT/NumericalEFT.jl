@@ -10,4 +10,5 @@ const rs = 1.0
 const kF = (dim == 3) ? (9π / (2spin))^(1 / 3) / rs : sqrt(4 / spin) / rs
 const EF = kF^2 / (2me)
 const β = 25.0 / kF^2
+const mass2 = 0.05
 # const Nf = (D==3) ? 
