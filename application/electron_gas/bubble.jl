@@ -1,7 +1,7 @@
 # This example demonstrated how to calculate the bubble diagram of free electrons using the Monte Carlo module
 
 using Distributed
-using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkTools, InteractiveUtils, Parameters
+using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, InteractiveUtils, Parameters
 
 const Ncpu = 4
 const totalStep = 1e8
@@ -10,7 +10,7 @@ addprocs(Ncpu)
 
 @everywhere include("parameter.jl")
 
-@everywhere using QuantumStatistics, Parameters, StaticArrays, Random, LinearAlgebra
+@everywhere using QuantumStatistics, Parameters, Random, LinearAlgebra
 
 @everywhere @with_kw struct Para
     n::Int = 0 # external Matsubara frequency

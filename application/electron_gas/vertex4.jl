@@ -2,16 +2,16 @@
 # Observable is normalized: Γ₄*N_F where N_F is the free electron density of states
 
 using Distributed
-using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkTools, InteractiveUtils, Parameters
+using QuantumStatistics, LinearAlgebra, Random, Printf,  BenchmarkTools, InteractiveUtils, Parameters
 
-const Ncpu = 16 # number of workers (CPU)
-const totalStep = 1e8 # MC steps of each worker
+const Ncpu = 1 # number of workers (CPU)
+const totalStep = 1e7 # MC steps of each worker
 
 include("RPA.jl") # dW0 will be only calculated once in the master, then distributed to other workers. Therefore, there is no need to import RPA.jl for all workers.
 
 addprocs(Ncpu) 
 
-@everywhere using QuantumStatistics, Parameters, StaticArrays, Random, LinearAlgebra
+@everywhere using QuantumStatistics, Parameters, Random, LinearAlgebra
 @everywhere include("parameter.jl")
 @everywhere include("interaction.jl")
 
