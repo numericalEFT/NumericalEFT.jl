@@ -45,7 +45,12 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println("τGrid: ", τgrid.grid)
     vqinv = [(q^2 + mass2) / (4π * e0^2) for q in qgrid.grid] # instantaneous interaction (Coulomb interaction)
 
+
     dW0norm = dWRPA(vqinv, qgrid.grid, τgrid.grid, kF, β, spin, me)
+    for (qi, q) in enumerate(qgrid.grid)
+        println("$q   $(dW0norm[qi, 1])")
+    end
+
     display(plot(qgrid.grid ./ kF, dW0norm[:, 1]))
     sleep(100)
 end

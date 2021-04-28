@@ -1,7 +1,7 @@
 using Printf, LinearAlgebra, Distributed
 
 const Ncpu = 16 # number of workers (CPU)
-const totalStep = 1e9
+const totalStep = 1e8
 addprocs(Ncpu)
 
 @everywhere using QuantumStatistics, Parameters, Random, LinearAlgebra
@@ -41,11 +41,9 @@ end
 @everywhere function eval2(config)
     para = config.para
 
-    K, ExtT, ExtK = config.var[1], config.var[2], config.var[3]
-    k = K[1]
-    extTidx, extKidx = ExtT[1], ExtK[1]
-    k0 = kgrid.grid[extKidx] # external momentum
-    τ = dlr.τ[extTidx] # external τ
+    K, T = config.var[1], config.var[2]
+    k, τ = K[1], T[1]
+    k0 = [0.0, 0.0, kF] # external momentum
     kq = k + k0
     ω = (dot(kq, kq) - kF^2) / (2me)
     g = Spectral.kernelFermiT(τ, ω, β)
@@ -56,19 +54,19 @@ end
 
 @everywhere function measure(config)
     factor = 1.0 / config.reweight[config.curr]
-    ExtT, ExtK =  config.var[2], config.var[3]
-    extTidx, extKidx = ExtT[1], ExtK[1]
+    τ = config.var[2][1]
     if config.curr == 1
-        config.observable[1][1, 1] += factor
+        config.observable[1][1] += factor
     elseif config.curr == 2
         weight = integrand(config)
-        config.observable[2][extTidx, extKidx] += weight / abs(weight) * factor
+        config.observable[2][1] += weight * sin(-π / β * τ) / abs(weight) * factor
+        config.observable[2][2] += weight * sin(π / β * τ) / abs(weight) * factor
     else
         return
     end
 end
 
-@everywhere normalize(config) = config.observable[2] / config.observable[1][1, 1]
+@everywhere normalize(config) = config.observable[2] / config.observable[1][1]
 
 function fock(extn)
     para = Para()
@@ -76,29 +74,18 @@ function fock(extn)
     Ksize = length(kgrid.grid)
 
     K = MonteCarlo.FermiK(dim, kF, 0.2 * kF, 10.0 * kF)
-    ExtT = MonteCarlo.Discrete(1, dlr.size)
-    ExtK = MonteCarlo.Discrete(1, Ksize) # external variable is specified
+    T = MonteCarlo.Tau(β, β / 2.0)
 
-    dof = ([0, 0, 0], [1, 1, 1]) # degrees of freedom of the normalization diagram and the bubble
-    obs = (zeros(Float64, (dlr.size, Ksize)), zeros(Float64, (dlr.size, Ksize))) # observable for the normalization diagram and the bubble
+    dof = ([0, 0], [1, 1]) # degrees of freedom of the normalization diagram and the bubble
+    obs = ([0.0, 0.0], [0.0, 0.0]) # observable for the normalization diagram and the bubble
 
-    avg, std = MonteCarlo.sample(totalStep, (K, ExtT, ExtK), dof, obs, integrand, measure, normalize; para=para, print=10)
+    avg, std = MonteCarlo.sample(totalStep, (K, T), dof, obs, integrand, measure, normalize; para=para, print=10)
 
-    println("Tau: ")
 
-    ki = findall(x -> x ≈ kF, kgrid.grid)[1]
-    for (τi, τ) in enumerate(dlr.τ)
-        @printf("%10.6f   %10.6f ± %10.6f\n", τ, avg[τi, ki], std[τi, ki])
-    end
+    @printf("%10.6f   %10.6f ± %10.6f\n", -1.0, avg[1], std[1])
+    @printf("%10.6f   %10.6f ± %10.6f\n", 0.0, avg[2], std[2])
 
-    println("Matsubara frequency: ")
-
-    sigma = DLR.tau2matfreq(:fermi, avg, dlr, extn, axis=1)
-    for (ni, n) in enumerate(extn)
-        @printf("%10.6f   %10.6f    %10.6f\n", n, real(sigma[ni, ki]), imag(sigma[ni, ki]))
-    end
-
-    dS_dw = imag(sigma[1, ki] - sigma[2, ki]) / (2π / β)
+    dS_dw = (avg[1] - avg[2]) / (2π / β)
     println("dΣ/diω=", dS_dw)
     println("Z=", 1 / (1 + dS_dw))
     # TODO: add errorbar estimation
