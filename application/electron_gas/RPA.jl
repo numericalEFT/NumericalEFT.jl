@@ -30,8 +30,18 @@ function dWRPA(vqinv, qgrid, τgrid, kF, β, spin, mass)
         end
         dW0norm[:, ni] = @. Π[:, ni] / (vqinv - Π[:, ni])
         # println("ω_n=2π/β*$(n), Π(q=0, n=0)=$(Π[1, ni])")
+        # println("$ni  $(dW0norm[2, ni])")
     end
     dW0norm = DLR.matfreq2tau(:corr, dW0norm, dlr, τgrid, axis=2) # dW0/vq in imaginary-time representation, real-valued but in complex format
+    
+    # println(dW0norm[1, :])
+    # println(DLR.matfreq2tau(:corr, dW0norm[1, :], dlr, τgrid, axis=1))
+    # println(DLR.matfreq2tau(:corr, dW0norm[2, :], dlr, τgrid, axis=1))
+    # coeff = DLR.matfreq2dlr(:corr, dW0norm[1, :], dlr)
+    # fitted = DLR.dlr2matfreq(:corr, coeff, dlr, dlr.n)
+    # for (ni, n) in enumerate(dlr.n)
+    #     println(dW0norm[1, ni], " vs ", fitted[ni])
+    # end
     return real.(dW0norm) 
 end
 

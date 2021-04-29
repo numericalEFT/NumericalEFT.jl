@@ -17,7 +17,7 @@ addprocs(Ncpu)
     qgrid::Q
     τgrid::T # dedicated τgrid for dynamic interaction
     function Para()
-        qgrid = Grid.boseK(kF, 6kF, 0.1kF, 256) 
+        qgrid = Grid.boseK(kF, 6kF, 0.1kF, 512) 
         # τgrid = Grid.tau(β, EF / 5, 128) #for rs=4
         τgrid = Grid.tau(β, EF / 25, 128) # for rs=1
         # TODO: τgrid halflife works very strange
@@ -49,7 +49,7 @@ end
     g = Spectral.kernelFermiT(τ, ω, β)
     v, dW = interactionDynamic(config, k, 0.0, τ)
     phase = 1.0 / (2π)^3
-    return g * dW * spin * phase
+    return g * dW * phase
 end
 
 @everywhere function measure(config)
@@ -70,7 +70,6 @@ end
 
 function fock(extn)
     para = Para()
-    println(para.τgrid.grid)
     Ksize = length(kgrid.grid)
 
     K = MonteCarlo.FermiK(dim, kF, 0.2 * kF, 10.0 * kF)
@@ -86,8 +85,11 @@ function fock(extn)
     @printf("%10.6f   %10.6f ± %10.6f\n", 0.0, avg[2], std[2])
 
     dS_dw = (avg[1] - avg[2]) / (2π / β)
-    println("dΣ/diω=", dS_dw)
-    println("Z=", 1 / (1 + dS_dw))
+    error = (std[1] + std[2]) / (2π / β)
+    println("dΣ/diω= $dS_dw ± $error") 
+    Z = (1 / (1 + dS_dw))
+    Zerror = error / Z^2
+    println("Z=  $Z ± $Zerror")
     # TODO: add errorbar estimation
     # println
 end
