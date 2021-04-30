@@ -129,12 +129,12 @@ function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     #     return 1.0
     # end
     x = rand(rng)
-    if x < 1.0 / 2
+    if x < 1.0 / 3
         λ = 1.5
         ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
         K[idx] = K[idx] * ratio
         return (D == 2) ? 1.0 : ratio
-    else
+    elseif x < 2.0 / 3
         ϕ = rand(rng) * 2π
         if (D == 3)
             θ = rand(rng) * π
@@ -150,6 +150,12 @@ function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
             K = @SVector [Kamp * cos(ϕ), Kamp * sin(ϕ)]
     return 1.0
         end
+    else
+        # K[idx] = @. K[idx] + (rand(rng, D) - 0.5) * K.δk
+        K[idx] += (rand(rng, D) .- 0.5) .* K.δk
+        return 1.0
+        # K[idx] = K[idx] * (-1.0)
+        # return 1.0
     end
 end
 
