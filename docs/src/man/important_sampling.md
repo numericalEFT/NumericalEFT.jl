@@ -109,13 +109,15 @@ where $\beta \gg \delta$.
 | result  | 0.1771(1) | 0.1773(1) |
 
 - __Conventional__: exact result
-2. ``g(x)=\sqrt{\pi}\delta/\beta``
+2. ``g(x)=\sqrt{\pi}\delta/\beta1``
+
 | $\beta$       | 10        | 100        |
 | ------------- | --------- | ---------- |
 | Normalization | 0.1772(4) | 0.1767(17) |
 | Conventional  | 0.1777(3) | 0.1767(8)  |
 
 3. ``g(x)=exp(-(x-\beta/2+s)^2/\delta^2)`` with ``\beta=100``
+
 | $s$           | $\delta$  | $2\delta$  | $3\delta$   | $4\delta$   | $5\delta$ |
 | ------------- | --------- | ---------- | ----------- | ----------- | --------- |
 | Normalization | 0.1775(8) | 0.1767(25) | 0.1770(60)  | 0.176(15)   | 183(143)  |
