@@ -226,7 +226,7 @@ function test(ver4)
             G1T, GxT = collect(G[1].Tpair[map.G0]), collect(G[bub.chan].Tpair[map.Gx]) # 4 internal variables
             ExtT = collect(ver4.Tpair[map.ver]) # 4 external variables
             @assert compare(vcat(G1T, GxT, ExtT), vcat(LverT, RverT)) "chan $(ChanName[bub.chan]): G1=$G1T, Gx=$GxT, external=$ExtT don't match with Lver4 $LverT and Rver4 $RverT" 
-        end
+end
 end
 end
 
@@ -243,9 +243,8 @@ end
 """
 function showTree(ver4, para::Para; verbose=0, depth=999)
 
-    pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__)
+    # pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__) #comment this line if no need to load local python module
     ete = pyimport("ete3")
-    tree = pyimport("tree")
 
     function tpair(ver4)
         s = ""
