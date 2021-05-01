@@ -1,25 +1,42 @@
 struct Para
     chan::Vector{Int}
-    chantype::Vector{Symbol} # channel types, :T, :S, or :U
-    bubble::Dict{Int,Tuple{Vector{Int},Vector{Int}}} 
+    # bubble::Dict{Int,Tuple{Vector{Int},Vector{Int}}} 
     # key: channels that are bubbles; 
     # value: (lver, rver) where lver is the lists of allowed channels in the left sub-vertex
     # rver is the lists of allowed channels in the right sub-vertex
+    F::Vector{Int}
+    V::Vector{Int}
     interactionTauNum::Vector{Int} # list of possible τ degrees of freedom of the bare interaction 0, 2, or 4
-    function Para(chantype, bubble, interactionTauNum)
+    function Para(chan, interactionTauNum)
 
         for tnum in interactionTauNum
             @assert tnum == 1 || tnum == 2 || tnum == 4
         end
 
-        chan = [i for i in 1:length(chantype)]
-        for k in keys(bubble) # check validity of the bubble dictionary
-            @assert issubset(k, chan) "$k isn't in the channel list $chan"
-            lver, rver = bubble[k]
-            @assert issubset(lver, chan) "$lver isn't in the channel list $chan"
-            @assert issubset(rver, chan) "$rver isn't in the channel list $chan"
+        # chan = [i for i in 1:length(chantype)]
+        # for k in keys(bubble) # check validity of the bubble dictionary
+        #     @assert issubset(k, chan) "$k isn't in the channel list $chan"
+        #     lver, rver = bubble[k]
+        #     @assert issubset(lver, chan) "$lver isn't in the channel list $chan"
+        #     @assert issubset(rver, chan) "$rver isn't in the channel list $chan"
+        # end
+
+        # for (ci, type) in chan
+        #     if type == :T
+
+        #     elseif type == :S
+        #     elseif type ==:U
+        #     else
+        #         error("chan $type has not yet been implemented!")
+        #     end
+        # end
+        for c in chan
+            @assert c in Allchan "$chan $c isn't implemented!"
         end
-        return new(chan, chantype, bubble, interactionTauNum)
+        F = intersect(chan, Fchan)
+        V = intersect(chan, Vchan)
+
+        return new(chan, F, V, interactionTauNum)
     end
 end
 
@@ -58,14 +75,23 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
     map::Vector{IdxMap}
 
     function Bubble{_Ver4,W}(ver4::_Ver4, chan::Int, oL::Int, para::Para, level::Int) where {_Ver4,W}
-        @assert chan in keys(para.bubble) "$chan isn't a bubble channels!"
+        @assert chan in para.chan "$chan isn't a bubble channels!"
         @assert oL < ver4.loopNum "LVer loopNum must be smaller than the ver4 loopNum"
 
         oR = ver4.loopNum - 1 - oL # loopNum of the right vertex
         LTidx = ver4.Tidx  # the first τ index of the left vertex
         maxTauNum = maximum(para.interactionTauNum) # maximum tau number for each bare interaction
         RTidx = LTidx + (oL + 1) * maxTauNum + 1  # the first τ index of the right sub-vertex
-        LsubVer, RsubVer = para.bubble[chan]
+
+        if chan == T || chan == U
+            LsubVer = para.F
+            RsubVer = para.chan
+        elseif chan == S
+            LsubVer = para.V
+            RsubVer = para.chan
+        else
+            error("chan $chan isn't implemented!")
+        end
 
         Lver = _Ver4{W}(oL, LTidx, para; chan=LsubVer, level=level + 1)
         Rver = _Ver4{W}(oR, RTidx, para; chan=RsubVer, level=level + 1)
@@ -77,25 +103,35 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
         G = ver4.G
         for (lt, LvT) in enumerate(Lver.Tpair)
             for (rt, RvT) in enumerate(Rver.Tpair)
-                GT0idx = addTidx(G[1], (LvT[OUTR], RvT[INL]))
+                GT0 = (LvT[OUTR], RvT[INL])
+                GT0idx = addTidx(G[1], GT0)
                 GTxidx, VerTidx = 0, 0
 
-                if para.chantype[chan] == :T
-                    VerTidx = addTidx(ver4, (LvT[INL], LvT[OUTL], RvT[INR], RvT[OUTR]))
-                    GTxidx = addTidx(G[2], (RvT[OUTL], LvT[INR]))
-                elseif para.chantype[chan] == :U
-                    VerTidx = addTidx(ver4, (LvT[INL], RvT[OUTR], RvT[INR], LvT[OUTL]))
-                    GTxidx = addTidx(G[3], (RvT[OUTL], LvT[INR]))
-                elseif para.chantype[chan] == :S
-                    VerTidx = addTidx(ver4, (LvT[INL], RvT[OUTL], LvT[INR], RvT[OUTR]))
-                    GTxidx = addTidx(G[4], (LvT[OUTL], RvT[INR]))
+                if chan == T
+                    VerT = (LvT[INL], LvT[OUTL], RvT[INR], RvT[OUTR])
+                    GTx = (RvT[OUTL], LvT[INR])
+                elseif chan == U
+                    VerT = (LvT[INL], RvT[OUTR], RvT[INR], LvT[OUTL])
+                    GTx = (RvT[OUTL], LvT[INR])
+                elseif chan == S
+                    VerT = (LvT[INL], RvT[OUTL], LvT[INR], RvT[OUTR])
+                    GTx = (LvT[OUTL], RvT[INR])
                 else
                     throw("This channel is invalid!")
                 end
 
+                VerTidx = addTidx(ver4, VerT)
+                GTxidx = addTidx(G[chan], GTx)
+
                 for tpair in ver4.Tpair
                     @assert tpair[1] == ver4.Tidx "InL Tidx must be the same for all Tpairs in the vertex4"
                 end
+
+                ###### test if the internal + exteranl variables is equal to the total 8 variables of the left and right sub-vertices ############
+                Total1 = vcat(collect(LvT), collect(RvT))
+                Total2 = vcat(collect(GT0), collect(GTx), collect(VerT))
+                @assert compare(Total1, Total2) "chan $(ChanName[chan]): G0=$GT0, Gx=$GTx, external=$VerT don't match with Lver4 $LvT and Rver4 $RvT" 
+
                 push!(map, IdxMap(lt, rt, GT0idx, GTxidx, VerTidx))
             end
         end
@@ -113,7 +149,7 @@ struct Ver4{W}
     Tidx::Int # inital Tidx
 
     ######  components of vertex  ##########################
-    G::SVector{4,Green}
+    G::SVector{16,Green}  # large enough to host all Green's function
     bubble::Vector{Bubble{Ver4}}
 
     ####### weight and tau table of the vertex  ###############
@@ -124,7 +160,7 @@ struct Ver4{W}
         if isnothing(chan)
             chan = para.chan
         end
-        g = @SVector [Green{W}() for i = 1:4]
+        g = @SVector [Green{W}() for i = 1:16]
         ver4 = new{W}(level, loopNum, chan, tidx, g, [], [], [])
         @assert loopNum >= 0
         if loopNum == 0
@@ -142,7 +178,7 @@ struct Ver4{W}
             end
             return ver4
         end
-        for c in keys(para.bubble)
+        for c in para.chan
             for ol = 0:loopNum - 1
                 bubble = Bubble{Ver4,W}(ver4, c, ol, para, level)
                 if length(bubble.map) > 0  # if zero, bubble diagram doesn't exist
@@ -153,27 +189,26 @@ struct Ver4{W}
         # TODO: add envolpe diagrams
         # for c in II
         # end
-        test(ver4)
+        test(ver4) # more test
         return ver4
     end
 end
 
+function compare(A, B)
+    # check if the elements of XY are the same as Z
+    XY, Z = copy(A), copy(B)
+    for e in XY
+        if (e in Z) == false
+            return false
+        end
+        Z = (idx = findfirst(x -> x == e, Z)) > 0 ? deleteat!(Z, idx) : Z
+    end
+    return length(Z) == 0 
+end
 
 function test(ver4)
     if length(ver4.bubble) == 0
         return
-    end
-
-    function compare(A, B)
-        # check if the elements of XY are the same as Z
-        XY, Z = copy(A), copy(B)
-        for e in XY
-            if (e in Z) == false
-                return false
-            end
-            Z = (idx = findfirst(x -> x == e, Z)) > 0 ? deleteat!(Z, idx) : Z
-        end
-        return length(Z) == 0 
     end
 
     G = ver4.G
@@ -181,9 +216,9 @@ function test(ver4)
         Lver, Rver = bub.Lver, bub.Rver
         for map in bub.map
             LverT, RverT = collect(Lver.Tpair[map.lv]), collect(Rver.Tpair[map.rv]) # 8 τ variables relevant for this bubble
-            G1T, GxT = collect(G[1].Tpair[map.G0]), collect(G[2].Tpair[map.Gx]) # 4 internal variables
+            G1T, GxT = collect(G[1].Tpair[map.G0]), collect(G[bub.chan].Tpair[map.Gx]) # 4 internal variables
             ExtT = collect(ver4.Tpair[map.ver]) # 4 external variables
-            @assert compare(vcat(G1T, GxT, ExtT), vcat(LverT, RverT)) "chan $(bub.chan): G1=$G1T, Gx=$GxT, external=$ExtT don't match with Lver4 $LverT and Rver4 $RverT" 
+            @assert compare(vcat(G1T, GxT, ExtT), vcat(LverT, RverT)) "chan $(ChanName[bub.chan]): G1=$G1T, Gx=$GxT, external=$ExtT don't match with Lver4 $LverT and Rver4 $RverT" 
         end
     end
 end
@@ -218,8 +253,8 @@ function showTree(ver4, para::Para; verbose=0, depth=999)
         end
 
         for bub in ver4.bubble
-            chantype = para.chantype[bub.chan]
-            nnt = nt.add_child(name="$(para.chantype[bub.chan])$(ver4.loopNum)Ⓧ")
+            chantype = ChanName[bub.chan]
+            nnt = nt.add_child(name="$(chantype)$(ver4.loopNum)Ⓧ")
 
             name_face = ete.TextFace(nnt.name, fgcolor="black", fsize=10)
             nnt.add_face(name_face, column=0, position="branch-top")
