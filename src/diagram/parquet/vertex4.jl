@@ -1,3 +1,13 @@
+"""
+Para(chan, interactionTauNum)
+
+Parameters to generate diagrams using Parquet algorithm
+
+#Arguments
+
+- `chan`: list of channels of sub-vertices
+- `interactionTauNum`: τ degrees of freedom of the bare interaction
+"""
 struct Para
     chan::Vector{Int}
     F::Vector{Int}
@@ -39,6 +49,11 @@ function addTidx(obj, _Tidx)
     return length(obj.Tpair)
 end
 
+"""
+   struct IdxMap(lv, rv, G0, Gx, ver)
+
+    Map left vertex Tpair[lv], right vertex Tpair[rv], the shared Green's function G0[G0] and the channel specific Green's function Gx[Gx] to the top level 4-vertex Tpair[ver]
+"""
 struct IdxMap
     lv::Int # left sub-vertex index
     rv::Int # right sub-vertex index
@@ -118,6 +133,21 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
     end
 end
 
+"""
+    Ver4{W}(loopNum, tidx, para::Para; chan=nothing, level=1) where {W}
+
+    Generate 4-vertex diagrams using Parquet Algorithm
+
+#Arguments
+- `loopNum`: momentum loop degrees of freedom of the 4-vertex diagrams
+- `tidx`: the first τ variable index. It is also the τ variable of the left incoming electron for all 4-vertex diagrams
+- `para`: parameters
+- `chan`: list of channels of the current 4-vertex. If not specified, it is set to be `para.chan`
+- `level`: level in the diagram tree
+
+#Remark:
+The argument `chan` and `para.chan` are different. The former is the channels of current 4-vertex, while the later is the channels of the sub-vertices
+"""
 struct Ver4{W}
     ###### vertex topology information #####################
     level::Int
@@ -135,10 +165,7 @@ struct Ver4{W}
     Tpair::Vector{Tuple{Int,Int,Int,Int}}
     weight::Vector{W}
 
-    function Ver4{W}(loopNum, tidx, para::Para; chan=nothing, level=1) where {W}
-        if isnothing(chan)
-            chan = para.chan
-        end
+    function Ver4{W}(loopNum, tidx, para::Para; chan=para.chan, level=1) where {W}
         g = @SVector [Green{W}() for i = 1:16]
         ver4 = new{W}(level, loopNum, chan, tidx, g, [], [], [])
         @assert loopNum >= 0
@@ -188,7 +215,7 @@ end
 
 function test(ver4)
     if length(ver4.bubble) == 0
-        return
+    return
     end
 
     G = ver4.G
@@ -200,9 +227,20 @@ function test(ver4)
             ExtT = collect(ver4.Tpair[map.ver]) # 4 external variables
             @assert compare(vcat(G1T, GxT, ExtT), vcat(LverT, RverT)) "chan $(ChanName[bub.chan]): G1=$G1T, Gx=$GxT, external=$ExtT don't match with Lver4 $LverT and Rver4 $RverT" 
         end
-    end
+end
 end
 
+"""
+    showTree(ver4, para::Para; verbose=0, depth=999)
+
+    Visualize the diagram tree using ete3 python package
+
+#Arguments
+- `ver4`: the 4-vertex diagram tree to visualize
+- `para`: parameters
+- `verbose=0`: the amount of information to show
+- `depth=999`: deepest level of the diagram tree to show
+"""
 function showTree(ver4, para::Para; verbose=0, depth=999)
 
     pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__)
@@ -214,7 +252,7 @@ function showTree(ver4, para::Para; verbose=0, depth=999)
         for T in ver4.Tpair
             s *= "($(T[1]), $(T[2]), $(T[3]), $(T[4]))" 
         end
-        return s
+    return s
     end
 
     function treeview(ver4, t=nothing)
@@ -235,15 +273,15 @@ function showTree(ver4, para::Para; verbose=0, depth=999)
         for bub in ver4.bubble
             chantype = ChanName[bub.chan]
             nnt = nt.add_child(name="$(chantype)$(ver4.loopNum)Ⓧ")
-
+            
             name_face = ete.TextFace(nnt.name, fgcolor="black", fsize=10)
             nnt.add_face(name_face, column=0, position="branch-top")
-
+            
             treeview(bub.Lver, nnt)
             treeview(bub.Rver, nnt)
         end
 
-        return t
+    return t
     end
 
     t = treeview(ver4)
