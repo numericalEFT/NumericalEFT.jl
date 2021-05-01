@@ -11,5 +11,5 @@ para = Parquet.Para(chantype, bubble, [1, 2])
 println(para)
 
 ver4 = Parquet.Ver4{Weight}(2, 1, para)
-Parquet.showTree(ver4, para, verbose=1)
+Parquet.showTree(ver4, para, verbose=1, depth=3)
 # println(ver4)
