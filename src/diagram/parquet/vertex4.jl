@@ -157,7 +157,7 @@ struct Ver4{W}
     end
 end
 
-function showTree(ver4, para::Para; verbose=0)
+function showTree(ver4, para::Para; verbose=0, depth=999)
 
     pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__)
     ete = pyimport("ete3")
@@ -176,43 +176,48 @@ function showTree(ver4, para::Para; verbose=0)
             t = ete.Tree(name=" ")
         end
 
-        if ver4.loopNum != 0
-            prefix = "$(ver4.loopNum) lp, $(length(ver4.Tpair)) elem"
-            # if verbose > 0
-            #     prefix *= ": $(tpair(ver4))" 
-            # end
-            nt = t.add_child(name=prefix * ", ⨁")
-            # tgf = nt.add_child(name="bubble")
-            # tgf = nt
-        else
+        if ver4.loopNum == 0 || ver4.level > depth
             nt = t.add_child(name=tpair(ver4))
-            # tgf = nt
             return t
+        else
+            prefix = "$(ver4.loopNum) lp, $(length(ver4.Tpair)) elem"
+            nt = t.add_child(name=prefix * ", ⨁")
+            name_face = ete.TextFace(nt.name, fgcolor="black", fsize=10)
+            nt.add_face(name_face, column=0, position="branch-top")
         end
 
         for bub in ver4.bubble
+            chantype = para.chantype[bub.chan]
             nnt = nt.add_child(name="$(para.chantype[bub.chan])$(ver4.loopNum)Ⓧ")
+
+            name_face = ete.TextFace(nnt.name, fgcolor="black", fsize=10)
+            nnt.add_face(name_face, column=0, position="branch-top")
+
             treeview(bub.Lver, nnt)
             treeview(bub.Rver, nnt)
-
-            # nnnt = nnt.add_child(name(bub.Lver)
-            # nnt.add_sister(treeview(bub.Rver, nnt))
-            # nnnt = nnt.add_child(treeview(bub.Lver, nnt))
-            # nnt.add_sister(treeview(bub.Rver, nnt))
         end
 
-        # for bub in ver4.bubble
-        #     nnt = tgf.add_sister(name="Ⓧ")
-        #     nnnt = treeview(bub.Lver, nnt)
-        #     nnnt.add_sister(name=str(p.right))
-        # end
         return t
     end
 
-    println("start tree builded")
     t = treeview(ver4)
-    println("tree builded")
-    tree.plot(t)
+    # style = ete.NodeStyle()
+    # style["bgcolor"] = "Khaki"
+    # t.set_style(style)
+
+
+    ts = ete.TreeStyle()
+    ts.show_leaf_name = true
+    # ts.show_leaf_name = True
+    # ts.layout_fn = my_layout
+    ####### show tree vertically ############
+    # ts.rotation = 90 #show tree vertically
+
+    ####### show tree in an arc  #############
+    # ts.mode = "c"
+    # ts.arc_start = -180
+    # ts.arc_span = 180
+    t.show(tree_style=ts)
 end
 
 # function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast=false)

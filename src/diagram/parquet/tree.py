@@ -3,7 +3,7 @@ import ete3 as ete
 
 def my_layout(node):
     if node.is_leaf():
-        name_face = ete.AttrFace("name", fsize=10)
+        name_face = ete.AttrFace("name", fsize=8)
     else:
         name_face = ete.AttrFace("name", fsize=10)
     ete.faces.add_face_to_node(
