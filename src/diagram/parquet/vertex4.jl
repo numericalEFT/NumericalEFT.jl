@@ -153,7 +153,38 @@ struct Ver4{W}
         # TODO: add envolpe diagrams
         # for c in II
         # end
+        test(ver4)
         return ver4
+    end
+end
+
+
+function test(ver4)
+    if length(ver4.bubble) == 0
+        return
+    end
+
+    function compare(A, B)
+        # check if the elements of XY are the same as Z
+        XY, Z = copy(A), copy(B)
+        for e in XY
+            if (e in Z) == false
+                return false
+            end
+            Z = (idx = findfirst(x -> x == e, Z)) > 0 ? deleteat!(Z, idx) : Z
+        end
+        return length(Z) == 0 
+    end
+
+    G = ver4.G
+    for bub in ver4.bubble
+        Lver, Rver = bub.Lver, bub.Rver
+        for map in bub.map
+            LverT, RverT = collect(Lver.Tpair[map.lv]), collect(Rver.Tpair[map.rv]) # 8 τ variables relevant for this bubble
+            G1T, GxT = collect(G[1].Tpair[map.G0]), collect(G[2].Tpair[map.Gx]) # 4 internal variables
+            ExtT = collect(ver4.Tpair[map.ver]) # 4 external variables
+            @assert compare(vcat(G1T, GxT, ExtT), vcat(LverT, RverT)) "chan $(bub.chan): G1=$G1T, Gx=$GxT, external=$ExtT don't match with Lver4 $LverT and Rver4 $RverT" 
+        end
     end
 end
 
