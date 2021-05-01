@@ -1,9 +1,5 @@
 struct Para
     chan::Vector{Int}
-    # bubble::Dict{Int,Tuple{Vector{Int},Vector{Int}}} 
-    # key: channels that are bubbles; 
-    # value: (lver, rver) where lver is the lists of allowed channels in the left sub-vertex
-    # rver is the lists of allowed channels in the right sub-vertex
     F::Vector{Int}
     V::Vector{Int}
     interactionTauNum::Vector{Int} # list of possible τ degrees of freedom of the bare interaction 0, 2, or 4
@@ -13,23 +9,6 @@ struct Para
             @assert tnum == 1 || tnum == 2 || tnum == 4
         end
 
-        # chan = [i for i in 1:length(chantype)]
-        # for k in keys(bubble) # check validity of the bubble dictionary
-        #     @assert issubset(k, chan) "$k isn't in the channel list $chan"
-        #     lver, rver = bubble[k]
-        #     @assert issubset(lver, chan) "$lver isn't in the channel list $chan"
-        #     @assert issubset(rver, chan) "$rver isn't in the channel list $chan"
-        # end
-
-        # for (ci, type) in chan
-        #     if type == :T
-
-        #     elseif type == :S
-        #     elseif type ==:U
-        #     else
-        #         error("chan $type has not yet been implemented!")
-        #     end
-        # end
         for c in chan
             @assert c in Allchan "$chan $c isn't implemented!"
         end
@@ -177,20 +156,21 @@ struct Ver4{W}
                 addTidx(ver4, (tidx, tidx + 3, tidx + 2, tidx + 1))  # exchange dynamic interaction
             end
             return ver4
-        end
-        for c in para.chan
-            for ol = 0:loopNum - 1
-                bubble = Bubble{Ver4,W}(ver4, c, ol, para, level)
-                if length(bubble.map) > 0  # if zero, bubble diagram doesn't exist
-                    push!(ver4.bubble, bubble)
+        else # loopNum>0
+            for c in para.chan
+                for ol = 0:loopNum - 1
+                    bubble = Bubble{Ver4,W}(ver4, c, ol, para, level)
+                    if length(bubble.map) > 0  # if zero, bubble diagram doesn't exist
+                        push!(ver4.bubble, bubble)
+                    end
                 end
             end
+            # TODO: add envolpe diagrams
+            # for c in II
+            # end
+            test(ver4) # more test
+            return ver4
         end
-        # TODO: add envolpe diagrams
-        # for c in II
-        # end
-        test(ver4) # more test
-        return ver4
     end
 end
 
