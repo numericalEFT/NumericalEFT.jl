@@ -1,4 +1,3 @@
-
 struct Para
     chan::Vector{Int}
     chantype::Vector{Symbol} # channel types, :T, :S, or :U
@@ -58,21 +57,18 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
     Rver::_Ver4
     map::Vector{IdxMap}
 
-    function Bubble{_Ver4,W}(ver4::_Ver4, chan::Int, oL::Int, para::Para, id, path) where {_Ver4,W}
+    function Bubble{_Ver4,W}(ver4::_Ver4, chan::Int, oL::Int, para::Para, level::Int) where {_Ver4,W}
         @assert chan in keys(para.bubble) "$chan isn't a bubble channels!"
         @assert oL < ver4.loopNum "LVer loopNum must be smaller than the ver4 loopNum"
 
-        idL, idR = id + 1, id + 2
-        pathL = vcat(path, "$(chan)L")
-        pathR = vcat(path, "$(chan)R")
         oR = ver4.loopNum - 1 - oL # loopNum of the right vertex
         LTidx = ver4.Tidx  # the first τ index of the left vertex
         maxTauNum = maximum(para.interactionTauNum) # maximum tau number for each bare interaction
         RTidx = LTidx + (oL + 1) * maxTauNum + 1  # the first τ index of the right sub-vertex
         LsubVer, RsubVer = para.bubble[chan]
 
-        Lver = _Ver4{W}(oL, LTidx, para, LsubVer, idL, pathL)
-        Rver = _Ver4{W}(oR, RTidx, para, RsubVer, idR, pathR)
+        Lver = _Ver4{W}(oL, LTidx, para; chan=LsubVer, level=level + 1)
+        Rver = _Ver4{W}(oR, RTidx, para; chan=RsubVer, level=level + 1)
 
         @assert Lver.Tidx == ver4.Tidx "Lver Tidx must be equal to vertex4 Tidx! LoopNum: $(ver4.loopNum), LverLoopNum: $(Lver.loopNum), chan: $chan"
 
@@ -109,8 +105,7 @@ end
 
 struct Ver4{W}
     ###### vertex topology information #####################
-    id::Int # id of the diagram
-    path::Vector{String} # the path to generate the diagram on the tree
+    level::Int
     
     #######  vertex properties   ###########################
     loopNum::Int
@@ -125,12 +120,12 @@ struct Ver4{W}
     Tpair::Vector{Tuple{Int,Int,Int,Int}}
     weight::Vector{W}
 
-    function Ver4{W}(loopNum, tidx, para::Para, chan=nothing, id=1, path=[]) where {W}
+    function Ver4{W}(loopNum, tidx, para::Para; chan=nothing, level=1) where {W}
         if isnothing(chan)
             chan = para.chan
         end
         g = @SVector [Green{W}() for i = 1:4]
-        ver4 = new{W}(id, path, loopNum, chan, tidx, g, [], [], [])
+        ver4 = new{W}(level, loopNum, chan, tidx, g, [], [], [])
         @assert loopNum >= 0
         if loopNum == 0
             # bare interaction may have one, two or four independent tau variables
@@ -149,7 +144,7 @@ struct Ver4{W}
         end
         for c in keys(para.bubble)
             for ol = 0:loopNum - 1
-                bubble = Bubble{Ver4,W}(ver4, c, ol, para, id, path)
+                bubble = Bubble{Ver4,W}(ver4, c, ol, para, level)
                 if length(bubble.map) > 0  # if zero, bubble diagram doesn't exist
                     push!(ver4.bubble, bubble)
                 end
@@ -160,6 +155,64 @@ struct Ver4{W}
         # end
         return ver4
     end
+end
+
+function showTree(ver4, para::Para; verbose=0)
+
+    pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__)
+    ete = pyimport("ete3")
+    tree = pyimport("tree")
+
+    function tpair(ver4)
+        s = ""
+        for T in ver4.Tpair
+            s *= "($(T[1]), $(T[2]), $(T[3]), $(T[4]))" 
+        end
+        return s
+    end
+
+    function treeview(ver4, t=nothing)
+        if isnothing(t)
+            t = ete.Tree(name=" ")
+        end
+
+        if ver4.loopNum != 0
+            prefix = "$(ver4.loopNum) lp, $(length(ver4.Tpair)) elem"
+            # if verbose > 0
+            #     prefix *= ": $(tpair(ver4))" 
+            # end
+            nt = t.add_child(name=prefix * ", ⨁")
+            # tgf = nt.add_child(name="bubble")
+            # tgf = nt
+        else
+            nt = t.add_child(name=tpair(ver4))
+            # tgf = nt
+            return t
+        end
+
+        for bub in ver4.bubble
+            nnt = nt.add_child(name="$(para.chantype[bub.chan])$(ver4.loopNum)Ⓧ")
+            treeview(bub.Lver, nnt)
+            treeview(bub.Rver, nnt)
+
+            # nnnt = nnt.add_child(name(bub.Lver)
+            # nnt.add_sister(treeview(bub.Rver, nnt))
+            # nnnt = nnt.add_child(treeview(bub.Lver, nnt))
+            # nnt.add_sister(treeview(bub.Rver, nnt))
+        end
+
+        # for bub in ver4.bubble
+        #     nnt = tgf.add_sister(name="Ⓧ")
+        #     nnnt = treeview(bub.Lver, nnt)
+        #     nnnt.add_sister(name=str(p.right))
+        # end
+        return t
+    end
+
+    println("start tree builded")
+    t = treeview(ver4)
+    println("tree builded")
+    tree.plot(t)
 end
 
 # function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast=false)
