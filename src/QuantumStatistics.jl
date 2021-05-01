@@ -24,7 +24,4 @@ export DLR
 include("montecarlo/montecarlo.jl")
 export MonteCarlo
 
-include("diagram/parquet/parquet.jl")
-export Parquet
-
 end # module
