@@ -1,14 +1,9 @@
 using QuantumStatistics
 include("parameter.jl")
 
-chantype = [:T, :U, :S]
-F = [2, 3]
-V = [1, 2]
-Full = [1, 2, 3]
-bubble = Dict([1 => (F, Full), 2 => (F, Full), 3 => (V, Full)])
+chan = [Parquet.T, Parquet.U, Parquet.S]
 
-para = Parquet.Para(chantype, bubble, [1, 2])
-println(para)
+para = Parquet.Para(chan, [1, 2])
 
 ver4 = Parquet.Ver4{Weight}(2, 1, para)
 Parquet.showTree(ver4, para, verbose=1, depth=3)
