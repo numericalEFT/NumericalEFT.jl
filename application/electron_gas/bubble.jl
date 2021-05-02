@@ -1,20 +1,18 @@
 # This example demonstrated how to calculate the bubble diagram of free electrons using the Monte Carlo module
 
 using Distributed
-using QuantumStatistics, LinearAlgebra, Random, Printf, StaticArrays, BenchmarkTools, InteractiveUtils, Parameters
+using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, InteractiveUtils, Parameters
 
 const Ncpu = 4
 const totalStep = 1e8
 
 addprocs(Ncpu)
 
-@everywhere using QuantumStatistics, Parameters, StaticArrays, Random, LinearAlgebra
+@everywhere include("parameter.jl")
+
+@everywhere using QuantumStatistics, Parameters, Random, LinearAlgebra
 
 @everywhere @with_kw struct Para
-    kF::Float64 = 1.919
-    m::Float64 = 0.5
-    β::Float64 = 25.0 / kF^2
-    spin::Int = 2
     n::Int = 0 # external Matsubara frequency
     Qsize::Int = 16
     extQ::Vector{SVector{3,Float64}} = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
@@ -32,7 +30,6 @@ end
 
 @everywhere function eval2(config)
     para = config.para
-    β, kF, m, spin = para.β, para.kF, para.m, para.spin
 
     T, K, Ext = config.var[1], config.var[2], config.var[3]
     k = K[1]
@@ -41,11 +38,10 @@ end
     q = para.extQ[extidx] # external momentum
     kq = k + q
     τ = (Tout - Tin) / β
-    ω1 = (dot(k, k) - kF^2) / (2m) * β
+    ω1 = (dot(k, k) - kF^2) / (2me) * β
     g1 = Spectral.kernelFermiT(τ, ω1)
-    ω2 = (dot(kq, kq) - kF^2) / (2m) * β
+    ω2 = (dot(kq, kq) - kF^2) / (2me) * β
     g2 = Spectral.kernelFermiT(-τ, ω2)
-    spin = 2
     phase = 1.0 / (2π)^3
     return g1 * g2 * spin * phase * cos(2π * para.n * τ)
 end
@@ -70,7 +66,7 @@ end
 function run(totalStep)
 
     para = Para()
-    @unpack kF, β, extQ, Qsize = para 
+    @unpack extQ, Qsize = para 
 
     K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
@@ -82,11 +78,11 @@ function run(totalStep)
     avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure, normalize; para=para, print=10)
 
 
-    @unpack kF, β, m, n, extQ = Para()
+    @unpack n, extQ = Para()
 
     for (idx, q) in enumerate(extQ)
         q = q[1]
-        p, err = TwoPoint.LindhardΩnFiniteTemperature(3, q, n, kF, β, m, 2)
+        p, err = TwoPoint.LindhardΩnFiniteTemperature(dim, q, n, kF, β, me, spin)
         @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, avg[idx], std[idx], p, err)
     end
 end

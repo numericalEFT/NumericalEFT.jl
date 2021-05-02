@@ -2,7 +2,16 @@
 
 A toolbox for quantum many-body field theory.
 
-## Outline
+## Manual Outline
+```@contents
+Pages = [
+"man/important_sampling.md"
+]
+Depth = 1
+```
+
+
+## Library Outline
 ```@contents
 Pages = [
     "lib/grid.md",
