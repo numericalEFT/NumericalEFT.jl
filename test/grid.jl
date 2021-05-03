@@ -2,14 +2,14 @@
 
     # with a shift to the grid element, check if produce the correct floored index
     function check(grid, range, shift, idx_shift)
-    for i in range
-        @test(floor(grid, grid[i] + shift) == i + idx_shift)
+        for i in range
+            @test(floor(grid, grid[i] + shift) == i + idx_shift)
             # if floor(grid, grid[i] + shift) != i + idx_shift
             #     return false
             # end
+        end
+        return true
     end
-    return true
-end
 
     @testset "UniformGrid" begin
         uniform = Grid.Uniform{Float64,4}(0.0, 1.0, (true, true))
@@ -84,6 +84,25 @@ end
 
 end
 
+@testset "UniLogs" begin
+    @testset "UniLog" begin
+        EPS = 1e-9
+        bound = @SVector[1.0, 3.0]
+        init = 4
+        minterval = 0.01
+        M = 2
+        N = 3
+        isopen = @SVector[false,false]
+        d2s = true
+        g = Grid.UniLog{Float64}(bound, init, minterval, M, N, isopen, d2s)
+        for i = 1:(M+1)*N+init+1
+            val = Grid._grid(g,i)
+            @printf("%10.6f , %10.6f\n", i, val)
+            @printf("\t%10.6f , %10.6f\n", val-EPS, Grid._floor(g,val-EPS))
+            @printf("\t%10.6f , %10.6f\n", val+EPS, Grid._floor(g,val+EPS))
+        end
+    end
+end
 
 @testset "Interpolate" begin
 
@@ -98,47 +117,48 @@ end
         data = zeros((Nk, Nt))
 
         for (ti, t) in enumerate(tgrid.grid)
-        for (ki, k) in enumerate(kgrid.grid)
-            data[ki, ti] = f(k, t)
+            for (ki, k) in enumerate(kgrid.grid)
+                data[ki, ti] = f(k, t)
+            end
         end
-    end
 
         for ti = 1:tgrid.size - 1
-        for ki = 1:kgrid.size - 1
-            t = tgrid[ti] + 1.e-6
-            k = kgrid[ki] + 1.e-6
-            fbar = Grid.linear2D(data, kgrid, tgrid, k, t)
-            @test abs(f(kgrid[ki], tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
-            @test f(kgrid[ki], tgrid[ti]) < fbar
-            @test f(kgrid[ki], tgrid[ti + 1]) > fbar
-            @test f(kgrid[ki + 1], tgrid[ti]) > fbar
-            @test f(kgrid[ki + 1], tgrid[ti + 1]) > fbar
+            for ki = 1:kgrid.size - 1
+                t = tgrid[ti] + 1.e-6
+                k = kgrid[ki] + 1.e-6
+                fbar = Grid.linear2D(data, kgrid, tgrid, k, t)
+                @test abs(f(kgrid[ki], tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+                @test f(kgrid[ki], tgrid[ti]) < fbar
+                @test f(kgrid[ki], tgrid[ti + 1]) > fbar
+                @test f(kgrid[ki + 1], tgrid[ti]) > fbar
+                @test f(kgrid[ki + 1], tgrid[ti + 1]) > fbar
+            end
         end
-    end
 
         for ti = 2:tgrid.size
-        for ki = 2:kgrid.size
-            t = tgrid[ti] - 1.e-6
-            k = kgrid[ki] - 1.e-6
-            fbar = Grid.linear2D(data, kgrid, tgrid, k, t)
-            @test abs(f(kgrid[ki], tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
-            @test f(kgrid[ki], tgrid[ti]) > fbar
-            @test f(kgrid[ki], tgrid[ti - 1]) < fbar
-            @test f(kgrid[ki - 1], tgrid[ti]) < fbar
-            @test f(kgrid[ki - 1], tgrid[ti - 1]) < fbar
+            for ki = 2:kgrid.size
+                t = tgrid[ti] - 1.e-6
+                k = kgrid[ki] - 1.e-6
+                fbar = Grid.linear2D(data, kgrid, tgrid, k, t)
+                @test abs(f(kgrid[ki], tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+                @test f(kgrid[ki], tgrid[ti]) > fbar
+                @test f(kgrid[ki], tgrid[ti - 1]) < fbar
+                @test f(kgrid[ki - 1], tgrid[ti]) < fbar
+                @test f(kgrid[ki - 1], tgrid[ti - 1]) < fbar
+            end
         end
-    end
 
         tlist = rand(10) * β
         klist = rand(10) * maxK
         # println(tlist)
 
         for (ti, t) in enumerate(tlist)
-        for (ki, k) in enumerate(klist)
-            fbar = Grid.linear2D(data, kgrid, tgrid, k, t)
+            for (ki, k) in enumerate(klist)
+                fbar = Grid.linear2D(data, kgrid, tgrid, k, t)
                 # println("$k, $t, $fbar, ", f(k, t))
-            @test abs(f(k, t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+                @test abs(f(k, t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            end
         end
     end
-    end
 end
+
