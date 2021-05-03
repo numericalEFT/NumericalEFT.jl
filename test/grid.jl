@@ -84,7 +84,7 @@
 
 end
 
-@testset "UniLogs" begin
+@testset "UniLog Grids" begin
     @testset "UniLog" begin
         EPS = 1e-9
         bound = @SVector[1.0, 3.0]
@@ -94,12 +94,30 @@ end
         N = 3
         isopen = @SVector[false,false]
         d2s = true
-        g = Grid.UniLog{Float64}(bound, init, minterval, M, N, isopen, d2s)
+        g = Grid.UniLog{Float64}(bound, init, minterval, M, N, d2s,isopen)
         for i = 1:(M+1)*N+init+1
             val = Grid._grid(g,i)
             @printf("%10.6f , %10.6f\n", i, val)
             @printf("\t%10.6f , %10.6f\n", val-EPS, Grid._floor(g,val-EPS))
             @printf("\t%10.6f , %10.6f\n", val+EPS, Grid._floor(g,val+EPS))
+        end
+    end
+
+    @testset "UniLogs" begin
+        EPS = 1e-9
+        seg = 4
+        bounds = @SVector[0.0,1.0,2.0]
+        M=2
+        N=3
+        minterval = 0.01
+        isopen = @SVector[false,false]
+        g = Grid.UniLogs{Float64,(M+1)*N*seg+1,seg}(bounds,minterval,M,N,isopen)
+
+        for i = 1:g.size
+            val = g.grid[i]
+            @printf("%10.6f , %10.6f\n", i, val)
+            @printf("\t%10.6f , %10.6f\n", val-EPS, floor(g,val-EPS))
+            @printf("\t%10.6f , %10.6f\n", val+EPS, floor(g,val+EPS))
         end
     end
 end
