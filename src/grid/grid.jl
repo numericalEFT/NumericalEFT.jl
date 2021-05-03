@@ -2,9 +2,9 @@ module Grid
 
 # export Log, UniformGrid, tauGrid, fermiKGrid, boseKGrid
 
-using StaticArrays: SVector, MVector
+using StaticArrays
 
-@enum GridType LOG UNIFORM
+@enum GridType LOG UNIFORM UNILOG
 
 struct Coeff{T <: AbstractFloat}
     bound::SVector{2,T}
@@ -24,6 +24,82 @@ struct Coeff{T <: AbstractFloat}
         b = (bound[2] - bound[1]) / (_l2 - _l1)
         a = (bound[1] * _l2 - bound[2] * _l1) / (_l2 - _l1)
         return new{T}(bound, idx, λ, a, b)
+    end
+end
+
+struct UniLog{T <: AbstractFloat}
+    bound::SVector{2,T}
+    idx::SVector{2,T}
+    isopen::SVector{2,Bool}
+    M::Int
+    N::Int
+    λ::T
+    d2s::Bool
+
+    function UniLog{T}(bound, init, minterval::T,M::Int,N::Int,isopen, dense2sparse::Bool) where {T}
+        @assert N*minterval<bound[2]-bound[1]
+        Nidx = (M+1)*N
+        if isopen[2]==true
+            Nidx = Nidx-1
+        end
+        idx = @SVector[init, init + Nidx ]
+        λ = (minterval*N/(bound[2]-bound[1]))^(1.0/M)
+        return new{T}(bound, idx,isopen, M,N, λ, dense2sparse)
+    end
+end
+
+function _grid(l::UniLog{T}, i) where {T}
+    head = !l.isopen[1] ? l.idx[1] : (l.idx[1]-1)
+    tail = !l.isopen[2] ? l.idx[2] : (l.idx[2]+1)
+    if l.d2s
+        i_n = (i - head)%l.N;
+        i_m = (i - head)÷l.N;
+        if i_m==0
+            return l.bound[1]+l.λ^l.M/l.N*(l.bound[2]-l.bound[1])*i_n
+        else
+            return l.bound[1]+l.λ^(l.M+1-i_m)*(l.bound[2]-l.bound[1])+(l.λ^(l.M-i_m)-l.λ^(l.M-i_m+1))/l.N*i_n*(l.bound[2]-l.bound[1])
+        end
+    end
+    if !l.d2s
+        i_n = (tail - i)%l.N;
+        i_m = (tail - i)÷l.N;
+        if i_m==0
+            return l.bound[2]-l.λ^(l.M)/l.N*(l.bound[2]-l.bound[1])*i_n
+        else
+            return l.bound[2]-l.λ^(l.M+1-i_m)*(l.bound[2]-l.bound[1])-(l.λ^(l.M-i_m)-l.λ^(l.M-i_m+1))/l.N*i_n*(l.bound[2]-l.bound[1])
+        end
+    end
+end
+
+function _floor(l::UniLog{T}, x::T) where {T}
+    head = !l.isopen[1] ? l.idx[1] : (l.idx[1]-1)
+    tail = !l.isopen[2] ? l.idx[2] : (l.idx[2]+1)
+    length = l.bound[2] - l.bound[1]
+
+    norm = l.d2s ? ((x - l.bound[1])/length) : ((l.bound[2] - x)/length)
+    if norm <= 0
+        return l.d2s ? l.idx[1] : l.idx[2]
+    elseif norm >=1
+        return l.d2s ? l.idx[2] : l.idx[1]
+    end
+
+    i_m= Base.floor(log(norm)/log(l.λ))
+    if i_m>=l.M
+        if l.d2s
+            result = Base.floor(head+norm/l.λ^(l.M)*l.N)
+            return (l.isopen[1]&&result==head) ? (result+1) : result
+        else
+            result = Base.floor(tail-norm/l.λ^(l.M)*l.N)
+            return (l.isopen[2]&&result==tail) ? (result-1) : result
+        end
+    end
+    i_n= Base.floor((norm-l.λ^(i_m+1))/(l.λ^(i_m)-l.λ^(i_m+1))*l.N)
+    if l.d2s
+        result = Base.floor(head+(l.M-i_m)*l.N+i_n)
+        return (l.isopen[2]&&result==tail) ? result-1 : result
+    else
+        result = Base.floor((tail-(l.M-i_m)*l.N-i_n)-1)
+        return (l.isopen[1]&&result==head) ? result+1 : result
     end
 end
 
