@@ -260,33 +260,71 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
     segment::SVector{SEG,T} # ends of each segments
     isopen::SVector{2,Bool}
 
-    function UniLogs{T,SIZE,SEG}(bounds, minterval::T,M::Int,N::Int, isopen = @SVector[false,false]) where {T<:AbstractFloat,SIZE,SEG}
+    function UniLogs{T,SIZE,SEG}(bounds, minterval::T,M::Int,N::Int, isopen = @SVector[false,false], issparse = @SVector[false,false]) where {T<:AbstractFloat,SIZE,SEG}
         @assert SEG > 0 
         size = (M+1)*N*SEG + 1
         @assert SIZE == size 
 
         grid, segment = [], []
         unilogs = []
-        for s = 1:SEG
-            if s%2==1
-                bound = @SVector[ bounds[(s+1)÷2], (bounds[(s+1)÷2+1]+bounds[(s+1)÷2])/2]
-                init = 1 + (M+1)*N*(s-1)
-                push!(segment,bound[2])
-                isopen = @SVector[false, true]
-                g = UniLog{T}(bound,init,minterval,M,N,true,isopen)
-                push!(unilogs,g)
-                for idx=g.idx[1]:g.idx[2]
-                    push!(grid, _grid(g, idx))
+        if issparse[1]==false
+            for s = 1:SEG
+                if s%2==1
+                    bound = @SVector[ bounds[(s+1)÷2], (bounds[(s+1)÷2+1]+bounds[(s+1)÷2])/2]
+                    if s == SEG && issparse[2]
+                        bound = @SVector[ bounds[(s+1)÷2],bounds[(s+1)÷2+1]]
+                    end
+                    init = 1 + (M+1)*N*(s-1)
+                    push!(segment,bound[2])
+                    isopen = @SVector[false, true]
+                    if s == SEG && issparse[2]
+                        isopen = @SVector[false, false]
+                    end
+                    g = UniLog{T}(bound,init,minterval,M,N,true,isopen)
+                    push!(unilogs,g)
+                    for idx=g.idx[1]:g.idx[2]
+                        push!(grid, _grid(g, idx))
+                    end
+                else
+                    bound = @SVector[ (bounds[s÷2+1]+bounds[s÷2])/2,bounds[s÷2+1]]
+                    init = 1 + (M+1)*N*(s-1)
+                    push!(segment, bound[2])
+                    isopen = @SVector[false,s==SEG ? false : true]
+                    g = UniLog{T}(bound,init,minterval,M,N,false,isopen)
+                    push!(unilogs,g)
+                    for idx=g.idx[1]:g.idx[2]
+                        push!(grid, _grid(g, idx))
+                    end
                 end
-            else
-                bound = @SVector[ (bounds[s÷2+1]+bounds[s÷2])/2,bounds[s÷2+1]]
-                init = 1 + (M+1)*N*(s-1)
-                push!(segment, bound[2])
-                isopen = @SVector[false,s==SEG ? false : true]
-                g = UniLog{T}(bound,init,minterval,M,N,false,isopen)
-                push!(unilogs,g)
-                for idx=g.idx[1]:g.idx[2]
-                    push!(grid, _grid(g, idx))
+            end
+        else
+            for s = 1:SEG
+                if s%2==1
+                    bound = @SVector[(bounds[(s+1)÷2+1]+bounds[(s+1)÷2])/2,bounds[(s+1)÷2+1]]
+                    if s == 1
+                        bound = @SVector[ bounds[1], bounds[2]]
+                    end
+                    init = 1 + (M+1)*N*(s-1)
+                    push!(segment,bound[2])
+                    isopen = @SVector[false, s==SEG ? false : true]
+                    g = UniLog{T}(bound,init,minterval,M,N,false,isopen)
+                    push!(unilogs,g)
+                    for idx=g.idx[1]:g.idx[2]
+                        push!(grid, _grid(g, idx))
+                    end
+                else
+                    bound = @SVector[bounds[s÷2+1], (bounds[s÷2+1]+bounds[s÷2+2])/2]
+                    if s == SEG && issparse[2]
+                        bound = @SVector[bounds[s÷2+1], bounds[(s+2)÷2+1]]
+                    end
+                    init = 1 + (M+1)*N*(s-1)
+                    push!(segment, bound[2])
+                    isopen = @SVector[false,s==SEG ? false : true]
+                    g = UniLog{T}(bound,init,minterval,M,N,true,isopen)
+                    push!(unilogs,g)
+                    for idx=g.idx[1]:g.idx[2]
+                        push!(grid, _grid(g, idx))
+                    end
                 end
             end
         end
@@ -311,7 +349,8 @@ function Base.floor(grid::UniLogs{T,SIZE,SEG}, x) where {T,SIZE,SEG}
     if seg == 0
         seg = SEG
     end
-    return _floor(grid.unilogs[seg],x)
+    result = _floor(grid.unilogs[seg],x)
+    return result==grid.size ? result-1 : result
 end
 
 Base.getindex(grid::UniLogs, i) = grid.grid[i]
@@ -339,6 +378,14 @@ Create a logarithmic Grid for the imaginary time, which is densest near the 0 an
     return Log{type,size,2}([c1, c2], [r1, r2], [true, true])
 end
 
+@inline function tauUL(β, minterval, M::Int,N::Int, type=Float64)
+    seg = 2
+    size = (M+1)*N*seg+1
+    bounds = @SVector[0.0,β]
+    return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,true])
+end
+
+
 """
     fermiK(Kf, maxK, halfLife, size::Int, kFi = floor(Int, 0.5size), type = Float64)
 
@@ -360,6 +407,14 @@ Create a logarithmic fermionic K Grid, which is densest near the Fermi momentum 
     r2 = kFi + 1:size
     return Log{type,size,2}([c1, c2], [r1, r2], [true, false])
 end
+
+@inline function fermiKUL(Kf, maxK, minterval, M::Int,N::Int, type=Float64)
+    seg = 2
+    size = (M+1)*N*seg+1
+    bounds = @SVector[0.0,Kf,maxK]
+    return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,true],[true,true])
+end
+
 
 """
     boseK(Kf, maxK, halfLife, size::Int, kFi = floor(Int, 0.5size), twokFi = floor(Int, 2size / 3), type = Float64)
@@ -397,6 +452,21 @@ Create a logarithmic bosonic K Grid, which is densest near the momentum `0` and 
     K = Grid.Log{type,size,3}([c1, c2, c3], [r1, r2, r3], [true, false])
 return K
 end
+
+@inline function boseKUL(
+    Kf,
+    maxK,
+    minterval,
+    M,
+    N,
+    type=Float64
+)
+    seg = 3
+    size = (M+1)*N*seg+1
+    bounds = @SVector[0.0,2Kf,maxK]
+    return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,true],[false,true])
+end
+
 
 include("interpolate.jl")
 

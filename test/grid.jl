@@ -85,6 +85,16 @@
 end
 
 @testset "UniLog Grids" begin
+    function check(grid, range, shift, idx_shift)
+        for i in range
+            @test(floor(grid, grid[i] + shift) == i + idx_shift)
+            # if floor(grid, grid[i] + shift) != i + idx_shift
+            #     return false
+            # end
+        end
+        return true
+    end
+
     @testset "UniLog" begin
         EPS = 1e-9
         bound = @SVector[1.0, 3.0]
@@ -106,12 +116,12 @@ end
     @testset "UniLogs" begin
         EPS = 1e-9
         seg = 4
-        bounds = @SVector[0.0,1.0,2.0]
+        bounds = @SVector[0.0,1.0,2.0,3.0]
         M=2
         N=3
         minterval = 0.01
         isopen = @SVector[false,false]
-        g = Grid.UniLogs{Float64,(M+1)*N*seg+1,seg}(bounds,minterval,M,N,isopen)
+        g = Grid.UniLogs{Float64,(M+1)*N*seg+1,seg}(bounds,minterval,M,N,isopen,[true,true])
 
         for i = 1:g.size
             val = g.grid[i]
@@ -120,6 +130,53 @@ end
             @printf("\t%10.6f , %10.6f\n", val+EPS, floor(g,val+EPS))
         end
     end
+
+    @testset "UniLog Grid for Tau" begin
+        β = 10.0
+        tau = Grid.tauUL(β, 0.001, 2,3)
+        @test floor(tau, 0.0) == 1
+        @test floor(tau, tau[1]) == 1 # tau[1]=0^+ is special
+
+        δ = 1.0e-12
+        check(tau, 2:tau.size - 1, δ, 0)
+        check(tau, 2:tau.size - 1, -δ, -1)
+
+        @test floor(tau, tau[end]) == tau.size - 1
+        @test floor(tau, β) == tau.size - 1
+    end
+
+    @testset "UniLog Grid for fermiK" begin
+        kF, maxK, minterval = 1.0, 3.0, 0.001
+        K = Grid.fermiKUL(kF, maxK, minterval, 2,3)
+        # println(K.grid)
+        @test floor(K, 0.0) == 1
+        @test floor(K, K[1]) == 1
+
+        δ = 1.0e-12
+        check(K, 2:K.size - 1, δ, 0)
+        check(K, 2:K.size - 1, -δ, -1)
+
+        @test floor(K, K[end] - δ) == K.size - 1
+        @test floor(K, K[end]) == K.size - 1
+        @test floor(K, maxK) == K.size - 1
+    end
+
+    @testset "UniLog Grid for boseK" begin
+        kF, maxK, minterval = 1.0, 3.0, 0.001
+        K = Grid.boseKUL(kF, maxK, minterval,2,3)
+        # println(K.grid)
+        @test floor(K, 0.0) == 1
+        @test floor(K, K[1]) == 1
+
+        δ = 1.0e-12
+        check(K, 2:K.size - 1, δ, 0)
+        check(K, 2:K.size - 1, -δ, -1)
+
+        @test floor(K, K[end] - δ) == K.size - 1
+        @test floor(K, K[end]) == K.size - 1
+        @test floor(K, maxK) == K.size - 1
+    end
+
 end
 
 @testset "Interpolate" begin
