@@ -36,7 +36,7 @@ struct UniLog{T <: AbstractFloat}
     λ::T
     d2s::Bool
 
-    function UniLog{T}(bound, init, minterval::T,M::Int,N::Int,isopen, dense2sparse::Bool) where {T}
+    function UniLog{T}(bound, init, minterval::T,M::Int,N::Int, dense2sparse::Bool,isopen = @SVector[false,true]) where {T}
         @assert N*minterval<bound[2]-bound[1]
         Nidx = (M+1)*N
         if isopen[2]==true
@@ -249,6 +249,74 @@ end
 Base.getindex(grid::Uniform, i) = grid.grid[i]
 Base.firstindex(grid::Uniform) = 1
 Base.lastindex(grid::Uniform) = grid.size
+
+
+struct UniLogs{T<:AbstractFloat,SIZE,SEG}
+    grid::MVector{SIZE,T}
+    size::Int
+    head::T
+    tail::T
+    unilogs::SVector{SEG,UniLog{T}}
+    segment::SVector{SEG,T} # ends of each segments
+    isopen::SVector{2,Bool}
+
+    function UniLogs{T,SIZE,SEG}(bounds, minterval::T,M::Int,N::Int, isopen = @SVector[false,false]) where {T<:AbstractFloat,SIZE,SEG}
+        @assert SEG > 0 
+        size = (M+1)*N*SEG + 1
+        @assert SIZE == size 
+
+        grid, segment = [], []
+        unilogs = []
+        for s = 1:SEG
+            if s%2==1
+                bound = @SVector[ bounds[(s+1)÷2], (bounds[(s+1)÷2+1]+bounds[(s+1)÷2])/2]
+                init = 1 + (M+1)*N*(s-1)
+                push!(segment,bound[2])
+                isopen = @SVector[false, true]
+                g = UniLog{T}(bound,init,minterval,M,N,true,isopen)
+                push!(unilogs,g)
+                for idx=g.idx[1]:g.idx[2]
+                    push!(grid, _grid(g, idx))
+                end
+            else
+                bound = @SVector[ (bounds[s÷2+1]+bounds[s÷2])/2,bounds[s÷2+1]]
+                init = 1 + (M+1)*N*(s-1)
+                push!(segment, bound[2])
+                isopen = @SVector[false,s==SEG ? false : true]
+                g = UniLog{T}(bound,init,minterval,M,N,false,isopen)
+                push!(unilogs,g)
+                for idx=g.idx[1]:g.idx[2]
+                    push!(grid, _grid(g, idx))
+                end
+            end
+        end
+
+        head, tail = grid[1], grid[end]
+        isopen[1] && (grid[1] += eps(T) * 1e4)
+        isopen[2] && (grid[end] -= eps(T) * 1e4)
+        checkOrder(grid)
+        return new{T,size,SEG}(grid, size, head, tail,unilogs, segment, isopen)
+    end
+end
+
+function Base.floor(grid::UniLogs{T,SIZE,SEG}, x) where {T,SIZE,SEG}
+#    (grid.head <= x <= grid.tail) || error("$x is out of the uniform grid range!")
+    segment = grid.segment
+    seg = 0
+    for i=1:SEG
+        if x<segment[i] && seg==0
+            seg = i
+        end
+    end
+    if seg == 0
+        seg = SEG
+    end
+    return _floor(grid.unilogs[seg],x)
+end
+
+Base.getindex(grid::UniLogs, i) = grid.grid[i]
+Base.firstindex(grid::UniLogs) = 1
+Base.lastindex(grid::UniLogs) = grid.size
 
 
 """
