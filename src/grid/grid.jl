@@ -78,9 +78,11 @@ function _floor(l::UniLog{T}, x::T) where {T}
 
     norm = l.d2s ? ((x - l.bound[1])/length) : ((l.bound[2] - x)/length)
     if norm <= 0
-        return l.d2s ? l.idx[1] : l.idx[2]
+        pos = l.d2s ? l.idx[1] : l.idx[2]
+        return Base.floor(Int,pos)
     elseif norm >=1
-        return l.d2s ? l.idx[2] : l.idx[1]
+        pos = l.d2s ? l.idx[2] : l.idx[1]
+        return Base.floor(Int,pos)
     end
 
     i_m= Base.floor(log(norm)/log(l.λ))
@@ -260,7 +262,7 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
     segment::SVector{SEG,T} # ends of each segments
     isopen::SVector{2,Bool}
 
-    function UniLogs{T,SIZE,SEG}(bounds, minterval::T,M::Int,N::Int, isopen = @SVector[false,false], issparse = @SVector[false,false]) where {T<:AbstractFloat,SIZE,SEG}
+    function UniLogs{T,SIZE,SEG}(bounds, minterval::T,M::Int,N::Int, Isopen = @SVector[true,true], issparse = @SVector[false,false]) where {T<:AbstractFloat,SIZE,SEG}
         @assert SEG > 0 
         size = (M+1)*N*SEG + 1
         @assert SIZE == size 
@@ -330,10 +332,10 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
         end
 
         head, tail = grid[1], grid[end]
-        isopen[1] && (grid[1] += eps(T) * 1e4)
-        isopen[2] && (grid[end] -= eps(T) * 1e4)
+        Isopen[1] && (grid[1] += eps(T) * 1e4)
+        Isopen[2] && (grid[end] -= eps(T) * 1e4)
         checkOrder(grid)
-        return new{T,size,SEG}(grid, size, head, tail,unilogs, segment, isopen)
+        return new{T,size,SEG}(grid, size, head, tail,unilogs, segment, Isopen)
     end
 end
 
@@ -350,7 +352,7 @@ function Base.floor(grid::UniLogs{T,SIZE,SEG}, x) where {T,SIZE,SEG}
         seg = SEG
     end
     result = _floor(grid.unilogs[seg],x)
-    return result==grid.size ? result-1 : result
+    return Base.floor(Int,result==grid.size ? result-1 : result)
 end
 
 Base.getindex(grid::UniLogs, i) = grid.grid[i]
@@ -382,7 +384,7 @@ end
     seg = 2
     size = (M+1)*N*seg+1
     bounds = @SVector[0.0,β]
-    return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,true])
+    return UniLogs{Float64,size,seg}(bounds,minterval,M,N)
 end
 
 
@@ -412,7 +414,7 @@ end
     seg = 2
     size = (M+1)*N*seg+1
     bounds = @SVector[0.0,Kf,maxK]
-    return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,true],[true,true])
+    return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,false],[true,true])
 end
 
 
@@ -464,7 +466,7 @@ end
     seg = 3
     size = (M+1)*N*seg+1
     bounds = @SVector[0.0,2Kf,maxK]
-    return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,true],[false,true])
+    return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,false],[false,true])
 end
 
 
