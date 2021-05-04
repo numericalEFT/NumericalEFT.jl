@@ -22,17 +22,19 @@ addprocs(Ncpu)
 end
 
 ################ construct RPA interaction ################################
-@everywhere const kF, m, e, spin, AngSize = 1.919, 0.5, sqrt(4.0*1.04), 2, 32
+@everywhere const kF, m, e, spin, AngSize = 1.919, 0.5, sqrt(1.0*1.04), 2, 32
 @everywhere const mass2 = 0.001
 @everywhere const β, EF = 250.0 / (kF^2 / 2m), kF^2 / (2m)
 
-@everywhere const qgrid = Grid.boseK(kF, 6kF, 0.2kF, 512) 
-@everywhere const τgrid = Grid.tau(β, EF / 20, 256)
+@everywhere const qgrid = Grid.boseKUL(kF, 6kF, 0.01*sqrt(m/β), 6,8) 
+@everywhere const τgrid = Grid.tauUL(β, 0.01/EF, 6,8)
 @everywhere const vqinv = [(q^2 + mass2) / (4π * e^2) for q in qgrid.grid]
+println(qgrid.grid)
+println(τgrid.grid)
+
+
 @everywhere const dW0 = dWRPA(vqinv, qgrid.grid, τgrid.grid, kF, β, spin, m) # dynamic part of the effective interaction
 
-# println(qgrid.grid)
-# println(τgrid.grid)
 
 @everywhere function interaction(q, τIn, τOut)
     dτ = abs(τOut - τIn)
