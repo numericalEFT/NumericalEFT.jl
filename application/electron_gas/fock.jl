@@ -51,7 +51,7 @@ end
     g = Spectral.kernelFermiT(τ, ω, β)
     v, dW = interactionDynamic(config, k, 0.0, τ)
     phase = 1.0 / (2π)^3
-    return g * dW * spin * phase
+    return g * dW * phase
 end
 
 @everywhere function measure(config)
