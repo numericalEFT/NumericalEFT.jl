@@ -17,7 +17,7 @@ function newickBubble(bub::Bubble)
     # Practically a postorder tree traversal
     left = newickVer4(bub.Lver)
     right = newickVer4(bub.Rver)
-    return "($left,$right)$(ChanName[bub.chan])_$(bub.Lver.loopNum)Ⓧ$(bub.Rver.loopNum)"
+    return "($left,$right)$(bub.id)_$(ChanName[bub.chan])_$(bub.Lver.loopNum)Ⓧ$(bub.Rver.loopNum)"
 end
 
 
@@ -27,9 +27,9 @@ function newickVer4(ver4::Ver4)
 
     function tpairNewick(ver4)
         if ver4.loopNum > 0
-            s = "lp$(ver4.loopNum)_T$(length(ver4.Tpair))⨁"
+            s = "$(ver4.id):lp$(ver4.loopNum)_T$(length(ver4.Tpair))⨁"
         else
-            s = "⨁"
+            s = "$(Ver4.id):⨁"
         end
         # if ver4.loopNum <= 1
         for (ti, T) in enumerate(ver4.Tpair)
@@ -76,24 +76,52 @@ function showTree(ver4, para::Para; verbose=0, depth=999)
     # pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__) #comment this line if no need to load local python module
     ete = pyimport("ete3")
 
+    function tpairETE(ver4, depth)
+        s = "$(ver4.id):"
+        if ver4.loopNum > 0
+            s *= "$(ver4.loopNum)lp, T$(length(ver4.Tpair))⨁ "
+        else
+            s *= "⨁ "
+        end
+        if ver4.loopNum == 0 || ver4.level > depth
+            MaxT = Inf
+        else
+            MaxT = 1
+        end
+
+        # if ver4.loopNum <= 1
+        for (ti, T) in enumerate(ver4.Tpair)
+            if ti <= MaxT
+                s *= "($(T[1]),$(T[2]),$(T[3]),$(T[4]))" 
+            else
+                s *= "..."
+                break
+            end
+        end
+        # end
+        return s
+    end
+
+
     function treeview(ver4, t=nothing)
         if isnothing(t)
             t = ete.Tree(name=" ")
         end
         
         if ver4.loopNum == 0 || ver4.level > depth
-            nt = t.add_child(name=tpair(ver4))
+            nt = t.add_child(name=tpairETE(ver4, depth))
             return t
         else
-            prefix = "$(ver4.loopNum) lp, $(length(ver4.Tpair)) elem"
-            nt = t.add_child(name=prefix * ", ⨁")
+            # prefix = "$(ver4.id): $(ver4.loopNum) lp, $(length(ver4.Tpair)) elem"
+            # nt = t.add_child(name=prefix * ", ⨁")
+            nt = t.add_child(name=tpairETE(ver4, depth))
             name_face = ete.TextFace(nt.name, fgcolor="black", fsize=10)
             nt.add_face(name_face, column=0, position="branch-top")
         end
 
         for bub in ver4.bubble
             chantype = ChanName[bub.chan]
-            nnt = nt.add_child(name="$(chantype)$(ver4.loopNum)Ⓧ")
+            nnt = nt.add_child(name="$(bub.id): $chantype $(bub.Lver.loopNum)Ⓧ$(bub.Rver.loopNum)")
             
             name_face = ete.TextFace(nnt.name, fgcolor="black", fsize=10)
             nnt.add_face(name_face, column=0, position="branch-top")
