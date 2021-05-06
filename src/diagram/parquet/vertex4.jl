@@ -138,7 +138,7 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
 end
 
 """
-    Ver4{W}(loopNum, tidx, para::Para; chan=nothing, level=1) where {W}
+    Ver4{W}(loopNum, tidx, para::Para; chan=nothing, level=1, id=[1, ]) where {W}
 
     Generate 4-vertex diagrams using Parquet Algorithm
 
