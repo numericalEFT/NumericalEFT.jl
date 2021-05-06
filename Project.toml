@@ -4,6 +4,7 @@ authors = ["Kun Chen <chenkun@mail.ustc.edu.cn>"]
 version = "0.1.0"
 
 [deps]
+AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 BinDeps = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
 Cuba = "8a292aeb-7a57-582c-b821-06e4c11590b1"
