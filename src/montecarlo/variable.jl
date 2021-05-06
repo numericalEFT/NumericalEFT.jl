@@ -66,6 +66,7 @@ mutable struct Configuration{V,P,O}
     ############# current state ######################
     step::Int64
     curr::Int # index of current integrand
+    norm::Int # index of the normalization diagram
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
     normalization::Float64 # normalization factor for observables
 
@@ -75,38 +76,42 @@ mutable struct Configuration{V,P,O}
     function Configuration(seed, totalStep, var::V, para::P, neighbor, dof, obs::O, reweight) where {V,P,O}
         @assert seed > 0 "seed should be positive!"
         @assert totalStep > 0 "Total step should be positive!"
-        Nd = length(neighbor)  # number of integrands
+
         Nv = length(var) # number of variables
 
-        @assert Nd > 0 "diagrams should not be empty!"
-        @assert Nd == length(dof) 
-        @assert Nd == length(reweight) 
+        dof = copy(dof) # don't modify the input dof
+        push!(dof, zeros(Int, Nv)) # add the degrees of freedom for the normalization diagram
+        Nd = length(dof)  # number of integrands
+
+        @assert Nd > 1 "diagrams should not be empty!"
+        @assert Nd == length(neighbor) "$Nd elements are expected, got $neighbor"
+        @assert Nd == length(reweight) "reweight vector size is wrong! Note that the last element in reweight vector is for the normalization diagram."
         for nv in dof
             @assert length(nv) == Nv
         end
-        @assert length(reweight) == Nd + 1 "reweight vector size is wrong! Note that the last element in reweight vector is for the normalization diagram."
 
         rng = MersenneTwister(seed)
 
         @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency"
 
         curr = 1 # set the current diagram to be the first one
+        norm = Nd
         # a small initial absweight makes the initial configuaration quickly updated,
         # so that no error is caused even if the intial absweight is wrong, 
         absweight = 1.0e-10 
         normalization = 1.0e-10
 
         # visited[end] is for the normalization diagram
-        visited = zeros(Float64, Nd + 1) .+ 1.0e-8  # add a small initial value to avoid Inf when inverted
+        visited = zeros(Float64, Nd) .+ 1.0e-8  # add a small initial value to avoid Inf when inverted
 
         # propose and accept shape: number of updates X integrand number X max(integrand number, variable number)
         # the last index will waste some memory, but the dimension is small anyway
-        propose = zeros(Float64, (2, Nd + 1, max(Nd + 1, Nv))) .+ 1.0e-8 # add a small initial value to avoid Inf when inverted
-        accept = zeros(Float64, (2, Nd + 1, max(Nd + 1, Nv))) 
+        propose = zeros(Float64, (2, Nd, max(Nd, Nv))) .+ 1.0e-8 # add a small initial value to avoid Inf when inverted
+        accept = zeros(Float64, (2, Nd, max(Nd, Nv))) 
 
         return new{V,P,O}(seed, rng, para, totalStep, var,  # static parameters
         collect(neighbor), collect(dof), obs, collect(reweight), visited, # integrand properties
-        0, curr, absweight, normalization, propose, accept  # current MC state
+        0, curr, norm, absweight, normalization, propose, accept  # current MC state
          ) 
     end
 end

@@ -25,7 +25,7 @@ function changeIntegrand(config, integrand)
 
     config.curr = new
     currAbsWeight = config.absWeight
-    newAbsWeight = abs(integrand(config))
+    newAbsWeight = (new == config.norm ?  1.0 : abs(integrand(config)))
     R = prop * newAbsWeight * config.reweight[new] / currAbsWeight / config.reweight[curr]
 
     config.propose[1, curr, new] += 1.0
@@ -40,6 +40,7 @@ end
 
 function changeVariable(config, integrand)
     # update to change the variables of the current diagrams
+    (config.curr == config.norm) && return
 
     curr = config.curr
     currdof = config.dof[curr]

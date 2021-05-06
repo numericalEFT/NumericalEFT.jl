@@ -58,23 +58,23 @@ include("updates.jl")
 
 - `saveio`: `io` to save
 """
-function sample(totalStep, var, dof, obs, integrand::Function, measure::Function, normalize::Function=nothing; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+function sample(totalStep, var, dof, obs, integrand::Function, measure::Function; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
 
     ################# diagram initialization #########################
     Nd = length(dof) # number of integrands
-    @assert Nd > 1 "At least two integrands are required. One to calcualte, one for normalization."
+    @assert Nd > 0 "At least one integrand is required."
 
     if isnothing(neighbor)
         # By default, only the order-1 and order+1 diagrams are considered to be the neighbors
         # Nd+1 is the normalization diagram, by default, it only connects to the diagram with index 1
         neighbor = []
         for di in 1:Nd + 1
-            if di == 1
-                push!(neighbor, [Nd + 1, di + 1])  # Nd+1 is the normalization diagram
-            elseif di == Nd + 1 # normalization diagram
-                push!(neighbor, [1, ])  # Nd+1 is the normalization diagram
-            elseif di == Nd
-                push!(neighbor, [di - 1,])
+            if di == 1 # 1 to norm and 2
+                push!(neighbor, [Nd + 1, 2]) 
+            elseif di == Nd + 1 # norm to 1
+                push!(neighbor, [1, ])  
+            elseif di == Nd # last diag to the second last
+                push!(neighbor, [Nd - 1,])
             else
                 push!(neighbor, [di - 1, di + 1]) 
             end
@@ -114,9 +114,10 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
     @assert length(config) == Nblock # make sure all tasks returns
 
     ##################### Extract Statistics  ################################
-    observable = [normalize(c) for c in config]
+    observable = [c.observable / c.normalization for c in config]
     avg = sum(observable) / Nblock
 
+    # println(observable[1])
     if Nblock > 1
         err = sqrt.(sum([(obs .- avg).^2 for obs in observable]) / (Nblock - 1)) / sqrt(Nblock)
     else
@@ -150,8 +151,8 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
         _update = rand(config.rng, updates) # randomly select an update
         _update(config, integrand)
         if i % 10 == 0 && i >= config.totalStep / 100 
-            if config.curr == length(reweight) # the last diagram is for normalization
-                config.normalization += 1.0 / config.reweight[end]
+            if config.curr == config.norm # the last diagram is for normalization
+                config.normalization += 1.0 / config.reweight[config.norm]
             else
                 measure(config)
             end
@@ -230,34 +231,40 @@ function printSummary(configList)
 
     totalproposed = 0.0
     @printf("%-20s %12s %12s %12s\n", "ChangeIntegrand", "Proposed", "Accepted", "Ratio  ")
-    for idx in 1:Nd
+    for n in configList[1].neighbor[Nd]
+        @printf(
+            "Norm -> %2d:            %11.6f%% %11.6f%% %12.6f\n",
+            n,
+            propose[1, Nd, n] / steps * 100.0,
+            accept[1, Nd, n] / steps * 100.0,
+            accept[1, Nd, n] / propose[1, Nd, n]
+        )
+        totalproposed += propose[1, Nd, n]
+    end
+    for idx in 1:Nd - 1
         for n in configList[1].neighbor[idx]
-            @printf(
-                "  %d -> %2d:            %11.6f%% %11.6f%% %12.6f\n",
-                idx, n,
-                propose[1, idx, n] / steps * 100.0,
-                accept[1, idx, n] / steps * 100.0,
-                accept[1, idx, n] / propose[1, idx, n]
-            )
+            if n == Nd  # normalization diagram
+                @printf("  %d ->Norm:            %11.6f%% %11.6f%% %12.6f\n",
+                    idx,
+                    propose[1, idx, n] / steps * 100.0,
+                    accept[1, idx, n] / steps * 100.0,
+                    accept[1, idx, n] / propose[1, idx, n]
+                )
+            else
+                @printf("  %d -> %2d:            %11.6f%% %11.6f%% %12.6f\n",
+                    idx, n,
+                    propose[1, idx, n] / steps * 100.0,
+                    accept[1, idx, n] / steps * 100.0,
+                    accept[1, idx, n] / propose[1, idx, n]
+                )
+            end
             totalproposed += propose[1, idx, n]
         end
     end
     println(bar)
 
     @printf("%-20s %12s %12s %12s\n", "ChangeVariable", "Proposed", "Accepted", "Ratio  ")
-    for (vi, var) in enumerate(configList[1].var)
-        typestr = "$(typeof(var))"
-        typestr = split(typestr, ".")[end]
-        @printf(
-            " Norm / %-10s:   %11.6f%% %11.6f%% %12.6f\n",
-            typestr,
-            propose[2, Nd, vi] / steps * 100.0,
-            accept[2, Nd, vi] / steps * 100.0,
-            accept[2, Nd, vi] / propose[2, Nd, vi]
-        )
-        totalproposed += propose[2, idx, vi]
-    end
-    for idx in 1:Nd - 1
+    for idx in 1:Nd - 1 # normalization diagram don't have variable to change
         for (vi, var) in enumerate(configList[1].var)
             typestr = "$(typeof(var))"
             typestr = split(typestr, ".")[end]
