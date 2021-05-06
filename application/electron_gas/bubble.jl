@@ -3,7 +3,7 @@
 using Distributed
 using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, InteractiveUtils, Parameters
 
-const Ncpu = 4
+const Ncpu = 1 
 const totalStep = 1e8
 
 addprocs(Ncpu)
@@ -19,21 +19,14 @@ addprocs(Ncpu)
 end
 
 @everywhere function integrand(config)
-    if config.curr == 1
-        return 1.0
-    elseif config.curr == 2
-            return eval2(config)
-    else
-        error("impossible!")
+    if config.curr != 1
+        error("impossible")
     end
-end
-
-@everywhere function eval2(config)
     para = config.para
 
     T, K, Ext = config.var[1], config.var[2], config.var[3]
     k = K[1]
-    Tin, Tout = T[1], T[2] 
+    Tin, Tout = 0.0, T[1] 
     extidx = Ext[1]
     q = para.extQ[extidx] # external momentum
     kq = k + q
@@ -51,31 +44,23 @@ end
     curr = config.curr
     factor = 1.0 / config.reweight[curr]
     extidx = config.var[3][1]
-    if curr == 1
-        obs[1][extidx] += factor
-    elseif curr == 2
-        weight = integrand(config)
-        obs[2][extidx] += weight / abs(weight) * factor
-    else
-        return
-    end
+    weight = integrand(config)
+    obs[curr, extidx] += weight / abs(weight) * factor
 end
-
-@everywhere normalize(config) = config.observable[2] / sum(config.observable[1]) * config.para.Qsize
 
 function run(totalStep)
 
     para = Para()
     @unpack extQ, Qsize = para 
 
-    K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     T = MonteCarlo.Tau(β, β / 2.0)
+    K = MonteCarlo.FermiK(3, kF, 0.2 * kF, 10.0 * kF)
     Ext = MonteCarlo.Discrete(1, length(extQ)) # external variable is specified
 
-    dof = ([1, 0, 1], [2, 1, 1]) # degrees of freedom of the normalization diagram and the bubble
-    obs = (zeros(Float64, Qsize), zeros(Float64, Qsize)) # observable for the normalization diagram and the bubble
+    dof = [[1, 1, 1],] # degrees of freedom of the normalization diagram and the bubble
+    obs = zeros(Float64, (1, Qsize)) # observable for the normalization diagram and the bubble
 
-    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure, normalize; para=para, print=10)
+    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure; para=para, print=1)
 
 
     @unpack n, extQ = Para()
