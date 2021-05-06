@@ -67,6 +67,7 @@ mutable struct Configuration{V,P,O}
     step::Int64
     curr::Int # index of current integrand
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
+    normalization::Float64 # normalization factor for observables
 
     propose::Array{Float64,3} # updates index, integrand index, integrand index
     accept::Array{Float64,3} # updates index, integrand index, integrand index 
@@ -74,8 +75,8 @@ mutable struct Configuration{V,P,O}
     function Configuration(seed, totalStep, var::V, para::P, neighbor, dof, obs::O, reweight) where {V,P,O}
         @assert seed > 0 "seed should be positive!"
         @assert totalStep > 0 "Total step should be positive!"
-        Nd = length(neighbor)
-        Nv = length(var)
+        Nd = length(neighbor)  # number of integrands
+        Nv = length(var) # number of variables
 
         @assert Nd > 0 "diagrams should not be empty!"
         @assert Nd == length(dof) 
@@ -83,6 +84,7 @@ mutable struct Configuration{V,P,O}
         for nv in dof
             @assert length(nv) == Nv
         end
+        @assert length(reweight) == Nd + 1 "reweight vector size is wrong! Note that the last element in reweight vector is for the normalization diagram."
 
         rng = MersenneTwister(seed)
 
@@ -92,17 +94,19 @@ mutable struct Configuration{V,P,O}
         # a small initial absweight makes the initial configuaration quickly updated,
         # so that no error is caused even if the intial absweight is wrong, 
         absweight = 1.0e-10 
+        normalization = 1.0e-10
 
-        visited = zeros(Float64, Nd) .+ 1.0e-8  # add a small initial value to avoid Inf when inverted
+        # visited[end] is for the normalization diagram
+        visited = zeros(Float64, Nd + 1) .+ 1.0e-8  # add a small initial value to avoid Inf when inverted
 
         # propose and accept shape: number of updates X integrand number X max(integrand number, variable number)
         # the last index will waste some memory, but the dimension is small anyway
-        propose = zeros(Float64, (2, Nd, max(Nd, Nv))) .+ 1.0e-8 # add a small initial value to avoid Inf when inverted
-        accept = zeros(Float64, (2, Nd, max(Nd, Nv))) 
+        propose = zeros(Float64, (2, Nd + 1, max(Nd + 1, Nv))) .+ 1.0e-8 # add a small initial value to avoid Inf when inverted
+        accept = zeros(Float64, (2, Nd + 1, max(Nd + 1, Nv))) 
 
         return new{V,P,O}(seed, rng, para, totalStep, var,  # static parameters
         collect(neighbor), collect(dof), obs, collect(reweight), visited, # integrand properties
-        0, curr, absweight, propose, accept  # current MC state
+        0, curr, absweight, normalization, propose, accept  # current MC state
          ) 
     end
 end

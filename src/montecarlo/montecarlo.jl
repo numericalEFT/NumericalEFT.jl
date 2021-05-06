@@ -66,14 +66,17 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
 
     if isnothing(neighbor)
         # By default, only the order-1 and order+1 diagrams are considered to be the neighbors
+        # Nd+1 is the normalization diagram, by default, it only connects to the diagram with index 1
         neighbor = []
-        for di in 1:Nd
+        for di in 1:Nd + 1
             if di == 1
-                push!(neighbor, [di + 1,])
+                push!(neighbor, [Nd + 1, di + 1])  # Nd+1 is the normalization diagram
+            elseif di == Nd + 1 # normalization diagram
+                push!(neighbor, [1, ])  # Nd+1 is the normalization diagram
             elseif di == Nd
                 push!(neighbor, [di - 1,])
             else
-                push!(neighbor, [di - 1, di + 1])
+                push!(neighbor, [di - 1, di + 1]) 
             end
         end
     end
@@ -81,7 +84,7 @@ function sample(totalStep, var, dof, obs, integrand::Function, measure::Function
     ############# initialize reweight factors ########################
     doReweight = false
     if isnothing(reweight)
-        reweight = [1.0 for d in 1:Nd]
+        reweight = [1.0 for d in 1:Nd + 1] # the last element is for the normalization diagram
         doReweight = true
     end
 
@@ -146,7 +149,13 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
         config.visited[config.curr] += 1
         _update = rand(config.rng, updates) # randomly select an update
         _update(config, integrand)
-        (i % 10 == 0 && i >= config.totalStep / 100) && measure(config)
+        if i % 10 == 0 && i >= config.totalStep / 100 
+            if config.curr == length(reweight) # the last diagram is for normalization
+                config.normalization += 1.0 / config.reweight[end]
+            else
+                measure(config)
+            end
+        end
         if i % 1000 == 0
             for t in timer
                 check(t, [config, ])
@@ -236,7 +245,19 @@ function printSummary(configList)
     println(bar)
 
     @printf("%-20s %12s %12s %12s\n", "ChangeVariable", "Proposed", "Accepted", "Ratio  ")
-    for idx in 1:Nd
+    for (vi, var) in enumerate(configList[1].var)
+        typestr = "$(typeof(var))"
+        typestr = split(typestr, ".")[end]
+        @printf(
+            " Norm / %-10s:   %11.6f%% %11.6f%% %12.6f\n",
+            typestr,
+            propose[2, Nd, vi] / steps * 100.0,
+            accept[2, Nd, vi] / steps * 100.0,
+            accept[2, Nd, vi] / propose[2, Nd, vi]
+        )
+        totalproposed += propose[2, idx, vi]
+    end
+    for idx in 1:Nd - 1
         for (vi, var) in enumerate(configList[1].var)
             typestr = "$(typeof(var))"
             typestr = split(typestr, ".")[end]
@@ -252,7 +273,8 @@ function printSummary(configList)
     end
     println(bar)
     printstyled("Diagrams            Visited      ReWeight\n", color=:yellow)
-    for idx in 1:Nd
+    @printf("  Norm    :     %12i %12.6f\n", visited[end], configList[1].reweight[end])
+    for idx in 1:Nd - 1
         @printf("  Order%2d:     %12i %12.6f\n", idx, visited[idx], configList[1].reweight[idx])
     end
     println(bar)
