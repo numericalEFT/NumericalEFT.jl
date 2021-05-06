@@ -7,7 +7,7 @@ function changeIntegrand(config, integrand)
 
     currdof, newdof = config.dof[curr], config.dof[new]
 
-    # propse probability caused by the selection of neighbors
+    # propose probability caused by the selection of neighbors
     prop = length(config.neighbor[curr]) / length(config.neighbor[new])
 
     # create/remove variables if there are more/less degrees of freedom

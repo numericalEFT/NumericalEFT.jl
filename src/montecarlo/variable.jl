@@ -73,22 +73,20 @@ mutable struct Configuration{V,P,O}
     propose::Array{Float64,3} # updates index, integrand index, integrand index
     accept::Array{Float64,3} # updates index, integrand index, integrand index 
 
-    function Configuration(seed, totalStep, var::V, para::P, neighbor, dof, obs::O, reweight) where {V,P,O}
+    function Configuration(seed, totalStep, var::V, para::P, neighbor::Vector{Vector{Int}}, dof::Vector{Vector{Int}}, obs::O, reweight) where {V,P,O}
         @assert seed > 0 "seed should be positive!"
         @assert totalStep > 0 "Total step should be positive!"
 
         Nv = length(var) # number of variables
-
-        dof = copy(dof) # don't modify the input dof
-        push!(dof, zeros(Int, Nv)) # add the degrees of freedom for the normalization diagram
-        Nd = length(dof)  # number of integrands
-
+        Nd = length(neighbor)
         @assert Nd > 1 "diagrams should not be empty!"
-        @assert Nd == length(neighbor) "$Nd elements are expected, got $neighbor"
         @assert Nd == length(reweight) "reweight vector size is wrong! Note that the last element in reweight vector is for the normalization diagram."
+
+        # make sure dof has the correct size that matches var and neighbor
         for nv in dof
-            @assert length(nv) == Nv
+            @assert length(nv) == Nv "Each element of `dof` should have the same dimension as `var`"
         end
+        @assert Nd == length(dof) "$Nd elements are expected for dof=$dof"
 
         rng = MersenneTwister(seed)
 

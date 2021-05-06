@@ -58,19 +58,24 @@ include("updates.jl")
 
 - `saveio`: `io` to save
 """
-function sample(totalStep, var, dof, obs, integrand::Function, measure::Function; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measure::Function; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
 
     ################# diagram initialization #########################
     Nd = length(dof) # number of integrands
     @assert Nd > 0 "At least one integrand is required."
 
+    # add normalization diagram to dof
+    dof = deepcopy(dof) # don't modify the input dof
+    push!(dof, zeros(Int, length(var))) # add the degrees of freedom for the normalization diagram
+
     if isnothing(neighbor)
         # By default, only the order-1 and order+1 diagrams are considered to be the neighbors
         # Nd+1 is the normalization diagram, by default, it only connects to the diagram with index 1
-        neighbor = []
+        neighbor = Vector{Vector{Int}}([])
         for di in 1:Nd + 1
             if di == 1 # 1 to norm and 2
-                push!(neighbor, [Nd + 1, 2]) 
+                # if Nd=1, then 2 is the normalization diagram
+                push!(neighbor, Nd == 1 ? [2, ] : [Nd + 1, 2]) 
             elseif di == Nd + 1 # norm to 1
                 push!(neighbor, [1, ])  
             elseif di == Nd # last diag to the second last
@@ -180,7 +185,7 @@ function reweight(config)
     for (vi, v) in enumerate(config.visited)
         if v > 10000
             config.reweight[vi] *= avgstep / v
-        end
+end
     end
 end
 
@@ -280,7 +285,7 @@ function printSummary(configList)
     end
     println(bar)
     printstyled("Diagrams            Visited      ReWeight\n", color=:yellow)
-    @printf("  Norm    :     %12i %12.6f\n", visited[end], configList[1].reweight[end])
+    @printf("  Norm   :     %12i %12.6f\n", visited[end], configList[1].reweight[end])
     for idx in 1:Nd - 1
         @printf("  Order%2d:     %12i %12.6f\n", idx, visited[idx], configList[1].reweight[idx])
     end

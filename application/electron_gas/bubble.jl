@@ -41,11 +41,10 @@ end
 
 @everywhere function measure(config)
     obs = config.observable
-    curr = config.curr
-    factor = 1.0 / config.reweight[curr]
+    factor = 1.0 / config.reweight[config.curr]
     extidx = config.var[3][1]
     weight = integrand(config)
-    obs[curr, extidx] += weight / abs(weight) * factor
+    obs[extidx] += weight / abs(weight) * factor
 end
 
 function run(totalStep)
@@ -58,7 +57,7 @@ function run(totalStep)
     Ext = MonteCarlo.Discrete(1, length(extQ)) # external variable is specified
 
     dof = [[1, 1, 1],] # degrees of freedom of the normalization diagram and the bubble
-    obs = zeros(Float64, (1, Qsize)) # observable for the normalization diagram and the bubble
+    obs = zeros(Float64, Qsize) # observable for the normalization diagram and the bubble
 
     avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure; para=para, print=1)
 
