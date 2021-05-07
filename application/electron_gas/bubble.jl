@@ -56,6 +56,7 @@ function run(steps)
     config = MonteCarlo.Configuration(steps, (T, K, Ext), dof, obs; para=para)
     avg, std = MonteCarlo.sample(config, integrand, measure; print=0)
 
+
     if isnothing(avg) == false
         @unpack n, extQ = Para()
 
