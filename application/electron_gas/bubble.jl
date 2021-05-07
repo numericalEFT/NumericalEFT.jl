@@ -2,7 +2,7 @@
 
 using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, InteractiveUtils, Parameters
 
-const totalStep = 1e7
+const Steps = 1e6
 
 include("parameter.jl")
 
@@ -41,7 +41,7 @@ function measure(config)
     obs[extidx] += weight / abs(weight) * factor
 end
 
-function run(totalStep)
+function run(steps)
 
     para = Para()
     @unpack extQ, Qsize = para 
@@ -53,7 +53,8 @@ function run(totalStep)
     dof = [[1, 1, 1],] # degrees of freedom of the normalization diagram and the bubble
     obs = zeros(Float64, Qsize) # observable for the normalization diagram and the bubble
 
-    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure; para=para, print=0)
+    config = MonteCarlo.Configuration(steps, (T, K, Ext), dof, obs; para=para)
+    avg, std = MonteCarlo.sample(config, integrand, measure; print=0)
 
     if isnothing(avg) == false
         @unpack n, extQ = Para()
@@ -67,5 +68,5 @@ function run(totalStep)
     end
 end
 
-run(totalStep)
+run(Steps)
 # @time run(totalStep)
