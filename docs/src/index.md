@@ -19,6 +19,7 @@ Pages = [
     "lib/dlr.md",
     "lib/green.md",
     "lib/twopoint.md",
+    "lib/parquet.md",
     "lib/montecarlo.md",
     "lib/fastmath.md",
     "lib/utility.md",
