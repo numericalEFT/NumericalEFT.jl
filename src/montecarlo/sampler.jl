@@ -151,8 +151,8 @@ function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     return 1.0
         end
     else
-        # K[idx] = @. K[idx] + (rand(rng, D) - 0.5) * K.δk
-        K[idx] += (rand(rng, D) .- 0.5) .* K.δk
+        K[idx] = K[idx] + (rand(rng, D) .- 0.5) .* K.δk
+        # K[idx] += (rand(rng, D) .- 0.5) .* K.δk
         return 1.0
         # K[idx] = K[idx] * (-1.0)
         # return 1.0

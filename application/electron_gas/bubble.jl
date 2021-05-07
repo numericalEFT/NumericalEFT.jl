@@ -1,8 +1,9 @@
 # This example demonstrated how to calculate the bubble diagram of free electrons using the Monte Carlo module
 
 using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, InteractiveUtils, Parameters
+# using ProfileView
 
-const Steps = 1e6
+const Steps = 1e7
 
 include("parameter.jl")
 
@@ -54,8 +55,9 @@ function run(steps)
     obs = zeros(Float64, Qsize) # observable for the normalization diagram and the bubble
 
     config = MonteCarlo.Configuration(steps, (T, K, Ext), dof, obs; para=para)
-    avg, std = MonteCarlo.sample(config, integrand, measure; print=0)
-
+    avg, std = MonteCarlo.sample(config, integrand, measure; print=0, Nblock=2)
+    # @profview MonteCarlo.sample(config, integrand, measure; print=0, Nblock=1)
+    # sleep(100)
 
     if isnothing(avg) == false
         @unpack n, extQ = Para()
@@ -70,4 +72,4 @@ function run(steps)
 end
 
 run(Steps)
-# @time run(totalStep)
+# @time run(Steps)
