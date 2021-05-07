@@ -20,7 +20,11 @@ include("statistics.jl")
 
 sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measure::Function; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
 
- sample the integrands, collect statistics, and return the expected values and errors
+ sample the integrands, collect statistics, and return the expected values and errors.
+
+ # Remarks
+ - User may run the MC in parallel using MPI. Simply run `mpiexec -n N julia userscript.jl` where `N` is the number of workers. In this mode, only the root process returns meaningful results. All other workers return `nothing, nothing`. User is responsible to handle the returning results properly.
+ - In the MC, a normalization diagram is introduced to normalize the MC estimates of the integrands. More information can be found in the link: https://kunyuan.github.io/QuantumStatistics.jl/dev/man/important_sampling/#Important-Sampling. User don't need to explicitly specify this normalization diagram.Internally, normalization diagram will be added to each table that is related to the integrands.
 
  # Arguments
 
@@ -37,13 +41,14 @@ sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measu
 
 - `measure`: function call to measure. It should accept an argument of the type `Configuration`, then manipulate observables `obs`. 
 
-- `Nblock`: repeat times. The tasks will automatically distributed to multi-process if `Distributed` package is imported globally.
+- `Nblock`: repeat times. The tasks will automatically distributed to multi-process in MPI mode.
 
 - `para`: user-defined parameter that is useful in the functions `integrand`, `measure`, `normalize`.
 
 - `neighbor`: vectors that indicates the neighbors of each integrand. e.g., ([2, ], [1, ]) means the neighbor of the first integrand is the second one, while the neighbor of the second integrand is the first. 
     There is a MC update proposes to jump from one integrand to another. If these two integrands' degrees of freedom are very different, then the update is unlikely to be accepted. To avoid this problem, one can specify neighbor to guide the update. 
-    By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([2, ], [1, 3], [2, 4], ..., [N-1,])
+    
+    By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([N+1, 2], [1, 3], [2, 4], ..., [N-1,], [1, ]), where the first N entries are for diagram 1, 2, ..., N and the last entry is for the normalization diagram. Only the first diagram is connected to the normalization diagram.
     
 - `seed`: the seed for random number generator. If `seed` is set, then the random number generator of each blocks will be initialized with seed+1, seed+2, .... On the other hand, if `seed` is nothing, then MC will call `RandomDevice()` to get a system-generated seed for each block. Since `seed` is different for each block, it could also be used as the id of each block.
 
