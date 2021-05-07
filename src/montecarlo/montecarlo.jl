@@ -117,10 +117,10 @@ function sample(config::Configuration, integrand::Function, measure::Function; N
         ##################### Extract Statistics  ################################
         mean = obsSum ./ Nblock
         std = @. sqrt((obsSquaredSum / Nblock - mean^2) / (Nblock - 1))
-        MPI.Finalize()
+        # MPI.Finalize()
         return mean, std
     else # if not the root, return nothing
-        MPI.Finalize()
+        # MPI.Finalize()
         return nothing, nothing
     end
 end
