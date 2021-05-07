@@ -15,7 +15,7 @@ function Sphere1(totalstep)
     end
 
     T = MonteCarlo.Tau(1.0, 1.0 / 2.0)
-    dof = ([2, ],) # number of T variable for the normalization and the integrand
+    dof = [[2, ],] # number of T variable for the normalization and the integrand
     avg, err = MonteCarlo.sample(totalstep, (T,), dof, [0.0, ], integrand, measure; Nblock=64, print=-1)
 
     return avg, err
