@@ -111,6 +111,7 @@ function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Functi
 
     obsSum, obsSquaredSum = zero(obs), zero(obs)
     summary = nothing
+    startTime = time()
 
     for i in 1:Nblock
         # MPI thread rank will run the block with the indexes: rank, rank+Nworker, rank+2Nworker, ...
@@ -143,6 +144,7 @@ function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Functi
         if (print >= 0)
             printSummary(summary, neighbor, var)
         end
+        println(red("All simulation ended. Cost $(time() - startTime) seconds."))
         ##################### Extract Statistics  ################################
         mean = obsSum ./ Nblock
         std = @. sqrt((obsSquaredSum / Nblock - mean^2) / (Nblock - 1))
@@ -164,7 +166,7 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
 
     ########### MC simulation ##################################
     if (print >= 0)
-        printstyled("Seed $(config.seed) Start Simulation ...\n", color=:red)
+        println(green("Seed $(config.seed) Start Simulation ..."))
     end
     startTime = time()
         
@@ -190,10 +192,10 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
         end
     end
 
-    # if (print >= 0)
-    #     # printStatus(config)
-    #     printstyled("Seed $(config.seed) End Simulation. Cost $(time() - startTime) seconds.\n\n", color=:red)
-    # end
+    if (print >= 0)
+        # printStatus(config)
+        println(green("Seed $(config.seed) End Simulation. Cost $(time() - startTime) seconds."))
+    end
 
     return config
 end

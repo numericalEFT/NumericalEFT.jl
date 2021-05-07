@@ -2,7 +2,7 @@
 
 using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, InteractiveUtils, Parameters
 
-const totalStep = 1e9
+const totalStep = 1e7
 
 include("parameter.jl")
 
