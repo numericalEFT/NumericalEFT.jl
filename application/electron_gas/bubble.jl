@@ -55,7 +55,7 @@ function run(steps)
     obs = zeros(Float64, Qsize) # observable for the normalization diagram and the bubble
 
     config = MonteCarlo.Configuration(steps, (T, K, Ext), dof, obs; para=para)
-    avg, std = MonteCarlo.sample(config, integrand, measure; print=0, Nblock=2)
+    avg, std = MonteCarlo.sample(config, integrand, measure; print=0, Nblock=16)
     # @profview MonteCarlo.sample(config, integrand, measure; print=0, Nblock=1)
     # sleep(100)
 
