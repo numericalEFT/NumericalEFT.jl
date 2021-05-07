@@ -65,36 +65,27 @@ sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measu
 function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measure::Function; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
 
     ################# diagram initialization #########################
-    Nd = length(dof) # number of integrands
-    @assert Nd > 0 "At least one integrand is required."
-
     # add normalization diagram to dof
     dof = deepcopy(dof) # don't modify the input dof
     push!(dof, zeros(Int, length(var))) # add the degrees of freedom for the normalization diagram
 
+    Nd = length(dof) # number of integrands + renormalization diagram
+    @assert Nd > 1 "At least one integrand is required."
+
     if isnothing(neighbor)
         # By default, only the order-1 and order+1 diagrams are considered to be the neighbors
-        # Nd+1 is the normalization diagram, by default, it only connects to the diagram with index 1
-        neighbor = Vector{Vector{Int}}([])
-        for di in 1:Nd + 1
-            if di == 1 # 1 to norm and 2
-                # if Nd=1, then 2 is the normalization diagram
-                push!(neighbor, Nd == 1 ? [2, ] : [Nd + 1, 2]) 
-            elseif di == Nd + 1 # norm to 1
-                push!(neighbor, [1, ])  
-            elseif di == Nd # last diag to the second last
-                push!(neighbor, [Nd - 1,])
-            else
-                push!(neighbor, [di - 1, di + 1]) 
-            end
-        end
+        # Nd is the normalization diagram, by default, it only connects to the first diagram
+        neighbor = Vector{Vector{Int}}([[d - 1, d + 1] for d in 1:Nd])
+        neighbor[1] = (Nd == 2 ? [2, ] : [Nd, 2]) # if Nd=2, then 2 must be the normalization diagram
+        neighbor[end] = [1, ] # norm to the first diag
+        (Nd >= 3) && (neighbor[end - 1] = [Nd - 2, ]) # last diag to the second last, possible only for Nd>=3
     end
 
     ############# initialize reweight factors ########################
     doReweight = false
     if isnothing(reweight)
-        reweight = [1.0 for d in 1:Nd + 1] # the last element is for the normalization diagram
-        doReweight = true
+        reweight = [1.0 for d in 1:Nd] # the last element is for the normalization diagram
+    doReweight = true
     end
 
     ############ initialized timer ####################################
@@ -103,40 +94,39 @@ function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Functi
     end
 
     ########### initialized MPI #######################################
-    if MPI.Initialized() == false
-    MPI.Init()
-    end
+    (MPI.Initialized() == false ) && MPI.Init()
     comm = MPI.COMM_WORLD
-    size = MPI.Comm_size(comm)
-    rank = MPI.Comm_rank(comm)
-    root = 0
-    Nblock = (Nblock ÷ size) * size # make Nblock % size ==0
-    @assert Nblock % size == 0
+    Nworker = MPI.Comm_size(comm)  # number of MPI workers
+    rank = MPI.Comm_rank(comm)  # rank of current MPI worker
+    root = 0 # rank of the root worker
 
     #########  construct configurations for each block ################
-    steps = totalStep ÷ Nblock
-    obsSum, obsSquaredSum = zero(obs), zero(obs)
+    if Nblock > Nworker
+        Nblock = (Nblock ÷ Nworker) * Nworker # make Nblock % size ==0, error estimation assumes this relation
+    else
+        Nblock = Nworker  # each worker should handle at least one block
+    end
+    @assert Nblock % Nworker == 0
+    steps = totalStep ÷ Nblock # MC steps for each block
 
+    obsSum, obsSquaredSum = zero(obs), zero(obs)
     summary = nothing
 
     for i in 1:Nblock
-        # MPI thread rank will run the block with the indexes: rank, rank+size, rank+2size, ...
-        if i % size != rank 
-            continue
-        end
+        # MPI thread rank will run the block with the indexes: rank, rank+Nworker, rank+2Nworker, ...
+        (i % Nworker != rank) && continue
 
         if isnothing(seed)
             seedi = rand(Random.RandomDevice(), 1:1000000)
         else
             seedi = i + abs(seed)
         end
-        # obscopied = deepcopy(obs) # copied observables for each block 
         fill!(obs, zero(eltype(obs))) # reinialize observable
         config = Configuration(seedi, steps, var, para, neighbor, dof, obs, reweight)
 
         config = montecarlo(config, integrand, measure, print, save, timer, doReweight)
 
-        summary = addStat!(config, summary)
+        summary = addStat(config, summary)  # collect MC information
 
         obsSum .+= config.observable ./ config.normalization
         obsSquaredSum .+= (config.observable ./ config.normalization).^2
@@ -146,7 +136,7 @@ function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Functi
     #################### collect statistics  ####################################
     MPI.Reduce!(obsSum, MPI.SUM, root, comm) # root node gets the sum of observables from all blocks
     MPI.Reduce!(obsSquaredSum, MPI.SUM, root, comm) # root node gets the squared sum of observables from all blocks
-    summary = reduceStat(summary, root, comm)
+    summary = reduceStat(summary, root, comm) # root node gets the summed MC information
 
     if MPI.Comm_rank(comm) == root
         ################################ IO ######################################
@@ -215,27 +205,6 @@ function reweight(config)
             config.reweight[vi] *= avgstep / v
 end
     end
-end
-
-"""
-    progressBar(step, total)
-
-Return string of progressBar (step/total*100%)
-"""
-function progressBar(step, total)
-    barWidth = 70
-    percent = round(step / total * 100.0, digits=2)
-            str = "["
-    pos = barWidth * percent / 100.0
-    for i = 1:barWidth
-        if i <= pos
-            str *= "█"
-        else
-            str *= " "
-        end
-    end
-    str *= "] $step/$total=$percent%"
-    return str
 end
 
 function printSummary(summary, neighbor, var)
@@ -309,7 +278,7 @@ function printSummary(summary, neighbor, var)
     println(bar)
     println(yellow("Total Proposed: $(totalproposed / steps * 100.0)%\n"))
     println(green(progressBar(steps, totalSteps)))
-    println()
+println()
 
 end
 
