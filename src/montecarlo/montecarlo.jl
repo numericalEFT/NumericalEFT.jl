@@ -59,6 +59,7 @@ function sample(config::Configuration, integrand::Function, measure::Function; N
     Nworker = MPI.Comm_size(comm)  # number of MPI workers
     rank = MPI.Comm_rank(comm)  # rank of current MPI worker
     root = 0 # rank of the root worker
+    # MPI.Barrier(comm)
 
     #########  construct configurations for each block ################
     if Nblock > Nworker
@@ -96,8 +97,9 @@ function sample(config::Configuration, integrand::Function, measure::Function; N
         MPI.Reduce!(obsSum, MPI.SUM, root, comm) # root node gets the sum of observables from all blocks
         MPI.Reduce!(obsSquaredSum, MPI.SUM, root, comm) # root node gets the squared sum of observables from all blocks
     else
-        obsSum = MPI.Reduce(obsSum, MPI.SUM, root, comm) # root node gets the sum of observables from all blocks
-        obsSquareSum = MPI.Reduce(obsSquaredSum, MPI.SUM, root, comm) # root node gets the squared sum of observables from all blocks
+        result = [obsSum, obsSquaredSum]  # MPI.Reduce works for array only
+        MPI.Reduce!(result, MPI.SUM, root, comm) # root node gets the sum of observables from all blocks
+        obsSum, obsSquaredSum = result
     end
     summary = reduceStat(summary, root, comm) # root node gets the summed MC information
 
