@@ -18,7 +18,7 @@ include("statistics.jl")
 
 """
 
-sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measure::Function; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+sample(config::Configuration, integrand::Function, measure::Function; Nblock=16, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
 
  sample the integrands, collect statistics, and return the expected values and errors.
 
@@ -28,13 +28,7 @@ sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measu
 
  # Arguments
 
- - `totalStep`: total number of updates
- 
- - `var`: TUPLE of variables, each variable should be derived from the abstract type Variable, see variable.jl for details). Use a tuple rather than a vector improves the performance.
-
- - `dof`: degrees of freedom of each integrand, e.g., ([0, 1], [2, 3]) means the first integrand has zero var#1 and one var#2; while the second integrand has two var#1 and 3 var#2. 
-
- - `obs`: observables that is required to calculate the integrands, will be used in the `measure` function call
+ - `config`: Configuration struct
 
  - `integrand`: function call to evaluate the integrand. It should accept an argument of the type `Configuration`, and return a weight. 
     Internally, MC only samples the absolute value of the weight. Therefore, it is also important to define Main.abs for the weight if its type is user-defined. 
@@ -42,17 +36,6 @@ sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measu
 - `measure`: function call to measure. It should accept an argument of the type `Configuration`, then manipulate observables `obs`. 
 
 - `Nblock`: repeat times. The tasks will automatically distributed to multi-process in MPI mode.
-
-- `para`: user-defined parameter that is useful in the functions `integrand`, `measure`, `normalize`.
-
-- `neighbor`: vectors that indicates the neighbors of each integrand. e.g., ([2, ], [1, ]) means the neighbor of the first integrand is the second one, while the neighbor of the second integrand is the first. 
-    There is a MC update proposes to jump from one integrand to another. If these two integrands' degrees of freedom are very different, then the update is unlikely to be accepted. To avoid this problem, one can specify neighbor to guide the update. 
-    
-    By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([N+1, 2], [1, 3], [2, 4], ..., [N-1,], [1, ]), where the first N entries are for diagram 1, 2, ..., N and the last entry is for the normalization diagram. Only the first diagram is connected to the normalization diagram.
-    
-- `seed`: the seed for random number generator. If `seed` is set, then the random number generator of each blocks will be initialized with seed+1, seed+2, .... On the other hand, if `seed` is nothing, then MC will call `RandomDevice()` to get a system-generated seed for each block. Since `seed` is different for each block, it could also be used as the id of each block.
-
-- `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized as one.
 
 - `print`: -1 to not print anything, 0 to print minimal information, >0 to print summary for every `print` seconds
 
@@ -99,13 +82,23 @@ function sample(config::Configuration, integrand::Function, measure::Function; N
 
         summary = addStat(config, summary)  # collect MC information
 
-        obsSum .+= config.observable ./ config.normalization
-        obsSquaredSum .+= (config.observable ./ config.normalization).^2
+        if typeof(obsSum) <: AbstractArray
+            obsSum .+= config.observable ./ config.normalization
+            obsSquaredSum .+= (config.observable ./ config.normalization).^2
+        else
+            obsSum += config.observable / config.normalization
+            obsSquaredSum += (config.observable / config.normalization)^2
+        end
     end
 
     #################### collect statistics  ####################################
-    MPI.Reduce!(obsSum, MPI.SUM, root, comm) # root node gets the sum of observables from all blocks
-    MPI.Reduce!(obsSquaredSum, MPI.SUM, root, comm) # root node gets the squared sum of observables from all blocks
+    if typeof(obsSum) <: AbstractArray
+        MPI.Reduce!(obsSum, MPI.SUM, root, comm) # root node gets the sum of observables from all blocks
+        MPI.Reduce!(obsSquaredSum, MPI.SUM, root, comm) # root node gets the squared sum of observables from all blocks
+    else
+        obsSum = MPI.Reduce(obsSum, MPI.SUM, root, comm) # root node gets the sum of observables from all blocks
+        obsSquareSum = MPI.Reduce(obsSquaredSum, MPI.SUM, root, comm) # root node gets the squared sum of observables from all blocks
+    end
     summary = reduceStat(summary, root, comm) # root node gets the summed MC information
 
     if MPI.Comm_rank(comm) == root

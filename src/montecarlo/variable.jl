@@ -4,9 +4,9 @@ const MaxOrder = 16
 """
 mutable struct Configuration
 
-    Struct that saves everything needed by MC.
+    Struct that contains everything needed for MC.
 
-    There are three different pieces of information:
+    There are three different componenets:
 
  # Members
 
@@ -16,7 +16,7 @@ mutable struct Configuration
 
  - `rng`: a MersenneTwister random number generator, seeded by `seed`
 
- - `para`: user-defined parameter, could be nothing if not needed
+ - `para`: user-defined parameter, could be set to nothing if not needed
 
  - `totalStep`: the total number of updates for this configuration
 
@@ -24,15 +24,17 @@ mutable struct Configuration
 
  ## integrand properties
  
- - `neighbor`: vectors that indicates the neighbors of each integrand. e.g., ([2, ], [1, ]) means the neighbor of the first integrand is the second one, while the neighbor of the second integrand is the first. 
+- `neighbor::Vector{Vector{Int}}` : vectors that indicates the neighbors of each integrand. e.g., ([2, ], [1, ]) means the neighbor of the first integrand is the second one, while the neighbor of the second integrand is the first. 
     There is a MC update proposes to jump from one integrand to another. If these two integrands' degrees of freedom are very different, then the update is unlikely to be accepted. To avoid this problem, one can specify neighbor to guide the update. 
-    By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([2, ], [1, 3], [2, 4], ..., [N-1,])
+    
+    By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([N+1, 2], [1, 3], [2, 4], ..., [N-1,], [1, ]), where the first N entries are for diagram 1, 2, ..., N and the last entry is for the normalization diagram. Only the first diagram is connected to the normalization diagram.
 
- - `dof`: degrees of freedom of each integrand, e.g., ([0, 1], [2, 3]) means the first integrand has zero var#1 and one var#2; while the second integrand has two var#1 and 3 var#2. 
+ - `dof::Vector{Vector{Int}}`: degrees of freedom of each integrand, e.g., [[0, 1], [2, 3]] means the first integrand has zero var#1 and one var#2; while the second integrand has two var#1 and 3 var#2. 
 
- - `observable`: observables that is required to calculate the integrands, will be used in the `measure` function call
+ - `observable`: observables that is required to calculate the integrands, will be used in the `measure` function call.
+    It is either an array of any type with the common operations like +-*/^ defined. 
 
- - `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized as one.
+ - `reweight`: reweight factors for each integrands. 
 
  - `visited`: how many times this integrand is visited by the Markov chain.
 
@@ -40,9 +42,13 @@ mutable struct Configuration
 
  - `step`: the number of MC updates performed up to now
 
- - `curr`: the current integrand
+ - `curr`: the current integrand, initialize with 1
 
- - `absWeight`: the abolute weight of the current integrand
+ - `norm`: the index of the normalization diagram. `norm` is larger than the index of any user-defined integrands 
+
+ - `absWeight`: the abolute weight of the current integrand. User is responsible to initialize it after the contructor is called.
+
+ - `normalization`: the accumulated normalization factor. Physical observable = Configuration.observable/Configuration.normalization.
 
  - `propose/accept`: array to store the proposed and accepted updates for each integrands and variables.
     Their shapes are (number of updates X integrand number X max(integrand number, variable number).
@@ -51,7 +57,7 @@ mutable struct Configuration
 mutable struct Configuration{V,P,O}
     ########### static parameters ###################
     seed::Int # seed to initialize random numebr generator, also serves as the unique pid of the configuration
-    rng::MersenneTwister
+    rng::MersenneTwister # random number generator seeded by seed
     para::P
     totalStep::Int64
     var::V
@@ -73,9 +79,38 @@ mutable struct Configuration{V,P,O}
     propose::Array{Float64,3} # updates index, integrand index, integrand index
     accept::Array{Float64,3} # updates index, integrand index, integrand index 
 
+    """
+    Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
+
+    Create a Configuration struct
+
+ # Arguments
+
+ ## Static parameters
+
+ - `totalStep`: the total number of updates for this configuration
+
+ - `var`: TUPLE of variables, each variable should be derived from the abstract type Variable, see variable.jl for details). Use a tuple rather than a vector improves the performance.
+
+ - `dof::Vector{Vector{Int}}`: degrees of freedom of each integrand, e.g., [[0, 1], [2, 3]] means the first integrand has zero var#1 and one var#2; while the second integrand has two var#1 and 3 var#2. 
+
+ - `obs`: observables that is required to calculate the integrands, will be used in the `measure` function call
+    It is either an array of any type with the common operations like +-*/^ defined. 
+
+ - `para`: user-defined parameter, could be nothing if not needed
+
+ - `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized with one.
+
+ - `seed`: seed to initialize random numebr generator, also serves as the unique pid of the configuration. If it is nothing, then use RandomDevice() to generate a random seed in [1, 1000_1000]
+
+- `neighbor::Vector{Vector{Int}}` : vectors that indicates the neighbors of each integrand. e.g., ([2, ], [1, ]) means the neighbor of the first integrand is the second one, while the neighbor of the second integrand is the first. 
+    There is a MC update proposes to jump from one integrand to another. If these two integrands' degrees of freedom are very different, then the update is unlikely to be accepted. To avoid this problem, one can specify neighbor to guide the update. 
+    
+    By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([N+1, 2], [1, 3], [2, 4], ..., [N-1,], [1, ]), where the first N entries are for diagram 1, 2, ..., N and the last entry is for the normalization diagram. Only the first diagram is connected to the normalization diagram.
+"""
     function Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
         @assert totalStep > 0 "Total step should be positive!"
-        @assert O <: AbstractArray "observable is expected to be an array. Noe get $(typeof(obs))."
+        # @assert O <: AbstractArray "observable is expected to be an array. Noe get $(typeof(obs))."
         @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency. Now get $(typeof(V))"
         Nv = length(var) # number of variables
 
@@ -137,7 +172,11 @@ mutable struct Configuration{V,P,O}
 end
 
 function reset!(config, reweight=nothing)
-    fill!(config.observable, zero(eltype(config.observable))) # reinialize observable
+    if typeof(config.observable) <: AbstractArray
+        fill!(config.observable, zero(eltype(config.observable))) # reinialize observable
+    else
+        config.observable = zero(config.observable)
+    end
     if isnothing(reweight) == false
         fill!(reweight, 1.0)
     end
