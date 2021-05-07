@@ -5,7 +5,7 @@ module MonteCarlo
 
 export montecarlo, Configuration, Diagram, FermiK, BoseK, Tau, TauPair
 
-using Random
+using Random, MPI
 using LinearAlgebra
 using StaticArrays, Printf, Dates
 using ..Utility
@@ -14,10 +14,11 @@ const RNG = Random.GLOBAL_RNG
 include("variable.jl")
 include("sampler.jl")
 include("updates.jl")
+include("statistics.jl")
 
 """
 
- sample(totalStep, var, dof, obs, integrand::Function, measure::Function, normalize::Function=nothing; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measure::Function; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
 
  sample the integrands, collect statistics, and return the expected values and errors
 
@@ -35,8 +36,6 @@ include("updates.jl")
     Internally, MC only samples the absolute value of the weight. Therefore, it is also important to define Main.abs for the weight if its type is user-defined. 
 
 - `measure`: function call to measure. It should accept an argument of the type `Configuration`, then manipulate observables `obs`. 
-
-- `normalize`: function call to derive averages and errors from observables `obs`. It should accept an argument of the type `Configuration`.
 
 - `Nblock`: repeat times. The tasks will automatically distributed to multi-process if `Distributed` package is imported globally.
 
@@ -98,42 +97,66 @@ function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Functi
         push!(timer, StopWatch(print, printSummary))
     end
 
+    ########### initialized MPI #######################################
+    if MPI.Initialized() == false
+    MPI.Init()
+    end
+    comm = MPI.COMM_WORLD
+    size = MPI.Comm_size(comm)
+    rank = MPI.Comm_rank(comm)
+    root = 0
+    Nblock = (Nblock ÷ size) * size # make Nblock % size ==0
+    @assert Nblock % size == 0
 
     #########  construct configurations for each block ################
     steps = totalStep ÷ Nblock
-    configList = []
+    obsSum, obsSquaredSum = zero(obs), zero(obs)
+
+    summary = nothing
+
     for i in 1:Nblock
+        # MPI thread rank will run the block with the indexes: rank, rank+size, rank+2size, ...
+        if i % size != rank 
+            continue
+        end
+
         if isnothing(seed)
             seedi = rand(Random.RandomDevice(), 1:1000000)
         else
             seedi = i + abs(seed)
         end
-        obscopied = deepcopy(obs) # copied observables for each block 
-        config = Configuration(seedi, steps, var, para, neighbor, dof, obscopied, reweight)
-        push!(configList, config)
+        # obscopied = deepcopy(obs) # copied observables for each block 
+        fill!(obs, zero(eltype(obs))) # reinialize observable
+        config = Configuration(seedi, steps, var, para, neighbor, dof, obs, reweight)
+
+        config = montecarlo(config, integrand, measure, print, save, timer, doReweight)
+
+        summary = addStat!(config, summary)
+
+        obsSum .+= config.observable ./ config.normalization
+        obsSquaredSum .+= (config.observable ./ config.normalization).^2
+        reweight = config.reweight
     end
 
-    #################### distribute MC tasks  ##############################
-    mymap = isdefined(Main, :pmap) ? Main.pmap : map # if Distributed module is imported, then use pmap for parallelization
-    config = @sync mymap((c) -> montecarlo(c, integrand, measure, print, save, timer, doReweight), configList)
-    @assert length(config) == Nblock # make sure all tasks returns
+    #################### collect statistics  ####################################
+    MPI.Reduce!(obsSum, MPI.SUM, root, comm) # root node gets the sum of observables from all blocks
+    MPI.Reduce!(obsSquaredSum, MPI.SUM, root, comm) # root node gets the squared sum of observables from all blocks
+    summary = reduceStat(summary, root, comm)
 
-    ##################### Extract Statistics  ################################
-    observable = [c.observable / c.normalization for c in config]
-    avg = sum(observable) / Nblock
-
-    # println(observable[1])
-    if Nblock > 1
-        err = sqrt.(sum([(obs .- avg).^2 for obs in observable]) / (Nblock - 1)) / sqrt(Nblock)
-    else
-        err = abs.(avg)
+    if MPI.Comm_rank(comm) == root
+        ################################ IO ######################################
+        if (print >= 0)
+            printSummary(summary, neighbor, var)
+        end
+        ##################### Extract Statistics  ################################
+        mean = obsSum ./ Nblock
+        std = @. sqrt((obsSquaredSum / Nblock - mean^2) / (Nblock - 1))
+        MPI.Finalize()
+        return mean, std
+    else # if not the root, return nothing
+        MPI.Finalize()
+        return nothing, nothing
     end
-
-    ################################ IO ######################################
-    if (print >= 0)
-        printSummary(config)
-    end
-    return avg, err
 end
 
 function montecarlo(config::Configuration, integrand::Function, measure::Function, print, save, timer, doReweight)
@@ -164,18 +187,18 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
         end
         if i % 1000 == 0
             for t in timer
-                check(t, [config, ])
+                check(t, config, config.neighbor, config.var)
             end
-            if doReweight && i > 1000_00 && i % 1000_00 == 0
+        if doReweight && i > 1000_00 && i % 1000_00 == 0
                 reweight(config)
         end
         end
     end
 
-    if (print >= 0)
-        # printStatus(config)
-        printstyled("Seed $(config.seed) End Simulation. Cost $(time() - startTime) seconds.\n\n", color=:red)
-    end
+    # if (print >= 0)
+    #     # printStatus(config)
+    #     printstyled("Seed $(config.seed) End Simulation. Cost $(time() - startTime) seconds.\n\n", color=:red)
+    # end
 
     return config
 end
@@ -183,7 +206,7 @@ end
 function reweight(config)
     avgstep = sum(config.visited) / length(config.visited)
     for (vi, v) in enumerate(config.visited)
-        if v > 10000
+        if v > 1000
             config.reweight[vi] *= avgstep / v
 end
     end
@@ -197,7 +220,7 @@ Return string of progressBar (step/total*100%)
 function progressBar(step, total)
     barWidth = 70
     percent = round(step / total * 100.0, digits=2)
-    str = "["
+            str = "["
     pos = barWidth * percent / 100.0
     for i = 1:barWidth
         if i <= pos
@@ -210,35 +233,24 @@ function progressBar(step, total)
     return str
 end
 
-function collectStatus(configList)
-    @assert length(configList) > 0
-    steps = sum([config.step for config in configList])
-    totalSteps = sum([config.totalStep for config in configList])
-    visited = sum([config.visited for config in configList])
-    propose = sum([config.propose for config in configList])
-    accept = sum([config.accept for config in configList])
-    return steps, totalSteps, visited, propose, accept
-end
+function printSummary(summary, neighbor, var)
 
-function printSummary(configList)
-    @assert length(configList) > 0
-
-    steps, totalSteps, visited, propose, accept = collectStatus(configList)
+    steps, totalSteps, visited, reweight, propose, accept = summary.step, summary.totalStep, summary.visited, summary.reweight, summary.propose, summary.accept
     Nd = length(visited)
 
     barbar = "===============================  Report   ==========================================="
     bar = "-------------------------------------------------------------------------------------"
 
     println(barbar)
-    printstyled(Dates.now(), color=:green)
+    println(green(Dates.now()))
     println("\nTotalStep:", totalSteps)
     println(bar)
 
     totalproposed = 0.0
-    @printf("%-20s %12s %12s %12s\n", "ChangeIntegrand", "Proposed", "Accepted", "Ratio  ")
-    for n in configList[1].neighbor[Nd]
+    println(yellow(@sprintf("%-20s %12s %12s %12s", "ChangeIntegrand", "Proposed", "Accepted", "Ratio  ")))
+    for n in neighbor[Nd]
         @printf(
-            "Norm -> %2d:            %11.6f%% %11.6f%% %12.6f\n",
+            "Norm -> %2d:           %11.6f%% %11.6f%% %12.6f\n",
             n,
             propose[1, Nd, n] / steps * 100.0,
             accept[1, Nd, n] / steps * 100.0,
@@ -247,9 +259,9 @@ function printSummary(configList)
         totalproposed += propose[1, Nd, n]
     end
     for idx in 1:Nd - 1
-        for n in configList[1].neighbor[idx]
+        for n in neighbor[idx]
             if n == Nd  # normalization diagram
-                @printf("  %d ->Norm:            %11.6f%% %11.6f%% %12.6f\n",
+                @printf("  %d ->Norm:           %11.6f%% %11.6f%% %12.6f\n",
                     idx,
                     propose[1, idx, n] / steps * 100.0,
                     accept[1, idx, n] / steps * 100.0,
@@ -268,9 +280,9 @@ function printSummary(configList)
     end
     println(bar)
 
-    @printf("%-20s %12s %12s %12s\n", "ChangeVariable", "Proposed", "Accepted", "Ratio  ")
+    println(yellow(@sprintf("%-20s %12s %12s %12s", "ChangeVariable", "Proposed", "Accepted", "Ratio  ")))
     for idx in 1:Nd - 1 # normalization diagram don't have variable to change
-        for (vi, var) in enumerate(configList[1].var)
+        for (vi, var) in enumerate(var)
             typestr = "$(typeof(var))"
             typestr = split(typestr, ".")[end]
             @printf(
@@ -284,16 +296,14 @@ function printSummary(configList)
         end
     end
     println(bar)
-    printstyled("Diagrams            Visited      ReWeight\n", color=:yellow)
-    @printf("  Norm   :     %12i %12.6f\n", visited[end], configList[1].reweight[end])
+    println(yellow("Diagrams            Visited      ReWeight\n"))
+    @printf("  Norm   :     %12i %12.6f\n", visited[end], reweight[end])
     for idx in 1:Nd - 1
-        @printf("  Order%2d:     %12i %12.6f\n", idx, visited[idx], configList[1].reweight[idx])
+        @printf("  Order%2d:     %12i %12.6f\n", idx, visited[idx], reweight[idx])
     end
     println(bar)
-    printstyled("Total Proposed: $(totalproposed / steps * 100.0)%\n", color=:yellow)
-    if length(configList) == 1 
-        printstyled(progressBar(steps, totalSteps), color=:green)
-    end
+    println(yellow("Total Proposed: $(totalproposed / steps * 100.0)%\n"))
+    println(green(progressBar(steps, totalSteps)))
     println()
 
 end

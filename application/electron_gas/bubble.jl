@@ -1,24 +1,18 @@
 # This example demonstrated how to calculate the bubble diagram of free electrons using the Monte Carlo module
 
-using Distributed
 using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, InteractiveUtils, Parameters
 
-const Ncpu = 1 
-const totalStep = 1e8
+const totalStep = 1e7
 
-addprocs(Ncpu)
+include("parameter.jl")
 
-@everywhere include("parameter.jl")
-
-@everywhere using QuantumStatistics, Parameters, Random, LinearAlgebra
-
-@everywhere @with_kw struct Para
+@with_kw struct Para
     n::Int = 0 # external Matsubara frequency
     Qsize::Int = 16
     extQ::Vector{SVector{3,Float64}} = [@SVector [q, 0.0, 0.0] for q in LinRange(0.0, 3.0 * kF, Qsize)]
 end
 
-@everywhere function integrand(config)
+function integrand(config)
     if config.curr != 1
         error("impossible")
     end
@@ -39,7 +33,7 @@ end
     return g1 * g2 * spin * phase * cos(2π * para.n * τ)
 end
 
-@everywhere function measure(config)
+function measure(config)
     obs = config.observable
     factor = 1.0 / config.reweight[config.curr]
     extidx = config.var[3][1]
@@ -59,15 +53,17 @@ function run(totalStep)
     dof = [[1, 1, 1],] # degrees of freedom of the normalization diagram and the bubble
     obs = zeros(Float64, Qsize) # observable for the normalization diagram and the bubble
 
-    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure; para=para, print=1)
+    avg, std = MonteCarlo.sample(totalStep, (T, K, Ext), dof, obs, integrand, measure; para=para, print=0)
 
+    if isnothing(avg) == false
+        @unpack n, extQ = Para()
 
-    @unpack n, extQ = Para()
+        for (idx, q) in enumerate(extQ)
+            q = q[1]
+            p, err = TwoPoint.LindhardΩnFiniteTemperature(dim, q, n, kF, β, me, spin)
+            @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, avg[idx], std[idx], p, err)
+        end
 
-    for (idx, q) in enumerate(extQ)
-        q = q[1]
-        p, err = TwoPoint.LindhardΩnFiniteTemperature(dim, q, n, kF, β, me, spin)
-        @printf("%10.6f  %10.6f ± %10.6f  %10.6f ± %10.6f\n", q / kF, avg[idx], std[idx], p, err)
     end
 end
 
