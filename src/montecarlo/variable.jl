@@ -73,24 +73,46 @@ mutable struct Configuration{V,P,O}
     propose::Array{Float64,3} # updates index, integrand index, integrand index
     accept::Array{Float64,3} # updates index, integrand index, integrand index 
 
-    function Configuration(seed, totalStep, var::V, para::P, neighbor::Vector{Vector{Int}}, dof::Vector{Vector{Int}}, obs::O, reweight) where {V,P,O}
-        @assert seed > 0 "seed should be positive!"
+    function Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
         @assert totalStep > 0 "Total step should be positive!"
-
+        @assert O <: AbstractArray "observable is expected to be an array. Noe get $(typeof(obs))."
+        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency. Now get $(typeof(V))"
         Nv = length(var) # number of variables
-        Nd = length(neighbor)
-        @assert Nd > 1 "diagrams should not be empty!"
-        @assert Nd == length(reweight) "reweight vector size is wrong! Note that the last element in reweight vector is for the normalization diagram."
 
+        ################# integrand initialization #########################
+        @assert typeof(dof) == Vector{Vector{Int}} "Configuration.dof should be with a type of Vector{Vector{Int}} to avoid mistakes. Now get $(typeof(dof))"
+        # add normalization diagram to dof
+        dof = deepcopy(dof) # don't modify the input dof
+        push!(dof, zeros(Int, length(var))) # add the degrees of freedom for the normalization diagram
+
+        Nd = length(dof) # number of integrands + renormalization diagram
+        @assert Nd > 1 "At least one integrand is required."
         # make sure dof has the correct size that matches var and neighbor
         for nv in dof
             @assert length(nv) == Nv "Each element of `dof` should have the same dimension as `var`"
         end
-        @assert Nd == length(dof) "$Nd elements are expected for dof=$dof"
 
+        if neighbor == []
+            # By default, only the order-1 and order+1 diagrams are considered to be the neighbors
+            # Nd is the normalization diagram, by default, it only connects to the first diagram
+            neighbor = Vector{Vector{Int}}([[d - 1, d + 1] for d in 1:Nd])
+            neighbor[1] = (Nd == 2 ? [2, ] : [Nd, 2]) # if Nd=2, then 2 must be the normalization diagram
+            neighbor[end] = [1, ] # norm to the first diag
+            (Nd >= 3) && (neighbor[end - 1] = [Nd - 2, ]) # last diag to the second last, possible only for Nd>=3
+        end
+        @assert typeof(neighbor) == Vector{Vector{Int}} "Configuration.neighbor should be with a type of Vector{Vector{Int}} to avoid mistakes. Now get $(typeof(neighbor))"
+        @assert Nd == length(neighbor) "$Nd elements are expected for neighbor=$neighbor"
+
+        ############# initialize reweight factors ########################
+        if isnothing(reweight)
+            reweight = [1.0 for d in 1:Nd] # the last element is for the normalization diagram
+        end
+        @assert Nd == length(reweight) "reweight vector size is wrong! Note that the last element in reweight vector is for the normalization diagram."
+
+        if isnothing(seed)
+            seed = rand(Random.RandomDevice(), 1:1000000)
+        end
         rng = MersenneTwister(seed)
-
-        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency"
 
         curr = 1 # set the current diagram to be the first one
         norm = Nd
@@ -110,8 +132,20 @@ mutable struct Configuration{V,P,O}
         return new{V,P,O}(seed, rng, para, totalStep, var,  # static parameters
         collect(neighbor), collect(dof), obs, collect(reweight), visited, # integrand properties
         0, curr, norm, absweight, normalization, propose, accept  # current MC state
-         ) 
+) 
     end
+end
+
+function reset!(config, reweight=nothing)
+    fill!(config.observable, zero(eltype(config.observable))) # reinialize observable
+    if isnothing(reweight) == false
+        fill!(reweight, 1.0)
+    end
+    config.curr = 1
+    config.normalization = 1.0e-10
+    fill!(config.visited, 1.0e-8)
+    fill!(config.propose, 1.0e-8)
+    fill!(config.accept, 1.0e-10)
 end
 
 mutable struct FermiK{D} <: Variable

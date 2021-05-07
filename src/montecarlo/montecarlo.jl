@@ -62,31 +62,8 @@ sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measu
 
 - `saveio`: `io` to save
 """
-function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Function, measure::Function; Nblock=16, para=nothing, neighbor=nothing, seed=nothing, reweight=nothing, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+function sample(config::Configuration, integrand::Function, measure::Function; Nblock=16, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
 
-    ################# diagram initialization #########################
-    # add normalization diagram to dof
-    dof = deepcopy(dof) # don't modify the input dof
-    push!(dof, zeros(Int, length(var))) # add the degrees of freedom for the normalization diagram
-
-    Nd = length(dof) # number of integrands + renormalization diagram
-    @assert Nd > 1 "At least one integrand is required."
-
-    if isnothing(neighbor)
-        # By default, only the order-1 and order+1 diagrams are considered to be the neighbors
-        # Nd is the normalization diagram, by default, it only connects to the first diagram
-        neighbor = Vector{Vector{Int}}([[d - 1, d + 1] for d in 1:Nd])
-        neighbor[1] = (Nd == 2 ? [2, ] : [Nd, 2]) # if Nd=2, then 2 must be the normalization diagram
-        neighbor[end] = [1, ] # norm to the first diag
-        (Nd >= 3) && (neighbor[end - 1] = [Nd - 2, ]) # last diag to the second last, possible only for Nd>=3
-    end
-
-    ############# initialize reweight factors ########################
-    doReweight = false
-    if isnothing(reweight)
-        reweight = [1.0 for d in 1:Nd] # the last element is for the normalization diagram
-    doReweight = true
-    end
 
     ############ initialized timer ####################################
     if print > 0
@@ -107,9 +84,8 @@ function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Functi
         Nblock = Nworker  # each worker should handle at least one block
     end
     @assert Nblock % Nworker == 0
-    steps = totalStep ÷ Nblock # MC steps for each block
 
-    obsSum, obsSquaredSum = zero(obs), zero(obs)
+    obsSum, obsSquaredSum = zero(config.observable), zero(config.observable)
     summary = nothing
     startTime = time()
 
@@ -117,21 +93,14 @@ function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Functi
         # MPI thread rank will run the block with the indexes: rank, rank+Nworker, rank+2Nworker, ...
         (i % Nworker != rank) && continue
 
-        if isnothing(seed)
-            seedi = rand(Random.RandomDevice(), 1:1000000)
-        else
-            seedi = i + abs(seed)
-        end
-        fill!(obs, zero(eltype(obs))) # reinialize observable
-        config = Configuration(seedi, steps, var, para, neighbor, dof, obs, reweight)
+        reset!(config, config.reweight) # reset configuration, keep the previous reweight factors
 
-        config = montecarlo(config, integrand, measure, print, save, timer, doReweight)
+        config = montecarlo(config, integrand, measure, print, save, timer, true)
 
         summary = addStat(config, summary)  # collect MC information
 
         obsSum .+= config.observable ./ config.normalization
         obsSquaredSum .+= (config.observable ./ config.normalization).^2
-        reweight = config.reweight
     end
 
     #################### collect statistics  ####################################
@@ -142,7 +111,7 @@ function sample(totalStep, var, dof::Vector{Vector{Int}}, obs, integrand::Functi
     if MPI.Comm_rank(comm) == root
         ################################ IO ######################################
         if (print >= 0)
-            printSummary(summary, neighbor, var)
+            printSummary(summary, config.neighbor, config.var)
         end
         println(red("All simulation ended. Cost $(time() - startTime) seconds."))
         ##################### Extract Statistics  ################################
@@ -186,9 +155,9 @@ function montecarlo(config::Configuration, integrand::Function, measure::Functio
             for t in timer
                 check(t, config, config.neighbor, config.var)
             end
-        if doReweight && i > 1000_00 && i % 1000_00 == 0
+            if doReweight && i > 1000_00 && i % 1000_00 == 0
                 reweight(config)
-        end
+            end
         end
     end
 
@@ -205,7 +174,7 @@ function reweight(config)
     for (vi, v) in enumerate(config.visited)
         if v > 1000
             config.reweight[vi] *= avgstep / v
-end
+        end
     end
 end
 
@@ -280,7 +249,7 @@ function printSummary(summary, neighbor, var)
     println(bar)
     println(yellow("Total Proposed: $(totalproposed / steps * 100.0)%\n"))
     println(green(progressBar(steps, totalSteps)))
-println()
+    println()
 
 end
 
