@@ -63,14 +63,18 @@ struct IdxMap
 end
 
 struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
+    id::Int
     chan::Int
     Lver::_Ver4
     Rver::_Ver4
     map::Vector{IdxMap}
 
-    function Bubble{_Ver4,W}(ver4::_Ver4, chan::Int, oL::Int, para::Para, level::Int) where {_Ver4,W}
+    function Bubble{_Ver4,W}(ver4::_Ver4, chan::Int, oL::Int, para::Para, level::Int, id::Vector{Int}) where {_Ver4,W}
         @assert chan in para.chan "$chan isn't a bubble channels!"
         @assert oL < ver4.loopNum "LVer loopNum must be smaller than the ver4 loopNum"
+
+        idbub = id[1] # id vector will be updated later, so store the current id as the bubble id
+        id[1] += 1  
 
         oR = ver4.loopNum - 1 - oL # loopNum of the right vertex
         LTidx = ver4.Tidx  # the first τ index of the left vertex
@@ -87,8 +91,8 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
             error("chan $chan isn't implemented!")
         end
 
-        Lver = _Ver4{W}(oL, LTidx, para; chan=LsubVer, level=level + 1)
-        Rver = _Ver4{W}(oR, RTidx, para; chan=RsubVer, level=level + 1)
+        Lver = _Ver4{W}(oL, LTidx, para; chan=LsubVer, level=level + 1, id)
+        Rver = _Ver4{W}(oR, RTidx, para; chan=RsubVer, level=level + 1, id)
 
         @assert Lver.Tidx == ver4.Tidx "Lver Tidx must be equal to vertex4 Tidx! LoopNum: $(ver4.loopNum), LverLoopNum: $(Lver.loopNum), chan: $chan"
 
@@ -129,12 +133,12 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
                 push!(map, IdxMap(lt, rt, GT0idx, GTxidx, VerTidx))
             end
         end
-        return new(chan, Lver, Rver, map)
+        return new(idbub, chan, Lver, Rver, map)
     end
 end
 
 """
-    Ver4{W}(loopNum, tidx, para::Para; chan=nothing, level=1) where {W}
+    Ver4{W}(loopNum, tidx, para::Para; chan=nothing, level=1, id=[1, ]) where {W}
 
     Generate 4-vertex diagrams using Parquet Algorithm
 
@@ -144,12 +148,19 @@ end
 - `para`: parameters
 - `chan`: list of channels of the current 4-vertex. If not specified, it is set to be `para.chan`
 - `level`: level in the diagram tree
+- `id`: the first element will be used as the id of the Ver4. All nodes in the tree will be labeled in preorder depth-first search
 
 #Remark:
-The argument `chan` and `para.chan` are different. The former is the channels of current 4-vertex, while the later is the channels of the sub-vertices
+- The argument `chan` and `para.chan` are different. The former is the channels of current 4-vertex, while the later is the channels of the sub-vertices
+- AbstractTrees interface is implemented for Ver4. So one can use the API in https://juliacollections.github.io/AbstractTrees.jl/stable/ to manipulate/print the tree structre of Ver4.
+- There are three different methods to print/visualize the tree structre: 
+1) `print_tree(ver4::Ver4)` or `print_tree(bub::Bubble)` to print the tree to terminal. This function is provided by AbstractTrees API. 
+2) `newick(ver4::Ver4)` or `newick(bub::Bubble)` to serilize the tree to a newick format string. You may save the string to a text file, then visualize it with a newick format visualizer application. 
+3) `showTree(ver4::Ver4)` to visualize the tree using the python package ete3. You have to install ete3 properly to use this function.
 """
 struct Ver4{W}
     ###### vertex topology information #####################
+    id::Int
     level::Int
     
     #######  vertex properties   ###########################
@@ -165,9 +176,10 @@ struct Ver4{W}
     Tpair::Vector{Tuple{Int,Int,Int,Int}}
     weight::Vector{W}
 
-    function Ver4{W}(loopNum, tidx, para::Para; chan=para.chan, level=1) where {W}
+    function Ver4{W}(loopNum, tidx, para::Para; chan=para.chan, level=1, id=[1, ]) where {W}
         g = @SVector [Green{W}() for i = 1:16]
-        ver4 = new{W}(level, loopNum, chan, tidx, g, [], [], [])
+        ver4 = new{W}(id[1], level, loopNum, chan, tidx, g, [], [], [])
+        id[1] += 1
         @assert loopNum >= 0
         if loopNum == 0
             # bare interaction may have one, two or four independent tau variables
@@ -182,11 +194,10 @@ struct Ver4{W}
                 addTidx(ver4, (tidx, tidx + 1, tidx + 2, tidx + 3))  # direct dynamic interaction
                 addTidx(ver4, (tidx, tidx + 3, tidx + 2, tidx + 1))  # exchange dynamic interaction
             end
-            return ver4
         else # loopNum>0
             for c in para.chan
                 for ol = 0:loopNum - 1
-                    bubble = Bubble{Ver4,W}(ver4, c, ol, para, level)
+                    bubble = Bubble{Ver4,W}(ver4, c, ol, para, level, id)
                     if length(bubble.map) > 0  # if zero, bubble diagram doesn't exist
                         push!(ver4.bubble, bubble)
                     end
@@ -196,8 +207,8 @@ struct Ver4{W}
             # for c in II
             # end
             test(ver4) # more test
-            return ver4
         end
+        return ver4
     end
 end
 
@@ -230,78 +241,74 @@ end
 end
 end
 
-"""
-    showTree(ver4, para::Para; verbose=0, depth=999)
-
-    Visualize the diagram tree using ete3 python package
-
-#Arguments
-- `ver4`: the 4-vertex diagram tree to visualize
-- `para`: parameters
-- `verbose=0`: the amount of information to show
-- `depth=999`: deepest level of the diagram tree to show
-"""
-function showTree(ver4, para::Para; verbose=0, depth=999)
-
-    # pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__) #comment this line if no need to load local python module
-    ete = pyimport("ete3")
-
-    function tpair(ver4)
-        s = ""
-        for T in ver4.Tpair
-            s *= "($(T[1]), $(T[2]), $(T[3]), $(T[4]))" 
-        end
-    return s
-    end
-
-    function treeview(ver4, t=nothing)
-        if isnothing(t)
-            t = ete.Tree(name=" ")
-        end
-
-        if ver4.loopNum == 0 || ver4.level > depth
-            nt = t.add_child(name=tpair(ver4))
-            return t
+function tpair(ver4, MaxT=18)
+    s = "\u001b[31m$(ver4.id):\u001b[0m"
+    if ver4.loopNum > 0
+        s *= "$(ver4.loopNum)lp, T$(length(ver4.Tpair))⨁ "
         else
-            prefix = "$(ver4.loopNum) lp, $(length(ver4.Tpair)) elem"
-            nt = t.add_child(name=prefix * ", ⨁")
-            name_face = ete.TextFace(nt.name, fgcolor="black", fsize=10)
-            nt.add_face(name_face, column=0, position="branch-top")
-        end
-
-        for bub in ver4.bubble
-            chantype = ChanName[bub.chan]
-            nnt = nt.add_child(name="$(chantype)$(ver4.loopNum)Ⓧ")
-            
-            name_face = ete.TextFace(nnt.name, fgcolor="black", fsize=10)
-            nnt.add_face(name_face, column=0, position="branch-top")
-            
-            treeview(bub.Lver, nnt)
-            treeview(bub.Rver, nnt)
-        end
-
-    return t
+        s *= "⨁ "
     end
-
-    t = treeview(ver4)
-    # style = ete.NodeStyle()
-    # style["bgcolor"] = "Khaki"
-    # t.set_style(style)
-
-
-    ts = ete.TreeStyle()
-    ts.show_leaf_name = true
-    # ts.show_leaf_name = True
-    # ts.layout_fn = my_layout
-    ####### show tree vertically ############
-    # ts.rotation = 90 #show tree vertically
-
-    ####### show tree in an arc  #############
-    # ts.mode = "c"
-    # ts.arc_start = -180
-    # ts.arc_span = 180
-    t.show(tree_style=ts)
+    # if ver4.loopNum <= 1
+    for (ti, T) in enumerate(ver4.Tpair)
+        if ti <= MaxT
+            s *= "($(T[1]),$(T[2]),$(T[3]),$(T[4]))" 
+        else
+            s *= "..."
+            break
+        end
+    end
+    # end
+    return s
 end
+
+##### pretty print of Bubble and Ver4  ##########################
+Base.show(io::IO, bub::Bubble) = AbstractTrees.printnode(io::IO, bub)
+Base.show(io::IO, ver4::Ver4) = AbstractTrees.printnode(io::IO, ver4)
+
+################## implement AbstractTrees interface #######################
+# refer to https://github.com/JuliaCollections/AbstractTrees.jl for more details
+function AbstractTrees.children(ver4::Ver4)
+    return ver4.bubble
+end
+
+function AbstractTrees.children(bubble::Bubble)
+    return (bubble.Lver, bubble.Rver)
+end
+
+function iterate(ver4::Ver4{W}) where {W}
+    if length(ver4.bubble) == 0
+        return nothing
+        else
+        return (ver4.bubble[1], 1)
+    end
+end
+
+function iterate(bub::Bubble{Ver4{W},W}) where {W}
+    return (bub.Lver, false)
+end
+
+function iterate(ver4::Ver4{W}, state) where {W}
+    if state >= length(ver4.bubble) || length(ver4.bubble) == 0
+        return nothing
+        else
+        return (ver4.bubble[state + 1], state + 1)
+    end
+end
+
+function iterate(bub::Bubble{Ver4{W},W}, state::Bool) where {W}
+    state && return nothing
+    return (bub.Rver, true)
+end
+
+Base.IteratorSize(::Type{Ver4{W}}) where W = Base.SizeUnknown()
+Base.eltype(::Type{Ver4{W}}) where W = Ver4{W}
+
+Base.IteratorSize(::Type{Bubble{Ver4{W},W}}) where W = Base.SizeUnknown()
+Base.eltype(::Type{Bubble{Ver4{W},W}}) where W = Bubble{Ver4{W},W}
+
+AbstractTrees.printnode(io::IO, ver4::Ver4) = print(io, tpair(ver4))
+AbstractTrees.printnode(io::IO, bub::Bubble) = print(io, "\u001b[32m$(bub.id): $(ChanName[bub.chan]) $(bub.Lver.loopNum)Ⓧ $(bub.Rver.loopNum)\u001b[0m")
+
 
 # function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast=false)
 #     if ver4.loopNum == 0
