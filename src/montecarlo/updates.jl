@@ -30,6 +30,11 @@ function changeIntegrand(config, integrand)
         end
     end
 
+    # sampler may want to reject, then prop has already been set to zero
+    if prop <= eps(0.0) 
+        return
+    end
+
     config.curr = new
     newAbsWeight = (new == config.norm ?  1.0 : abs(integrand(config)))
     R = prop * newAbsWeight * config.reweight[new] / currAbsWeight / config.reweight[curr]
@@ -67,6 +72,11 @@ function changeVariable(config, integrand)
     ##################################################################
 
     prop = shift!(var, idx, config)
+    
+    # sampler may want to reject, then prop has already been set to zero
+    if prop <= eps(0.0)
+        return
+    end
 
     newAbsWeight = abs(integrand(config))
     currAbsWeight = config.absWeight
