@@ -44,8 +44,12 @@ sample(config::Configuration, integrand::Function, measure::Function; Nblock=16,
 - `save`: -1 to not save anything, 0 to save observables `obs` in the end of sampling, >0 to save observables `obs` for every `save` seconds
 
 - `saveio`: `io` to save
+
+- `timer`: `StopWatch` other than print and save.
+
+- `doReweight`: reweight the integrands from time to time if true.
 """
-function sample(config::Configuration, integrand::Function, measure::Function; Nblock=16, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+function sample(config::Configuration, integrand::Function, measure::Function; Nblock=16, print=0, printio=stdout, save=0, saveio=nothing, timer=[], doReweight=true)
 
 
     ############ initialized timer ####################################
@@ -79,7 +83,7 @@ function sample(config::Configuration, integrand::Function, measure::Function; N
 
         reset!(config, config.reweight) # reset configuration, keep the previous reweight factors
 
-        config = montecarlo(config, integrand, measure, print, save, timer, true)
+        config = montecarlo(config, integrand, measure, print, save, timer, doReweight)
 
         summary = addStat(config, summary)  # collect MC information
 
