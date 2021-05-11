@@ -5,7 +5,7 @@ using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, Interact
 using PyCall
 
 special = pyimport("scipy.special")
-const l = 9
+const l = 7
 coeff = SVector{l+1,Float64}(special.legendre(l).c)
 exp = zeros(l+1)
 for i=1:l+1
@@ -25,7 +25,7 @@ function test()
 end
 
 test()
-const Steps = 1e7
+const Steps = 1e8
 
 const e0 = sqrt(2)  # electric charge
 const me = 0.5  # electron mass
