@@ -7,6 +7,13 @@ function changeIntegrand(config, integrand)
 
     currdof, newdof = config.dof[curr], config.dof[new]
 
+    ################# Save the current state and absweight ############
+    if isnothing(config.state) == false
+        currstate = deepcopy(config.state)
+    end
+    currAbsWeight = config.absWeight
+    ##################################################################
+
     # propose probability caused by the selection of neighbors
     prop = length(config.neighbor[curr]) / length(config.neighbor[new])
 
@@ -24,7 +31,6 @@ function changeIntegrand(config, integrand)
     end
 
     config.curr = new
-    currAbsWeight = config.absWeight
     newAbsWeight = (new == config.norm ?  1.0 : abs(integrand(config)))
     R = prop * newAbsWeight * config.reweight[new] / currAbsWeight / config.reweight[curr]
 
@@ -35,6 +41,9 @@ function changeIntegrand(config, integrand)
     else # reject the change
         config.curr = curr # reset the current diagram index
         config.absWeight = currAbsWeight
+        if isnothing(config.state) == false
+            config.state = currstate
+        end
     end
 end
 
@@ -48,7 +57,15 @@ function changeVariable(config, integrand)
     var = config.var[vi]
     (currdof[vi] <= 0) && return # return if the var has zero degree of freedom
     idx = rand(config.rng, 1:currdof[vi]) # randomly choose one var to update
+
+    ################# Save the current state and absweight ############
+    if isnothing(config.state) == false
+        currstate = deepcopy(config.state)
+    end
     oldvar = copy(var[idx])
+    currAbsWeight = config.absWeight
+    ##################################################################
+
     prop = shift!(var, idx, config)
 
     newAbsWeight = abs(integrand(config))
@@ -64,5 +81,8 @@ function changeVariable(config, integrand)
     else
         var[idx] = oldvar
         config.absWeight = currAbsWeight 
+        if isnothing(config.state) == false
+            config.state = currstate
+        end
     end
 end
