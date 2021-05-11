@@ -14,11 +14,11 @@ function changeIntegrand(config, integrand)
     for vi in 1:length(config.var)
         if (currdof[vi] < newdof[vi]) # more degrees of freedom
             for pos = currdof[vi] + 1:newdof[vi]
-                prop *= create!(config.var[vi], pos, config.rng)
+                prop *= create!(config.var[vi], pos, config)
             end
         elseif (currdof[vi] > newdof[vi]) # less degrees of freedom
             for pos = newdof[vi] + 1:currdof[vi]
-                prop *= remove(config.var[vi], pos, config.rng)
+                prop *= remove(config.var[vi], pos, config)
             end
         end
     end
@@ -49,7 +49,7 @@ function changeVariable(config, integrand)
     (currdof[vi] <= 0) && return # return if the var has zero degree of freedom
     idx = rand(config.rng, 1:currdof[vi]) # randomly choose one var to update
     oldvar = copy(var[idx])
-    prop = shift!(var, idx, config.rng)
+    prop = shift!(var, idx, config)
 
     newAbsWeight = abs(integrand(config))
     currAbsWeight = config.absWeight
