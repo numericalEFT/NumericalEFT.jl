@@ -16,7 +16,7 @@ mutable struct Configuration
 
  - `rng`: a MersenneTwister random number generator, seeded by `seed`
 
- - `para`: user-defined parameter, could be set to nothing if not needed
+ - `para`: user-defined parameter, set to nothing if not needed
 
  - `totalStep`: the total number of updates for this configuration
 
@@ -46,9 +46,11 @@ mutable struct Configuration
 
  - `norm`: the index of the normalization diagram. `norm` is larger than the index of any user-defined integrands 
 
+ - `normalization`: the accumulated normalization factor. Physical observable = Configuration.observable/Configuration.normalization.
+
  - `absWeight`: the abolute weight of the current integrand. User is responsible to initialize it after the contructor is called.
 
- - `normalization`: the accumulated normalization factor. Physical observable = Configuration.observable/Configuration.normalization.
+ - `state`: user-defined state of the current configuration. `state` could be useful if the user want to update something in the sampler or integrand in each MC step, but not suitable to be a `Variable`. Example is the Ira and Masha information in the worm algorithm.
 
  - `propose/accept`: array to store the proposed and accepted updates for each integrands and variables.
     Their shapes are (number of updates X integrand number X max(integrand number, variable number).
@@ -81,7 +83,7 @@ mutable struct Configuration{V,P,O,S}
     accept::Array{Float64,3} # updates index, integrand index, integrand index 
 
     """
-    Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
+    Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, state=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
 
     Create a Configuration struct
 
@@ -98,7 +100,9 @@ mutable struct Configuration{V,P,O,S}
  - `obs`: observables that is required to calculate the integrands, will be used in the `measure` function call
     It is either an array of any type with the common operations like +-*/^ defined. 
 
- - `para`: user-defined parameter, could be nothing if not needed
+ - `para`: user-defined parameter, set to nothing if not needed
+
+ - `state`: user-defined state of the current configuration, set to nothing if not needed
 
  - `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized with one.
 
