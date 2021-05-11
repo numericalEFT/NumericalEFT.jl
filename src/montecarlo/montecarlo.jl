@@ -23,7 +23,8 @@ sample(config::Configuration, integrand::Function, measure::Function; Nblock=16,
  sample the integrands, collect statistics, and return the expected values and errors.
 
  # Remarks
- - User may run the MC in parallel using MPI. Simply run `mpiexec -n N julia userscript.jl` where `N` is the number of workers. In this mode, only the root process returns meaningful results. All other workers return `nothing, nothing`. User is responsible to handle the returning results properly.
+ - User may run the MC in parallel using MPI. Simply run `mpiexec -n N julia userscript.jl` where `N` is the number of workers. In this mode, only the root process returns meaningful results. All other workers return `nothing, nothing`. User is responsible to handle the returning results properly. If you have multiple number of mpi version, you can use "mpiexecjl" in your "~/.julia/package/MPI/###/bin" to make sure the version is correct.
+
  - In the MC, a normalization diagram is introduced to normalize the MC estimates of the integrands. More information can be found in the link: https://kunyuan.github.io/QuantumStatistics.jl/dev/man/important_sampling/#Important-Sampling. User don't need to explicitly specify this normalization diagram.Internally, normalization diagram will be added to each table that is related to the integrands.
 
  # Arguments
@@ -44,8 +45,12 @@ sample(config::Configuration, integrand::Function, measure::Function; Nblock=16,
 - `save`: -1 to not save anything, 0 to save observables `obs` in the end of sampling, >0 to save observables `obs` for every `save` seconds
 
 - `saveio`: `io` to save
+
+- `timer`: `StopWatch` other than print and save.
+
+- `doReweight`: reweight the integrands from time to time if true.
 """
-function sample(config::Configuration, integrand::Function, measure::Function; Nblock=16, print=0, printio=stdout, save=0, saveio=nothing, timer=[])
+function sample(config::Configuration, integrand::Function, measure::Function; Nblock=16, print=0, printio=stdout, save=0, saveio=nothing, timer=[], doReweight=true)
 
 
     ############ initialized timer ####################################
@@ -79,7 +84,7 @@ function sample(config::Configuration, integrand::Function, measure::Function; N
 
         reset!(config, config.reweight) # reset configuration, keep the previous reweight factors
 
-        config = montecarlo(config, integrand, measure, print, save, timer, true)
+        config = montecarlo(config, integrand, measure, print, save, timer, doReweight)
 
         summary = addStat(config, summary)  # collect MC information
 

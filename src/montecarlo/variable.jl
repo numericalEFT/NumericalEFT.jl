@@ -16,7 +16,7 @@ mutable struct Configuration
 
  - `rng`: a MersenneTwister random number generator, seeded by `seed`
 
- - `para`: user-defined parameter, could be set to nothing if not needed
+ - `para`: user-defined parameter, set to nothing if not needed
 
  - `totalStep`: the total number of updates for this configuration
 
@@ -46,15 +46,17 @@ mutable struct Configuration
 
  - `norm`: the index of the normalization diagram. `norm` is larger than the index of any user-defined integrands 
 
+ - `normalization`: the accumulated normalization factor. Physical observable = Configuration.observable/Configuration.normalization.
+
  - `absWeight`: the abolute weight of the current integrand. User is responsible to initialize it after the contructor is called.
 
- - `normalization`: the accumulated normalization factor. Physical observable = Configuration.observable/Configuration.normalization.
+ - `state`: user-defined state of the current configuration. `state` could be useful if the user want to update something in the sampler or integrand in each MC step, but not suitable to be a `Variable`. Example is the Ira and Masha information in the worm algorithm.
 
  - `propose/accept`: array to store the proposed and accepted updates for each integrands and variables.
     Their shapes are (number of updates X integrand number X max(integrand number, variable number).
     The last index will waste some memory, but the dimension is small anyway.
 """
-mutable struct Configuration{V,P,O}
+mutable struct Configuration{V,P,O,S}
     ########### static parameters ###################
     seed::Int # seed to initialize random numebr generator, also serves as the unique pid of the configuration
     rng::MersenneTwister # random number generator seeded by seed
@@ -73,14 +75,15 @@ mutable struct Configuration{V,P,O}
     step::Int64
     curr::Int # index of current integrand
     norm::Int # index of the normalization diagram
-    absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
     normalization::Float64 # normalization factor for observables
+    absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
+    state::S # additional state that needs to be updated
 
     propose::Array{Float64,3} # updates index, integrand index, integrand index
     accept::Array{Float64,3} # updates index, integrand index, integrand index 
 
     """
-    Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
+    Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, state=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
 
     Create a Configuration struct
 
@@ -97,7 +100,9 @@ mutable struct Configuration{V,P,O}
  - `obs`: observables that is required to calculate the integrands, will be used in the `measure` function call
     It is either an array of any type with the common operations like +-*/^ defined. 
 
- - `para`: user-defined parameter, could be nothing if not needed
+ - `para`: user-defined parameter, set to nothing if not needed
+
+ - `state`: user-defined state of the current configuration, set to nothing if not needed
 
  - `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized with one.
 
@@ -108,7 +113,7 @@ mutable struct Configuration{V,P,O}
     
     By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([N+1, 2], [1, 3], [2, 4], ..., [N-1,], [1, ]), where the first N entries are for diagram 1, 2, ..., N and the last entry is for the normalization diagram. Only the first diagram is connected to the normalization diagram.
 """
-    function Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
+    function Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, state::S=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O,S}
         @assert totalStep > 0 "Total step should be positive!"
         # @assert O <: AbstractArray "observable is expected to be an array. Noe get $(typeof(obs))."
         @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency. Now get $(typeof(V))"
@@ -164,9 +169,9 @@ mutable struct Configuration{V,P,O}
         propose = zeros(Float64, (2, Nd, max(Nd, Nv))) .+ 1.0e-8 # add a small initial value to avoid Inf when inverted
         accept = zeros(Float64, (2, Nd, max(Nd, Nv))) 
 
-        return new{V,P,O}(seed, rng, para, totalStep, var,  # static parameters
+        return new{V,P,O,S}(seed, rng, para, totalStep, var,  # static parameters
         collect(neighbor), collect(dof), obs, collect(reweight), visited, # integrand properties
-        0, curr, norm, absweight, normalization, propose, accept  # current MC state
+        0, curr, norm, normalization, absweight, state, propose, accept  # current MC state
 ) 
     end
 end
