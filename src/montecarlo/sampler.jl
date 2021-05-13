@@ -139,43 +139,11 @@ function shift!(K::FermiK{D}, idx::Int, config) where {D}
     K[end] = K[idx]  # save current K
 
     rng = config.rng
-    # x = rand(rng)
-    # if x < 1.0 / 3
-    #     # K[idx] = @. K[idx] + (rand(rng, D) - 0.5) * K.δk
-    #     K[idx] += (rand(rng, D) .- 0.5) .* K.δk
-    #     return 1.0
-    # elseif x < 2.0 / 3
-    #     λ = 1.5
-    #     ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
-    #     K[idx] = K[idx] * ratio
-    #     return (D == 2) ? 1.0 : ratio
-    # else
-    #     K[idx] = K[idx] * (-1.0)
-    #     return 1.0
-    # end
     x = rand(rng)
     if x < 1.0 / 3
-        λ = 1.5
-        ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
-        K[idx] = K[idx] * ratio
-        return (D == 2) ? 1.0 : ratio
-    elseif x < 2.0 / 3
-        ϕ = rand(rng) * 2π
-        if (D == 3)
-            θ = rand(rng) * π
-            if (θ == 0.0)
-                return 0.0
-            end
-            Kamp = sqrt(K[idx][1]^2 + K[idx][2]^2 + K[idx][3]^2)
-            K[idx] = @SVector [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
-            # return 2π^2/(Kamp^2*sin(θ))
-            return 1.0 / 2π^2 * (Kamp^2 * sin(θ))
-        else # D=2
-            Kamp = sqrt(K[idx][1]^2 + K[idx][2]^2)
-            K = @SVector [Kamp * cos(ϕ), Kamp * sin(ϕ)]
-            return 1.0
-        end
-    else
+        # K[idx] = @. K[idx] + (rand(rng, D) - 0.5) * K.δk
+        # K[idx] += (rand(rng, D) .- 0.5) .* K.δk
+        # return 1.0
         Kc, dk = K[idx], K.δk
         if (D == 3)
             K[idx] = @SVector [Kc[1] + (rand(rng) - 0.5) * dk, Kc[2] + (rand(rng) - 0.5) * dk, Kc[3] + (rand(rng) - 0.5) * dk]
@@ -184,9 +152,51 @@ function shift!(K::FermiK{D}, idx::Int, config) where {D}
         end
         # K[idx] += (rand(rng, D) .- 0.5) .* K.δk
         return 1.0
-        # K[idx] = K[idx] * (-1.0)
-        # return 1.0
+    elseif x < 2.0 / 3
+        λ = 1.5
+        ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
+        K[idx] = K[idx] * ratio
+        return (D == 2) ? 1.0 : ratio
+    else
+        K[idx] = K[idx] * (-1.0)
+        return 1.0
     end
+    # x = rand(rng)
+    # if x < 1.0 / 3
+    #     λ = 1.5
+    #     ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
+    #     K[idx] = K[idx] * ratio
+    #     return (D == 2) ? 1.0 : ratio
+    # elseif x < 2.0 / 3
+    ########## The detail balance of this update has a BUGGGGGGGGGG!!!!!!!!!!!!#########
+    #     ϕ = rand(rng) * 2π
+    #     if (D == 3)
+    #         θ = rand(rng) * π
+    #         if (θ == 0.0)
+    #             return 0.0
+    #         end
+    #         Kamp = sqrt(K[idx][1]^2 + K[idx][2]^2 + K[idx][3]^2)
+    #         K[idx] = @SVector [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
+    #         # return 2π^2/(Kamp^2*sin(θ))
+    #         return 1.0 / 2π^2 * (Kamp^2 * sin(θ))
+    #     else # D=2
+    #         Kamp = sqrt(K[idx][1]^2 + K[idx][2]^2)
+    #         K = @SVector [Kamp * cos(ϕ), Kamp * sin(ϕ)]
+    #         return 1.0
+    #     end
+    ##################################################################################
+    # else
+    #     Kc, dk = K[idx], K.δk
+    #     if (D == 3)
+    #         K[idx] = @SVector [Kc[1] + (rand(rng) - 0.5) * dk, Kc[2] + (rand(rng) - 0.5) * dk, Kc[3] + (rand(rng) - 0.5) * dk]
+    #     else # D=2
+    #         K[idx] = @SVector [Kc[1] + (rand(rng) - 0.5) * dk, Kc[2] + (rand(rng) - 0.5) * dk]
+    #     end
+    #     # K[idx] += (rand(rng, D) .- 0.5) .* K.δk
+    #     return 1.0
+    #     # K[idx] = K[idx] * (-1.0)
+    #     # return 1.0
+    # end
 end
 
 function shiftRollback!(K::FermiK{D}, idx::Int, config) where {D}
@@ -258,7 +268,7 @@ end
 
 @inline function shiftRollback!(T::Tau, idx::Int, config)
     (idx >= length(T.data) - 1) && error("$idx overflow!")
-    T[idx] = T[end]
+T[idx] = T[end]
 end
 
 """
