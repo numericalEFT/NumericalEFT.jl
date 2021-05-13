@@ -7,12 +7,7 @@ function changeIntegrand(config, integrand)
 
     currdof, newdof = config.dof[curr], config.dof[new]
 
-    ################# Save the current state and absweight ############
-    if isnothing(config.state) == false
-        currstate = deepcopy(config.state)
-    end
     currAbsWeight = config.absWeight
-    ##################################################################
 
     # propose probability caused by the selection of neighbors
     prop = length(config.neighbor[curr]) / length(config.neighbor[new])
@@ -25,7 +20,7 @@ function changeIntegrand(config, integrand)
             end
         elseif (currdof[vi] > newdof[vi]) # less degrees of freedom
             for pos = newdof[vi] + 1:currdof[vi]
-                prop *= remove(config.var[vi], pos, config)
+                prop *= remove!(config.var[vi], pos, config)
             end
         end
     end
@@ -46,9 +41,21 @@ function changeIntegrand(config, integrand)
     else # reject the change
         config.curr = curr # reset the current diagram index
         config.absWeight = currAbsWeight
-        if isnothing(config.state) == false
-            config.state = currstate
+        
+        ############ Redo changes to config.var #############
+        for vi in 1:length(config.var)
+            if (currdof[vi] < newdof[vi]) # more degrees of freedom
+                for pos = currdof[vi] + 1:newdof[vi]
+                    createRollback!(config.var[vi], pos, config)
+                end
+            elseif (currdof[vi] > newdof[vi]) # less degrees of freedom
+                for pos = newdof[vi] + 1:currdof[vi]
+                    removeRollback!(config.var[vi], pos, config)
+                end
+            end
         end
+        ####################################################
+
     end
 end
 
@@ -63,13 +70,8 @@ function changeVariable(config, integrand)
     (currdof[vi] <= 0) && return # return if the var has zero degree of freedom
     idx = rand(config.rng, 1:currdof[vi]) # randomly choose one var to update
 
-    ################# Save the current state and absweight ############
-    if isnothing(config.state) == false
-        currstate = deepcopy(config.state)
-    end
-    oldvar = copy(var[idx])
+    # oldvar = copy(var[idx])
     currAbsWeight = config.absWeight
-    ##################################################################
 
     prop = shift!(var, idx, config)
     
@@ -89,10 +91,8 @@ function changeVariable(config, integrand)
         config.accept[2, curr, vi] += 1.0
         config.absWeight = newAbsWeight
     else
-        var[idx] = oldvar
+        # var[idx] = oldvar
         config.absWeight = currAbsWeight 
-        if isnothing(config.state) == false
-            config.state = currstate
-        end
+        shiftRollback!(var, idx, config)
     end
 end
