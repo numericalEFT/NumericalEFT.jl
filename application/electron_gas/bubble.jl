@@ -3,7 +3,7 @@
 using QuantumStatistics, LinearAlgebra, Random, Printf, BenchmarkTools, InteractiveUtils, Parameters
 # using ProfileView
 
-const Steps = 1e7
+const Steps = 1e8
 
 include("parameter.jl")
 
