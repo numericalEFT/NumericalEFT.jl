@@ -50,13 +50,11 @@ mutable struct Configuration
 
  - `absWeight`: the abolute weight of the current integrand. User is responsible to initialize it after the contructor is called.
 
- - `state`: user-defined state of the current configuration. `state` could be useful if the user want to update something in the sampler or integrand in each MC step, but not suitable to be a `Variable`. Example is the Ira and Masha information in the worm algorithm.
-
  - `propose/accept`: array to store the proposed and accepted updates for each integrands and variables.
     Their shapes are (number of updates X integrand number X max(integrand number, variable number).
     The last index will waste some memory, but the dimension is small anyway.
 """
-mutable struct Configuration{V,P,O,S}
+mutable struct Configuration{V,P,O}
     ########### static parameters ###################
     seed::Int # seed to initialize random numebr generator, also serves as the unique pid of the configuration
     rng::MersenneTwister # random number generator seeded by seed
@@ -77,7 +75,6 @@ mutable struct Configuration{V,P,O,S}
     norm::Int # index of the normalization diagram
     normalization::Float64 # normalization factor for observables
     absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
-    state::S # additional state that needs to be updated
 
     propose::Array{Float64,3} # updates index, integrand index, integrand index
     accept::Array{Float64,3} # updates index, integrand index, integrand index 
@@ -102,8 +99,6 @@ mutable struct Configuration{V,P,O,S}
 
  - `para`: user-defined parameter, set to nothing if not needed
 
- - `state`: user-defined state of the current configuration, set to nothing if not needed
-
  - `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized with one.
 
  - `seed`: seed to initialize random numebr generator, also serves as the unique pid of the configuration. If it is nothing, then use RandomDevice() to generate a random seed in [1, 1000_1000]
@@ -113,7 +108,7 @@ mutable struct Configuration{V,P,O,S}
     
     By default, we assume the N integrands are in the increase order, meaning the neighbor will be set to ([N+1, 2], [1, 3], [2, 4], ..., [N-1,], [1, ]), where the first N entries are for diagram 1, 2, ..., N and the last entry is for the normalization diagram. Only the first diagram is connected to the normalization diagram.
 """
-    function Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, state::S=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O,S}
+    function Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
         @assert totalStep > 0 "Total step should be positive!"
         # @assert O <: AbstractArray "observable is expected to be an array. Noe get $(typeof(obs))."
         @assert V <: Tuple{Vararg{Variable}} || V <: Tuple{Variable} "Configuration.var must be a tuple of Variable to maximize efficiency. Now get $(typeof(V))"
@@ -169,9 +164,9 @@ mutable struct Configuration{V,P,O,S}
         propose = zeros(Float64, (2, Nd, max(Nd, Nv))) .+ 1.0e-8 # add a small initial value to avoid Inf when inverted
         accept = zeros(Float64, (2, Nd, max(Nd, Nv))) 
 
-        return new{V,P,O,S}(seed, rng, para, totalStep, var,  # static parameters
+        return new{V,P,O}(seed, rng, para, totalStep, var,  # static parameters
         collect(neighbor), collect(dof), obs, collect(reweight), visited, # integrand properties
-        0, curr, norm, normalization, absweight, state, propose, accept  # current MC state
+        0, curr, norm, normalization, absweight, propose, accept  # current MC state
 ) 
     end
 end
@@ -201,7 +196,7 @@ mutable struct FermiK{D} <: Variable
     function FermiK(dim, kF, δk, maxK, size=MaxOrder)
         k0 = SVector{dim,Float64}([kF for i = 1:dim])
         # k0 = @SVector [kF for i = 1:dim]
-        k = [k0 for i = 1:size]
+        k = [k0 for i in 1:size]
         return new{dim}(k, kF, δk, maxK)
     end
 end
