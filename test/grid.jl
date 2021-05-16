@@ -129,6 +129,13 @@ end
             @printf("\t%10.6f , %10.6f\n", val-EPS, floor(g,val-EPS))
             @printf("\t%10.6f , %10.6f\n", val+EPS, floor(g,val+EPS))
         end
+
+        for i =1:seg
+            val = g.segment[i]
+            @printf("%10.6f , %10.6f\n", g.segindex[i], val)
+            @printf("\t%10.6f , %10.6f\n", val-EPS, floor(g,val-EPS))
+            @printf("\t%10.6f , %10.6f\n", val+EPS, floor(g,val+EPS))
+        end
     end
 
     @testset "UniLog Grid for Tau" begin
