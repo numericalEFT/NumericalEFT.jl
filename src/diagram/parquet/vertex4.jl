@@ -69,12 +69,12 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
     Rver::_Ver4
     map::Vector{IdxMap}
 
-    function Bubble{_Ver4,W}(ver4::_Ver4, chan::Int, oL::Int, para::Para, level::Int, id::Vector{Int}) where {_Ver4,W}
+    function Bubble{_Ver4,W}(ver4::_Ver4, chan::Int, oL::Int, para::Para, level::Int, _id::Vector{Int}) where {_Ver4,W}
         @assert chan in para.chan "$chan isn't a bubble channels!"
         @assert oL < ver4.loopNum "LVer loopNum must be smaller than the ver4 loopNum"
 
-        idbub = id[1] # id vector will be updated later, so store the current id as the bubble id
-        id[1] += 1  
+        idbub = _id[1] # id vector will be updated later, so store the current id as the bubble id
+        _id[1] += 1  
 
         oR = ver4.loopNum - 1 - oL # loopNum of the right vertex
         LTidx = ver4.Tidx  # the first τ index of the left vertex
@@ -91,8 +91,8 @@ struct Bubble{_Ver4,W} # template Bubble to avoid mutually recursive struct
             error("chan $chan isn't implemented!")
         end
 
-        Lver = _Ver4{W}(oL, LTidx, para; chan=LsubVer, level=level + 1, id)
-        Rver = _Ver4{W}(oR, RTidx, para; chan=RsubVer, level=level + 1, id)
+        Lver = _Ver4{W}(oL, LTidx, para; chan=LsubVer, level=level + 1, id=_id)
+        Rver = _Ver4{W}(oR, RTidx, para; chan=RsubVer, level=level + 1, id=_id)
 
         @assert Lver.Tidx == ver4.Tidx "Lver Tidx must be equal to vertex4 Tidx! LoopNum: $(ver4.loopNum), LverLoopNum: $(Lver.loopNum), chan: $chan"
 

@@ -1,4 +1,5 @@
-using QuantumStatistics, AbstractTrees, NewickTree
+using QuantumStatistics, AbstractTrees
+# using NewickTree
 include("parameter.jl")
 
 chan = [Parquet.T, Parquet.U, Parquet.S]
