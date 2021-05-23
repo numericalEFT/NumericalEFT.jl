@@ -203,6 +203,51 @@ end
 end
 
 @testset "Interpolate" begin
+    @testset "Linear1D" begin
+        β = π
+        N,M= 3, 4
+        tgrid = Grid.tauUL(β, 0.01β, M, N)
+        # tugrid = Grid.Uniform{Float64,33}(0.0, β, (true, true))
+        # kugrid = Grid.Uniform{Float64,33}(0.0, maxK, (true, true))
+        f(t) = t
+        data = zeros(tgrid.size)
+
+        for (ti, t) in enumerate(tgrid.grid)
+            data[ti] = f(t)
+        end
+
+        for ti = 1:tgrid.size - 1
+            t = tgrid[ti] + 1.e-6
+            fbar = Grid.linear1D(data, tgrid, t)
+            @test abs(f(tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            @test f(tgrid[ti]) < fbar
+            @test f(tgrid[ti + 1]) > fbar
+        end
+        for ti = 2:tgrid.size
+            t = tgrid[ti] - 1.e-6
+            fbar = Grid.linear1D(data, tgrid, t)
+            @test abs(f(tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            @test f(tgrid[ti]) > fbar
+            @test f(tgrid[ti - 1]) < fbar
+        end
+
+        t = tgrid[1] + eps(Float64)*1e3
+        fbar = Grid.linear1D(data, tgrid, t)
+        @test abs(f(t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+
+        t = tgrid[tgrid.size] - eps(Float64)*1e3
+        fbar = Grid.linear1D(data, tgrid, t)
+        @test abs(f(t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+
+        tlist = rand(10) * β
+        # println(tlist)
+
+        for (ti, t) in enumerate(tlist)
+            fbar = Grid.linear1D(data, tgrid, t)
+            # println("$k, $t, $fbar, ", f(k, t))
+            @test abs(f(t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+        end
+    end
 
     @testset "Linear2D" begin
         β, kF, maxK = 10.0, 1.0, 3.0
