@@ -8,10 +8,13 @@ Propose to generate new index (uniformly) randomly in [1, size]
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline function create!(d::Discrete, idx::Int, rng=RNG)
-    d[idx] = rand(rng, d.lower:d.upper)
+@inline function create!(d::Discrete, idx::Int, config)
+    (idx >= length(d.data) - 1) && error("$idx overflow!")
+    d[idx] = rand(config.rng, d.lower:d.upper)
     return Float64(d.upper - d.lower + 1) # lower:upper has upper-lower+1 elements!
 end
+
+@inline createRollback!(d::Discrete, idx::Int, config) = nothing
 
 """
     removeIdx!(newIdx::Int, size::Int, rng=GLOBAL_RNG)
@@ -23,7 +26,12 @@ Propose to remove the old index in [1, size]
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline remove(d::Discrete, idx::Int, rng=RNG) = 1.0 / Float64(d.upper - d.lower + 1)
+@inline function remove!(d::Discrete, idx::Int, config) 
+    (idx >= length(d.data) - 1) && error("$idx overflow!")
+    return 1.0 / Float64(d.upper - d.lower + 1)
+end
+
+@inline removeRollback!(d::Discrete, idx::Int, config) = nothing
 
 """
     shiftIdx!(oldIdx::Int, newIdx::Int, size::Int, rng=GLOBAL_RNG)
@@ -36,9 +44,16 @@ Propose to shift the old index in [1, size] to a new index
 - `size` : up limit of the index
 - `rng=GLOBAL_RNG` : random number generator
 """
-@inline function shift!(d::Discrete, idx::Int, rng=RNG)
-    d[idx] = rand(rng, d.lower:d.upper)
+@inline function shift!(d::Discrete, idx::Int, config)
+    (idx >= length(d.data) - 1) && error("$idx overflow!")
+    d[end] = d[idx] # save the current variable
+    d[idx] = rand(config.rng, d.lower:d.upper)
     return 1.0
+end
+
+@inline function shiftRollback!(d::Discrete, idx::Int, config)
+    (idx >= length(d.data) - 1) && error("$idx overflow!")
+    d[idx] = d[end]
 end
 
 """
@@ -49,7 +64,9 @@ Propose to generate new Fermi K in [Kf-δK, Kf+δK)
 # Arguments
 - `newK`:  vector of dimension of d=2 or 3
 """
-function create!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
+function create!(K::FermiK{D}, idx::Int, config) where {D}
+    (idx >= length(K.data) - 1) && error("$idx overflow!")
+    rng = config.rng
     ############ Simple Way ########################
     # for i in 1:DIM
     #     newK[i] = Kf * (rand(rng) - 0.5) * 2.0
@@ -74,6 +91,7 @@ function create!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi, Jacobian
     end
 end
+createRollback!(K::FermiK{D}, idx::Int, config) where {D} = nothing
 
 """
     removeFermiK!(oldK, Kf=1.0, δK=0.5, rng=GLOBAL_RNG)
@@ -83,7 +101,8 @@ Propose to remove an existing Fermi K in [Kf-δK, Kf+δK)
 # Arguments
 - `oldK`:  vector of dimension of d=2 or 3
 """
-function remove(K::FermiK{D}, idx::Int, rng=RNG) where {D}
+function remove!(K::FermiK{D}, idx::Int, config) where {D}
+    (idx >= length(K.data) - 1) && error("$idx overflow!")
     ############## Simple Way #########################
     # for i in 1:DIM
     #     if abs(oldK[i]) > Kf
@@ -108,26 +127,18 @@ function remove(K::FermiK{D}, idx::Int, rng=RNG) where {D}
 end
 end
 
+removeRollback!(K::FermiK{D}, idx::Int, config) where {D} = nothing
+
 """
     shiftK!(oldK, newK, step, rng=GLOBAL_RNG)
 
 Propose to shift oldK to newK. Work for generic momentum vector
 """
-function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
-    # x = rand(rng)
-    # if x < 1.0 / 3
-    #     # K[idx] = @. K[idx] + (rand(rng, D) - 0.5) * K.δk
-    #     K[idx] += (rand(rng, D) .- 0.5) .* K.δk
-    #     return 1.0
-    # elseif x < 2.0 / 3
-    #     λ = 1.5
-    #     ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
-    #     K[idx] = K[idx] * ratio
-    #     return (D == 2) ? 1.0 : ratio
-    # else
-    #     K[idx] = K[idx] * (-1.0)
-    #     return 1.0
-    # end
+function shift!(K::FermiK{D}, idx::Int, config) where {D}
+    (idx >= length(K.data) - 1) && error("$idx overflow!")
+    K[end] = K[idx]  # save current K
+
+    rng = config.rng
     x = rand(rng)
     if x < 1.0 / 3
         λ = 1.5
@@ -137,14 +148,11 @@ function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
     elseif x < 2.0 / 3
         ϕ = rand(rng) * 2π
         if (D == 3)
-            θ = rand(rng) * π
-            if (θ == 0.0)
-                return 0.0
-            end
+            # sample uniformly on sphere, check http://corysimon.github.io/articles/uniformdistn-on-sphere/ 
+            θ = acos(1 - 2 * rand(rng))
             Kamp = sqrt(K[idx][1]^2 + K[idx][2]^2 + K[idx][3]^2)
             K[idx] = @SVector [Kamp * cos(ϕ) * sin(θ), Kamp * sin(ϕ) * sin(θ), Kamp * cos(θ)]
-            # return 2π^2/(Kamp^2*sin(θ))
-            return 1.0 / 2π^2 * (Kamp^2 * sin(θ))
+            return 1.0 
         else # D=2
             Kamp = sqrt(K[idx][1]^2 + K[idx][2]^2)
             K = @SVector [Kamp * cos(ϕ), Kamp * sin(ϕ)]
@@ -159,9 +167,12 @@ function shift!(K::FermiK{D}, idx::Int, rng=RNG) where {D}
         end
         # K[idx] += (rand(rng, D) .- 0.5) .* K.δk
         return 1.0
-        # K[idx] = K[idx] * (-1.0)
-        # return 1.0
     end
+end
+
+function shiftRollback!(K::FermiK{D}, idx::Int, config) where {D}
+    (idx >= length(K.data) - 1) && error("$idx overflow!")
+    K[idx] = K[end]
 end
 
 """
@@ -173,10 +184,12 @@ Propose to generate new tau (uniformly) randomly in [0, β), return proposal pro
 - `T`:  Tau variable
 - `idx`: T.data[idx] will be updated
 """
-@inline function create!(T::Tau, idx::Int, rng=RNG)
-    T[idx] = rand(rng) * T.β
+@inline function create!(T::Tau, idx::Int, config)
+    (idx >= length(T.data) - 1) && error("$idx overflow!")
+    T[idx] = rand(config.rng) * T.β
     return T.β
 end
+@inline createRollback!(T::Tau, idx::Int, config) = nothing
 
 """
     remove(T::Tau, idx::Int, rng=GLOBAL_RNG)
@@ -187,9 +200,11 @@ Propose to remove old tau in [0, β), return proposal probability
 - `T`:  Tau variable
 - `idx`: T.data[idx] will be updated
 """
-@inline function remove(T::Tau, idx::Int, rng=RNG)
+@inline function remove!(T::Tau, idx::Int, config)
+    (idx >= length(T.data) - 1) && error("$idx overflow!")
     return 1.0 / T.β
 end
+@inline removeRollback!(T::Tau, idx::Int, config) = nothing
 
 """
     shift!(T::Tau, idx::Int, rng=GLOBAL_RNG)
@@ -200,7 +215,10 @@ Propose to shift an existing tau to a new tau, both in [0, β), return proposal 
 - `T`:  Tau variable
 - `idx`: T.data[idx] will be updated
 """
-@inline function shift!(T::Tau, idx::Int, rng=RNG)
+@inline function shift!(T::Tau, idx::Int, config)
+    (idx >= length(T.data) - 1) && error("$idx overflow!")
+    T[end] = T[idx]
+    rng = config.rng
     x = rand(rng)
     if x < 1.0 / 3
         T[idx] = T[idx] + 2 * T.λ * (rand(rng) - 0.5)
@@ -219,6 +237,11 @@ end
 return 1.0
 end
 
+@inline function shiftRollback!(T::Tau, idx::Int, config)
+    (idx >= length(T.data) - 1) && error("$idx overflow!")
+T[idx] = T[end]
+end
+
 """
     create!(T::TauPair, idx::Int, rng=GLOBAL_RNG)
 
@@ -228,11 +251,15 @@ Propose to generate a new pair of tau (uniformly) randomly in [0, β), return pr
 - `T`:  TauPair variable
 - `idx`: T.data[idx] will be updated
 """
-@inline function create!(T::TauPair, idx::Int, rng=RNG)
+@inline function create!(T::TauPair, idx::Int, config)
+    (idx >= length(T.data) - 1) && error("$idx overflow!")
+    rng = config.rng
     T[idx][1] = rand(rng) * T.β
     T[idx][2] = rand(rng) * T.β
     return T.β * T.β
 end
+
+@inline createRollback!(T::TauPair, idx::Int, config) = nothing
 
 """
     remove(T::TauPair, idx::Int, rng=GLOBAL_RNG)
@@ -243,9 +270,11 @@ Propose to remove an existing pair of tau in [0, β), return proposal probabilit
 - `T`:  Tau variable
 - `idx`: T.data[idx] will be updated
 """
-@inline function remove(T::TauPair, idx::Int, rng=RNG)
-return 1.0 / T.β / T.β
+@inline function remove!(T::TauPair, idx::Int, config)
+    (idx >= length(T.data) - 1) && error("$idx overflow!")
+    return 1.0 / T.β / T.β
 end
+@inline removeRollback!(T::TauPair, idx::Int, config) = nothing
 
 """
     shift!(T::TauPair, idx::Int, rng=GLOBAL_RNG)
@@ -256,7 +285,10 @@ Propose to shift an existing tau pair to a new tau pair, both in [0, β), return
 - `T`:  Tau variable
 - `idx`: T.t[idx] will be updated
 """
-@inline function shift!(T::TauPair, idx::Int, rng=RNG)
+@inline function shift!(T::TauPair, idx::Int, config)
+    (idx >= length(T.data) - 1) && error("$idx overflow!")
+    T[end] .= T[idx]
+    rng = config.rng
     x = rand(rng)
     if x < 1.0 / 3
         T[idx][1] += 2 * T.λ * (rand(rng) - 0.5)
@@ -285,6 +317,10 @@ end
 # return 0.0
 end
 
+@inline function shiftRollback!(T::TauPair, idx::Int, config)
+    (idx >= length(T.data) - 1) && error("$idx overflow!")
+    T[idx] .= T[end]
+end
 
 """
     create!(theta::Angle, idx::Int, rng=GLOBAL_RNG)
@@ -295,10 +331,13 @@ Propose to generate new angle (uniformly) randomly in [0, 2π), return proposal 
 - `theta`:  angle variable
 - `idx`: theta.t[idx] will be updated
 """
-@inline function create!(theta::Angle, idx::Int, rng=RNG)
-    theta[idx] = rand(rng) * 2π
+@inline function create!(theta::Angle, idx::Int, config)
+    (idx >= length(theta.data) - 1) && error("$idx overflow!")
+    theta[idx] = rand(config.rng) * 2π
 return 2π
 end
+@inline createRollback!(theta::Angle, idx::Int, config) = nothing
+
 
 """
     remove(theta::Angle, idx::Int, rng=GLOBAL_RNG)
@@ -309,9 +348,11 @@ Propose to remove old theta in [0, 2π), return proposal probability
     - `theta`:  Tau variable
 - `idx`: theta.t[idx] will be updated
 """
-@inline function remove(theta::Angle, idx::Int, rng=RNG)
+@inline function remove!(theta::Angle, idx::Int, config)
+    (idx >= length(theta.data) - 1) && error("$idx overflow!")
     return 1.0 / 2.0 / π
 end
+@inline removeRollback!(theta::Angle, idx::Int, config) = nothing
 
 """
     shift!(theta::Angle, idx::Int, rng=GLOBAL_RNG)
@@ -322,7 +363,10 @@ Propose to shift the old theta to new theta, both in [0, 2π), return proposal p
 - `theta`:  angle variable
 - `idx`: theta.t[idx] will be updated
 """
-@inline function shift!(theta::Angle, idx::Int, rng=RNG)
+@inline function shift!(theta::Angle, idx::Int, config)
+    (idx >= length(theta.data) - 1) && error("$idx overflow!")
+    theta[end] = theta[idx]
+    rng = config.rng
     x = rand(rng)
     if x < 1.0 / 3
         theta[idx] = theta[idx] + 2 * theta.λ * (rand(rng) - 0.5)
@@ -339,4 +383,9 @@ Propose to shift the old theta to new theta, both in [0, 2π), return proposal p
     end
 
     return 1.0
+end
+
+@inline function shiftRollback!(theta::Angle, idx::Int, config)
+    (idx >= length(theta.data) - 1) && error("$idx overflow!")
+    theta[idx] = theta[end]
 end
