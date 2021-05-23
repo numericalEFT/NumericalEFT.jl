@@ -16,7 +16,7 @@ mutable struct Configuration
 
  - `rng`: a MersenneTwister random number generator, seeded by `seed`
 
- - `para`: user-defined parameter, could be set to nothing if not needed
+ - `para`: user-defined parameter, set to nothing if not needed
 
  - `totalStep`: the total number of updates for this configuration
 
@@ -46,9 +46,9 @@ mutable struct Configuration
 
  - `norm`: the index of the normalization diagram. `norm` is larger than the index of any user-defined integrands 
 
- - `absWeight`: the abolute weight of the current integrand. User is responsible to initialize it after the contructor is called.
-
  - `normalization`: the accumulated normalization factor. Physical observable = Configuration.observable/Configuration.normalization.
+
+ - `absWeight`: the abolute weight of the current integrand. User is responsible to initialize it after the contructor is called.
 
  - `propose/accept`: array to store the proposed and accepted updates for each integrands and variables.
     Their shapes are (number of updates X integrand number X max(integrand number, variable number).
@@ -73,14 +73,14 @@ mutable struct Configuration{V,P,O}
     step::Int64
     curr::Int # index of current integrand
     norm::Int # index of the normalization diagram
-    absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
     normalization::Float64 # normalization factor for observables
+    absWeight::Float64 # the absweight of the current diagrams. Store it for fast updates
 
     propose::Array{Float64,3} # updates index, integrand index, integrand index
     accept::Array{Float64,3} # updates index, integrand index, integrand index 
 
     """
-    Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
+    Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, state=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
 
     Create a Configuration struct
 
@@ -97,7 +97,7 @@ mutable struct Configuration{V,P,O}
  - `obs`: observables that is required to calculate the integrands, will be used in the `measure` function call
     It is either an array of any type with the common operations like +-*/^ defined. 
 
- - `para`: user-defined parameter, could be nothing if not needed
+ - `para`: user-defined parameter, set to nothing if not needed
 
  - `reweight`: reweight factors for each integrands. If not set, then all factors will be initialized with one.
 
@@ -111,7 +111,7 @@ mutable struct Configuration{V,P,O}
     function Configuration(totalStep, var::V, dof, obs::O; para::P=nothing, reweight=nothing, seed=nothing, neighbor=Vector{Vector{Int}}([])) where {V,P,O}
         @assert totalStep > 0 "Total step should be positive!"
         # @assert O <: AbstractArray "observable is expected to be an array. Noe get $(typeof(obs))."
-        @assert V <: Tuple{Vararg{Variable}} "Configuration.var must be a tuple of Variable to maximize efficiency. Now get $(typeof(V))"
+        @assert V <: Tuple{Vararg{Variable}} || V <: Tuple{Variable} "Configuration.var must be a tuple of Variable to maximize efficiency. Now get $(typeof(V))"
         Nv = length(var) # number of variables
 
         ################# integrand initialization #########################
@@ -166,7 +166,7 @@ mutable struct Configuration{V,P,O}
 
         return new{V,P,O}(seed, rng, para, totalStep, var,  # static parameters
         collect(neighbor), collect(dof), obs, collect(reweight), visited, # integrand properties
-        0, curr, norm, absweight, normalization, propose, accept  # current MC state
+        0, curr, norm, normalization, absweight, propose, accept  # current MC state
 ) 
     end
 end
@@ -196,7 +196,7 @@ mutable struct FermiK{D} <: Variable
     function FermiK(dim, kF, δk, maxK, size=MaxOrder)
         k0 = SVector{dim,Float64}([kF for i = 1:dim])
         # k0 = @SVector [kF for i = 1:dim]
-        k = [k0 for i = 1:size]
+        k = [k0 for i in 1:size]
         return new{dim}(k, kF, δk, maxK)
     end
 end
