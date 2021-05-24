@@ -105,11 +105,17 @@ end
         isopen = @SVector[false,false]
         d2s = true
         g = Grid.UniLog{Float64}(bound, init, minterval, M, N, d2s,isopen)
-        for i = 1:(M+1)*N+init+1
+
+        val = Grid._grid(g,init)
+        @test Grid._floor(g,val-EPS) == init
+        @test Grid._floor(g,val+EPS) == init
+        for i = init+1:(M+1)*N+init
             val = Grid._grid(g,i)
-            @printf("%10.6f , %10.6f\n", i, val)
-            @printf("\t%10.6f , %10.6f\n", val-EPS, Grid._floor(g,val-EPS))
-            @printf("\t%10.6f , %10.6f\n", val+EPS, Grid._floor(g,val+EPS))
+            # @printf("%10.6f , %10.6f\n", i, val)
+            # @printf("\t%10.6f , %10.6f\n", val-EPS, Grid._floor(g,val-EPS))
+            # @printf("\t%10.6f , %10.6f\n", val+EPS, Grid._floor(g,val+EPS))
+            @test Grid._floor(g,val-EPS) == i-1
+            @test Grid._floor(g,val+EPS) == i
         end
     end
 
@@ -123,11 +129,28 @@ end
         isopen = @SVector[false,false]
         g = Grid.UniLogs{Float64,(M+1)*N*seg+1,seg}(bounds,minterval,M,N,isopen,[true,true])
 
-        for i = 1:g.size
+        val = g.grid[1]
+        @test floor(g,val-EPS) == 1
+        @test floor(g,val+EPS) == 1
+        for i = 2:g.size-1
             val = g.grid[i]
-            @printf("%10.6f , %10.6f\n", i, val)
-            @printf("\t%10.6f , %10.6f\n", val-EPS, floor(g,val-EPS))
-            @printf("\t%10.6f , %10.6f\n", val+EPS, floor(g,val+EPS))
+            # @printf("%10.6f , %10.6f\n", i, val)
+            # @printf("\t%10.6f , %10.6f\n", val-EPS, floor(g,val-EPS))
+            # @printf("\t%10.6f , %10.6f\n", val+EPS, floor(g,val+EPS))
+            @test floor(g,val-EPS) == i-1
+            @test floor(g,val+EPS) == i
+        end
+        val = g.grid[g.size]
+        @test floor(g,val-EPS) == g.size-1
+        @test floor(g,val+EPS) == g.size-1
+
+        for i =1:seg-1
+            val = g.segment[i]
+            # @printf("%10.6f , %10.6f\n", g.segindex[i], val)
+            # @printf("\t%10.6f , %10.6f\n", val-EPS, floor(g,val-EPS))
+            # @printf("\t%10.6f , %10.6f\n", val+EPS, floor(g,val+EPS))
+            @test floor(g,val-EPS) == g.segindex[i]-1
+            @test floor(g,val+EPS) == g.segindex[i]
         end
     end
 
@@ -180,6 +203,51 @@ end
 end
 
 @testset "Interpolate" begin
+    @testset "Linear1D" begin
+        β = π
+        N,M= 3, 4
+        tgrid = Grid.tauUL(β, 0.01β, M, N)
+        # tugrid = Grid.Uniform{Float64,33}(0.0, β, (true, true))
+        # kugrid = Grid.Uniform{Float64,33}(0.0, maxK, (true, true))
+        f(t) = t
+        data = zeros(tgrid.size)
+
+        for (ti, t) in enumerate(tgrid.grid)
+            data[ti] = f(t)
+        end
+
+        for ti = 1:tgrid.size - 1
+            t = tgrid[ti] + 1.e-6
+            fbar = Grid.linear1D(data, tgrid, t)
+            @test abs(f(tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            @test f(tgrid[ti]) < fbar
+            @test f(tgrid[ti + 1]) > fbar
+        end
+        for ti = 2:tgrid.size
+            t = tgrid[ti] - 1.e-6
+            fbar = Grid.linear1D(data, tgrid, t)
+            @test abs(f(tgrid[ti]) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+            @test f(tgrid[ti]) > fbar
+            @test f(tgrid[ti - 1]) < fbar
+        end
+
+        t = tgrid[1] + eps(Float64)*1e3
+        fbar = Grid.linear1D(data, tgrid, t)
+        @test abs(f(t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+
+        t = tgrid[tgrid.size] - eps(Float64)*1e3
+        fbar = Grid.linear1D(data, tgrid, t)
+        @test abs(f(t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+
+        tlist = rand(10) * β
+        # println(tlist)
+
+        for (ti, t) in enumerate(tlist)
+            fbar = Grid.linear1D(data, tgrid, t)
+            # println("$k, $t, $fbar, ", f(k, t))
+            @test abs(f(t) - fbar) < 3.e-6 # linear interpolation, so error is δK+δt
+        end
+    end
 
     @testset "Linear2D" begin
         β, kF, maxK = 10.0, 1.0, 3.0

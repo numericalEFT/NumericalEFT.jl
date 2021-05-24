@@ -260,6 +260,7 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
     tail::T
     unilogs::SVector{SEG,UniLog{T}}
     segment::SVector{SEG,T} # ends of each segments
+    segindex::SVector{SEG,Int}
     isopen::SVector{2,Bool}
 
     function UniLogs{T,SIZE,SEG}(bounds, minterval::T,M::Int,N::Int, Isopen = @SVector[true,true], issparse = @SVector[false,false]) where {T<:AbstractFloat,SIZE,SEG}
@@ -267,7 +268,7 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
         size = (M+1)*N*SEG + 1
         @assert SIZE == size 
 
-        grid, segment = [], []
+        grid, segment,segindex = [], [],[]
         unilogs = []
         if issparse[1]==false
             for s = 1:SEG
@@ -278,6 +279,7 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
                     end
                     init = 1 + (M+1)*N*(s-1)
                     push!(segment,bound[2])
+                    push!(segindex, 1 + (M+1)*N*(s))
                     isopen = @SVector[false, true]
                     if s == SEG && issparse[2]
                         isopen = @SVector[false, false]
@@ -291,6 +293,7 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
                     bound = @SVector[ (bounds[s÷2+1]+bounds[s÷2])/2,bounds[s÷2+1]]
                     init = 1 + (M+1)*N*(s-1)
                     push!(segment, bound[2])
+                    push!(segindex, 1 + (M+1)*N*(s))
                     isopen = @SVector[false,s==SEG ? false : true]
                     g = UniLog{T}(bound,init,minterval,M,N,false,isopen)
                     push!(unilogs,g)
@@ -308,6 +311,7 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
                     end
                     init = 1 + (M+1)*N*(s-1)
                     push!(segment,bound[2])
+                    push!(segindex, 1 + (M+1)*N*(s))
                     isopen = @SVector[false, s==SEG ? false : true]
                     g = UniLog{T}(bound,init,minterval,M,N,false,isopen)
                     push!(unilogs,g)
@@ -321,6 +325,7 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
                     end
                     init = 1 + (M+1)*N*(s-1)
                     push!(segment, bound[2])
+                    push!(segindex, 1 + (M+1)*N*(s))
                     isopen = @SVector[false,s==SEG ? false : true]
                     g = UniLog{T}(bound,init,minterval,M,N,true,isopen)
                     push!(unilogs,g)
@@ -335,7 +340,7 @@ struct UniLogs{T<:AbstractFloat,SIZE,SEG}
         Isopen[1] && (grid[1] += eps(T) * 1e4)
         Isopen[2] && (grid[end] -= eps(T) * 1e4)
         checkOrder(grid)
-        return new{T,size,SEG}(grid, size, head, tail,unilogs, segment, Isopen)
+        return new{T,size,SEG}(grid, size, head, tail,unilogs, segment,segindex, Isopen)
     end
 end
 
