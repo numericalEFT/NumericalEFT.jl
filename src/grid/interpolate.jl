@@ -1,3 +1,4 @@
+using Statistics
 """
    linear1D(data,xgrid, x) 
 
@@ -97,4 +98,49 @@ linear interpolation of data(x, y)
 
     gx = (g0 * dy1 + g1 * dy0) / (dx0 + dx1) / (dy0 + dy1)
     return gx
+end
+
+
+"""
+testInterpolation1D(func, grid1, grid2)
+
+Test interpolation on grid1 with function func, compare results with func(grid2).
+Return max deviation and std of deviation.
+
+"""
+function testInterpolation1D(func, grid1, grid2)
+    data1 = []
+    for i in 1:grid1.size
+        push!(data1, func(grid1[i]))
+    end
+
+    data2 = []
+    data2_int = []
+    for i in 1:grid2.size
+        push!(data2, func(grid2[i]))
+        push!(data2_int, linear1D(data1, grid1, grid2[i]))
+    end
+
+    d_max = maximum( abs.( data2-data2_int ))
+    d_std = std(data2-data2_int)
+    return d_max, d_std
+end
+
+function testInterpolation1D_rel(func, grid1, grid2)
+    data1 = []
+    for i in 1:grid1.size
+        push!(data1, func(grid1[i]))
+    end
+
+    data2 = []
+    data2_int = []
+    for i in 1:grid2.size
+        push!(data2, func(grid2[i]))
+        push!(data2_int, linear1D(data1, grid1, grid2[i]))
+    end
+
+    d_rel = abs.((data2-data2_int) ./ data2)
+    d_max = maximum(d_rel)
+    d_std = std(d_rel)
+    return d_max, d_std
 end
