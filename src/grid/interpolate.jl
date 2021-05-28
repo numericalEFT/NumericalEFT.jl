@@ -109,17 +109,10 @@ Return max deviation and std of deviation.
 
 """
 function testInterpolation1D(func, grid1, grid2)
-    data1 = []
-    for i in 1:grid1.size
-        push!(data1, func(grid1[i]))
-    end
+    data1 = [func(grid1[i]) for i in 1:(grid1.size)]
 
-    data2 = []
-    data2_int = []
-    for i in 1:grid2.size
-        push!(data2, func(grid2[i]))
-        push!(data2_int, linear1D(data1, grid1, grid2[i]))
-    end
+    data2 = [func(grid2[i]) for i in 1:(grid2.size)]
+    data2_int = [linear1D(data1, grid1, grid2[i]) for i in 1:(grid2.size)]
 
     d_max = maximum( abs.( data2-data2_int ))
     d_std = std(data2-data2_int)
@@ -127,17 +120,10 @@ function testInterpolation1D(func, grid1, grid2)
 end
 
 function testInterpolation1D_rel(func, grid1, grid2)
-    data1 = []
-    for i in 1:grid1.size
-        push!(data1, func(grid1[i]))
-    end
+    data1 = [func(grid1[i]) for i in 1:(grid1.size)]
 
-    data2 = []
-    data2_int = []
-    for i in 1:grid2.size
-        push!(data2, func(grid2[i]))
-        push!(data2_int, linear1D(data1, grid1, grid2[i]))
-    end
+    data2 = [func(grid2[i]) for i in 1:(grid2.size)]
+    data2_int = [linear1D(data1, grid1, grid2[i]) for i in 1:(grid2.size)]
 
     d_rel = abs.((data2-data2_int) ./ data2)
     d_max = maximum(d_rel)
