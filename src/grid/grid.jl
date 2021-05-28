@@ -392,7 +392,9 @@ end
     return UniLogs{Float64,size,seg}(bounds,minterval,M,N)
 end
 
-
+@inline function tauUL(para, M::Int,N::Int, type=Float64)
+    return tauUL(para.β, para.τ_min, M, N, type)
+end
 """
     fermiK(Kf, maxK, halfLife, size::Int, kFi = floor(Int, 0.5size), type = Float64)
 
@@ -421,6 +423,11 @@ end
     bounds = @SVector[0.0,Kf,maxK]
     return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,false],[true,true])
 end
+
+@inline function fermiKUL(para, M::Int,N::Int, type=Float64)
+    return fermiKUL(para.kF, para.k_max, para.k_min, M, N, type)
+end
+
 
 
 """
@@ -472,6 +479,10 @@ end
     size = (M+1)*N*seg+1
     bounds = @SVector[0.0,2Kf,maxK]
     return UniLogs{Float64,size,seg}(bounds,minterval,M,N,[true,false],[false,true])
+end
+
+@inline function boseKUL(para, M::Int,N::Int, type=Float64)
+    return boseKUL(para.kF, para.k_max, para.k_min, M, N, type)
 end
 
 
