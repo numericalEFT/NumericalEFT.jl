@@ -130,3 +130,41 @@ function testInterpolation1D_rel(func, grid1, grid2)
     d_std = std(d_rel)
     return d_max, d_std
 end
+
+function optimizeUniLog(generator, para, MN, func)
+    # generator(para, M, N) should return the UniLog grid
+    # returns (M, N) s.t. (M+1)*N<=MN and minimize error
+    M, N = 1, 1
+
+    while M*N<MN
+        if (M+2)*N>MN && (M+1)*(N+1)>MN
+            break
+        elseif (M+2)*N>MN
+            N=N+1
+            continue
+        elseif (M+1)*(N+1)>MN
+            M=M+1
+            continue
+        end
+
+        grid1M = generator(para, M+1, N)
+        grid1N = generator(para, M, N+1)
+
+        # grid2M = generator(para, 2M+2, 2N)
+        # grid2N = generator(para, 2M, 2N+2)
+        grid2 = generator(para, M+1, N+1)
+
+        d_max_M, d_std_M = testInterpolation1D(func, grid1M, grid2)
+        d_max_N, d_std_N = testInterpolation1D(func, grid1N, grid2)
+        # d_max_M, d_std_M = testInterpolation1D(func, grid1M, grid2M)
+        # d_max_N, d_std_N = testInterpolation1D(func, grid1N, grid2N)
+
+        if d_max_M <= d_max_N
+            M=M+1
+        else
+            N=N+1
+        end
+    end
+
+    return M, N
+end
