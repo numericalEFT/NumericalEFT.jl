@@ -313,7 +313,7 @@ end
         # kugrid = Grid.Uniform{Float64,33}(0.0, maxK, (true, true))
         f(t) = Spectral.kernelFermiT(t/β,0.01)
 
-        d_max, std = Grid.testInterpolation1D_rel(f, tgrid1, tgrid2)
+        d_max, std = Grid.testInterpolation1D(f, tgrid1, tgrid2, true)
         println("Testing interpolation for tauUL grid")
         println("d_max=",d_max,"\t std=", std)
     end
@@ -327,7 +327,7 @@ end
         # kugrid = Grid.Uniform{Float64,33}(0.0, maxK, (true, true))
         f(k) = 1.0/(0.000001+(k^2-kF^2)^2)
 
-        d_max, std = Grid.testInterpolation1D_rel(f, kgrid1, kgrid2)
+        d_max, std = Grid.testInterpolation1D(f, kgrid1, kgrid2, true)
         println("Testing interpolation for fermiKUL grid")
         println("d_max=",d_max,"\t std=", std)
     end
@@ -355,7 +355,7 @@ end
 
         tgrid1 = Grid.tauUL(para, M, N)
         tgrid2 = Grid.tauUL(para, 2M, 2N)
-        d_max, std = Grid.testInterpolation1D_rel(f, tgrid1, tgrid2)
+        d_max, std = Grid.testInterpolation1D(f, tgrid1, tgrid2, true)
         println("d_max=",d_max,"\t std=", std)
 
 
@@ -367,7 +367,7 @@ end
 
         kgrid1 = Grid.fermiKUL(para, M, N)
         kgrid2 = Grid.fermiKUL(para, 2M, 2N)
-        d_max, std = Grid.testInterpolation1D_rel(f2, kgrid1, kgrid2)
+        d_max, std = Grid.testInterpolation1D(f2, kgrid1, kgrid2, true)
         println("Testing interpolation for fermiKUL grid")
         println("d_max=",d_max,"\t std=", std)
 
