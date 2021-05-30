@@ -303,5 +303,75 @@ end
             end
         end
     end
+
+    @testset "TestInterpolation1D for tauUL" begin
+        β, minterval = 1.0, 0.0001
+        M, N = 11, 4
+        tgrid1 = Grid.tauUL(β, minterval, M, N)
+        tgrid2 = Grid.tauUL(β, minterval, 2M, 2N)
+        # tugrid = Grid.Uniform{Float64,33}(0.0, β, (true, true))
+        # kugrid = Grid.Uniform{Float64,33}(0.0, maxK, (true, true))
+        f(t) = Spectral.kernelFermiT(t/β,0.01)
+
+        d_max, std = Grid.testInterpolation1D(f, tgrid1, tgrid2, true)
+        println("Testing interpolation for tauUL grid")
+        println("d_max=",d_max,"\t std=", std)
+    end
+
+    @testset "TestInterpolation1D for fermiKUL" begin
+        M, N= 15, 8
+        kF, maxK, minterval = 1.0, 3.0, 0.00001
+        kgrid1 = Grid.fermiKUL(kF, maxK, minterval, M, N)
+        kgrid2 = Grid.fermiKUL(kF, maxK, minterval, 2M, 2N)
+        # tugrid = Grid.Uniform{Float64,33}(0.0, β, (true, true))
+        # kugrid = Grid.Uniform{Float64,33}(0.0, maxK, (true, true))
+        f(k) = 1.0/(0.000001+(k^2-kF^2)^2)
+
+        d_max, std = Grid.testInterpolation1D(f, kgrid1, kgrid2, true)
+        println("Testing interpolation for fermiKUL grid")
+        println("d_max=",d_max,"\t std=", std)
+    end
+
+    @testset "Optimize UniLog grid" begin
+        struct Para
+            β::Float64
+            τ_min::Float64
+            k_min::Float64
+            k_max::Float64
+            kF::Float64
+
+            function Para()
+                return new(100.0, 0.01, 0.000001, 3.0, 1.0)
+            end
+        end
+
+        para = Para()
+        MN = 128
+
+        println("Testing optimization of tauUL")
+        f(t) = Spectral.kernelFermiT(t/para.β,1e-6*para.kF^2*para.β)
+        M, N = Grid.optimizeUniLog(Grid.tauUL, para, MN, f)
+        println(MN,"\t", M,"\t", N)
+
+        tgrid1 = Grid.tauUL(para, M, N)
+        tgrid2 = Grid.tauUL(para, 2M, 2N)
+        d_max, std = Grid.testInterpolation1D(f, tgrid1, tgrid2, true)
+        println("d_max=",d_max,"\t std=", std)
+
+
+        MN = 128
+        println("Testing optimization of fermiKUL")
+        f2(k) = 1.0/((2π/para.β)^2+(k^2-para.kF^2)^2)
+        M, N = Grid.optimizeUniLog(Grid.fermiKUL, para, MN, f2)
+        println(MN,"\t", M,"\t", N)
+
+        kgrid1 = Grid.fermiKUL(para, M, N)
+        kgrid2 = Grid.fermiKUL(para, 2M, 2N)
+        d_max, std = Grid.testInterpolation1D(f2, kgrid1, kgrid2, true)
+        println("Testing interpolation for fermiKUL grid")
+        println("d_max=",d_max,"\t std=", std)
+
+    end
+
 end
 
