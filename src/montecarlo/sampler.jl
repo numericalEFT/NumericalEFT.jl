@@ -435,6 +435,9 @@ and exponentially on [K.kF-K.δk, +inf).
     x = rand(rng)
     y = rand(rng)
     K[idx] = RFK_Propose(K, x, y)
+    if isnan(K[idx])
+        return 0.0
+    end
     return 1.0/RFK_Weight(K, K[idx])
 end
 @inline createRollback!(K::RadialFermiK, idx::Int, config) = nothing
@@ -486,9 +489,15 @@ Propose to shift an existing k to a new k, both in [0, +inf), return proposal pr
             y = exp( 1 - K[idx]/(K.kF+K.δk))
             K[idx] = RFK_Propose(K, 0.0, y)
         end
+        if isnan(K[idx])
+            return 0.0
+        end
         return RFK_Weight(K, K[end])/RFK_Weight(K, K[idx])
     else
         K[idx] = RFK_Propose(K, rand(rng), rand(rng))
+        if isnan(K[idx])
+            return 0.0
+        end
         return RFK_Weight(K, K[end])/RFK_Weight(K, K[idx])
     end
 
