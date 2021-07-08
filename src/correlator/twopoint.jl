@@ -73,7 +73,7 @@ end
 # end
 
 """
-    LindhardΩnFiniteTemperature(dim::Int, q::T, n::Int, kF::T, β::T, m::T, spin) where {T <: AbstractFloat}
+    LindhardΩnFiniteTemperature(dim::Int, q::T, n::Int, μ::T, kF::T, β::T, m::T, spin) where {T <: AbstractFloat}
 
 Compute the polarization function of free electrons at a given frequency. Relative Accuracy is about ~ 1e-6
 
@@ -81,6 +81,7 @@ Compute the polarization function of free electrons at a given frequency. Relati
 - `dim`: dimension
 - `q`: external momentum, q<1e-4 will be treated as q=0 
 - `n`: externel Matsubara frequency, ωn=2π*n/β
+- `μ`: chemical potential
 - `kF`: Fermi momentum 
 - `β`: inverse temperature
 - `m`: mass
