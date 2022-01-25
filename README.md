@@ -2,9 +2,10 @@
 
 Toolbox for numerical experiment on quantum many-body field theory.
 
-|                                                                   Status                                                                    |                                                                      Coverage                                                                      |                                                     Document                                                      |
-| :-----------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------: |
-| [![Build Status](https://travis-ci.org/kunyuan/QuantumStatistics.jl.svg?branch=master)](https://travis-ci.org/kunyuan/QuantumStatistics.jl) | [![codecov](https://codecov.io/gh/kunyuan/QuantumStatistics.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/kunyuan/QuantumStatistics.jl) | [![Document](https://img.shields.io/badge/docs-dev-blue.svg)](https://kunyuan.github.io/QuantumStatistics.jl/dev) |
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://numericalEFT.github.io/NumericalEFT.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://numericalEFT.github.io/NumericalEFT.jl/dev)
+[![Build Status](https://github.com/numericalEFT/NumericalEFT.jl/workflows/CI/badge.svg)](https://github.com/numericalEFT/NumericalEFT.jl/actions)
+[![Coverage](https://codecov.io/gh/numericalEFT/FeynmanDiagram.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/numericalEFT/FeynmanDiagram.jl)
 
 ## Documentation
 <!-- - [**STABLE**][docs-stable-url] &mdash; **documentation of the most recently tagged version.** -->
