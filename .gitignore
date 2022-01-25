@@ -59,3 +59,5 @@ run/*
 docs/build/
 __pycache__
 *.pyc
+
+*.vscode

@@ -1,6 +1,6 @@
-# QuantumStatistics.jl
+# NumericalEFT.jl
 
-A toolbox for quantum many-body field theory.
+Numerical effective field theory approach to quantum many-body systems.
 
 ## Manual Outline
 ```@contents
@@ -14,13 +14,6 @@ Depth = 1
 ## Library Outline
 ```@contents
 Pages = [
-    "lib/grid.md",
-    "lib/spectral.md",
-    "lib/dlr.md",
-    "lib/green.md",
-    "lib/twopoint.md",
-    "lib/parquet.md",
-    "lib/montecarlo.md",
     "lib/fastmath.md",
     "lib/utility.md",
 ]

@@ -1,5 +1,5 @@
 # Fast Math Functions
 
 ```@autodocs
-Modules = [QuantumStatistics.FastMath]
+Modules = [NumericalEFT.FastMath]
 ```
