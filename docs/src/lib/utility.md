@@ -1,5 +1,5 @@
 # Utility
 
 ```@autodocs
-Modules = [QuantumStatistics.Utility]
+Modules = [NumericalEFT.Utility]
 ```
