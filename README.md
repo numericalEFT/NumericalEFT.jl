@@ -7,6 +7,10 @@ Numerical effective field theory toolbox for quantum many-body problem.
 [![Build Status](https://github.com/numericalEFT/NumericalEFT.jl/workflows/CI/badge.svg)](https://github.com/numericalEFT/NumericalEFT.jl/actions)
 [![codecov](https://codecov.io/gh/numericalEFT/NumericalEFT.jl/branch/master/graph/badge.svg?token=OKnDPEC3In)](https://codecov.io/gh/numericalEFT/NumericalEFT.jl)
 
+## Infrastructure
+
+![NumericalEFT](docs/src/assets/numericalEFT.png)
+
 ## Features
 
 The package is in development stage. Many components are missing. For now, we have implemented the following utilities:
