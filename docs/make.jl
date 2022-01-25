@@ -1,6 +1,8 @@
 # push!(LOAD_PATH, "../src/")
 using Documenter, NumericalEFT
 
+
+
 makedocs(
     modules = [NumericalEFT],
     sitename = "NumericalEFT.jl",
@@ -13,11 +15,18 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Manual" => Any[
-            "Monte Carlo integrator"=>"man/important_sampling.md",
+            "Discrete Lehmann Representation"=>"man/DLR.md",
+            "Lehmann representation convention"=>"man/kernel.md",
+            "Monte Carlo integrator"=>"man/MC.md",
         ],
         "API reference" => Any[
+            "lib/Lehmann.md",
+            "lib/Feynmandiagram.md",
+            "lib/MCintegration.md",
+            "lib/compositegrids.md",
+            "lib/greenfunc.md",
             "lib/utility.md",
-            "lib/fastmath.md"
+            "lib/fastmath.md",
         ]
     ])
 
