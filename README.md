@@ -9,7 +9,8 @@ Numerical effective field theory toolbox for quantum many-body problem.
 
 ## Infrastructure
 
-![NumericalEFT](docs/src/assets/numericalEFT.png)
+![NumericalEFT](docs/src/assets/numericalEFT.svg)
+<!-- <img src="docs/src/assets/numericalEFT.png" width="800" height="500"> -->
 
 ## Features
 
