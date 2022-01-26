@@ -33,8 +33,6 @@ Most of the components have been published as independent packages, so that user
 
 - [GreenFunc.jl](https://github.com/numericalEFT/GreenFunc.jl): A container for generic Green's functions.
 
-<!-- - Fast elementary math functions. Some of them are adapted from the package [Yeppp.jl](https://github.com/JuliaMath/Yeppp.jl). It supports more generic array types than the original package. -->
-
 ## Questions and Contributions
 
 Contributions are very welcome, as are feature requests and suggestions. Please open an issue if you encounter any problems.
