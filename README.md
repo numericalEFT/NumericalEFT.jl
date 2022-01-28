@@ -17,7 +17,7 @@ Potential applications of this package are the electron liquids and superconduct
 
 ## Features
 
-The package ``NumericalEFT.jl`` is a collection of loosely coupled components. They are organized in the following infrastructure: 
+The package ``NumericalEFT.jl`` is a collection of loosely coupled components, which are organized in the following infrastructure: 
 
 ![NumericalEFT](docs/src/assets/numericalEFT.svg)
 
