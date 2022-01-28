@@ -38,20 +38,8 @@ Most of the components have been published as independent packages, so that user
 
 ## Installation
 
-Currently, this package is not yet registered. So, `Pkg.add("NumericalEFT")` will not work (yet).
+This package has been registered. So, simply type import Pkg; Pkg.add("NumericalEFT") in the Julia REPL to install.
 
-There two ways to install this package:
-
-1. The package can be installed with the Julia package manager. 
-From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
-```julia
-pkg> add https://github.com/numericalEFT/NumericalEFT.jl
-```
-
-2. Alternatively, you can run the following command from the Julia REPL:
-```julia
-julia> using Pkg; Pkg.add(PackageSpec(url="https://github.com/numericalEFT/NumericalEFT.jl"))
-```
 ## Questions and Contributions
 
 Contributions are very welcome, as are feature requests and suggestions. Please open an issue if you encounter any problems.
