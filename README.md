@@ -11,13 +11,13 @@ Numerical effective field theory toolbox for quantum many-body problem.
 
 Collective modes of quantum many-body systems are often well described by weakly-interacting quantum fields. Effective field theory (EFT) is a framework to systematically study such problems. EFT has been widely used in high-energy physics, nuclear physics and condensed matter physics. 
 
-For quantum material applications, EFTs are often too complicated to calculate with bare hands. Therefore, we are motivated to create a numerical package for such problems.
+For quantum material applications, EFTs are often too complicated to calculate with bare hands. It motivates us to develop this numerical package.
 
-Potential applications of this package are the electron liquids and superconductors in real materials, chiral EFT in neutron-rich matter, and all kinds of emergent low-energy field theories in lattice models.
+Potential applications of Numerical EFT are the electron liquids in real materials, chiral EFT in neutron-rich matter, and all kinds of emergent low-energy field theories in lattice models.
 
 ## Features
 
-The package ``NumericalEFT.jl`` is a collection of loosely coupled components, which are organized in the following infrastructure: 
+The package ``NumericalEFT.jl`` is a collection several independent components, which are organized in the following infrastructure: 
 
 ![NumericalEFT](docs/src/assets/numericalEFT.svg)
 
