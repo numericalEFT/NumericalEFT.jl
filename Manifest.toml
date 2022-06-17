@@ -102,6 +102,12 @@ git-tree-sha1 = "58d83dd5a78a36205bdfddb82b1bb67682e64487"
 uuid = "442a2c76-b920-505d-bb47-c5924d526838"
 version = "0.4.9"
 
+[[FileIO]]
+deps = ["Pkg", "Requires", "UUIDs"]
+git-tree-sha1 = "9267e5f50b0e12fdfd5a2455534345c4cf2c7f7a"
+uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+version = "1.14.0"
+
 [[Formatting]]
 deps = ["Printf"]
 git-tree-sha1 = "8339d61043228fdd3eb658d86c926cb282ae72a8"
@@ -136,6 +142,12 @@ version = "0.1.1"
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
 uuid = "82899510-4779-5014-852e-03e436cf321d"
 version = "1.0.0"
+
+[[JLD2]]
+deps = ["FileIO", "MacroTools", "Mmap", "OrderedCollections", "Pkg", "Printf", "Reexport", "TranscodingStreams", "UUIDs"]
+git-tree-sha1 = "81b9477b49402b47fbe7f7ae0b252077f53e4a08"
+uuid = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+version = "0.4.22"
 
 [[JLLWrappers]]
 deps = ["Preferences"]
@@ -390,6 +402,12 @@ uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 [[Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[TranscodingStreams]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "216b95ea110b5972db65aa90f88d8d89dcb8851c"
+uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
+version = "0.9.6"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]
