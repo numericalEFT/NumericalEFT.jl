@@ -1,7 +1,7 @@
 name = "NumericalEFT"
 uuid = "69ae41d2-7e17-11ec-28d9-b73852c51be0"
 authors = ["Kun Chen <chenkun@mail.ustc.edu.cn>", "Xiansheng Cai", "Tao Wang", "Pengcheng Hou"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"

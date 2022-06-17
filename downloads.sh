@@ -46,6 +46,7 @@ rm -r ./test/FeynmanDiagram
 git clone https://github.com/numericalEFT/FeynmanDiagram.jl.git temp
 mv ./temp/src ./src/FeynmanDiagram
 mv ./temp/test ./test/FeynmanDiagram
+mv ./temp/assets/* ./docs/src/readme/assets/
 mv ./temp/docs/src/man/* ./docs/src/man/
 mv ./temp/docs/src/assets/* ./docs/src/assets/
 # mv ./temp/docs/src/lib/* ./docs/src/lib/
