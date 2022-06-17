@@ -23,7 +23,7 @@ include("Lehmann/dlr.jl")
 end
 
 ########## FeynmanDiagram ########
-using Test, LinearAlgebra, Random, StaticArrays, Printf, Parameters, Documenter
+using Test, LinearAlgebra, Random, StaticArrays, Printf, Parameters
 using AbstractTrees
 
 include("FeynmanDiagram/common.jl")
