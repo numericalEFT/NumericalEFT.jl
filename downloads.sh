@@ -1,5 +1,6 @@
 rm -r ./src/Lehmann
 rm -r ./test/Lehmann
+rm -r ./src/basis
 git clone https://github.com/numericalEFT/Lehmann.jl.git temp
 mv ./temp/basis ./src/basis
 mv ./temp/src ./src/Lehmann
