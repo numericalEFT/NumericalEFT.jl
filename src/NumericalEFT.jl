@@ -27,22 +27,22 @@ export MCIntegration
 export montecarlo, Configuration, Continuous, Discrete
 
 ##########################  CompositeGrids  #######################################################
-# include("CompositeGrids/CompositeGrids.jl")
-# using .CompositeGrids
-# # main module
-# export CompositeGrids
-# # submodules
-# export Grid, Interp
-# export SimpleG, SimpleGrid, AbstractGrid, OpenGrid, ClosedGrid, denseindex
-# export CompositeG, CompositeGrid
+include("CompositeGrids/CompositeGrids.jl")
+using .CompositeGrids
+# main module
+export CompositeGrids
+# submodules
+export Grid, Interp
+export SimpleG, SimpleGrid, AbstractGrid, OpenGrid, ClosedGrid, denseindex
+export CompositeG, CompositeGrid
 
-# ##########################  Green's function  #######################################################
-# include("GreenFunc/GreenFunc.jl")
-# using .GreenFunc
-# # main module
-# export GreenFunc
-# export TimeDomain, ImTime, ReTime, ImFreq, ReFreq, DLRFreq
-# export Green2DLR, toTau, toMatFreq, toDLR, dynamic, instant
+##########################  Green's function  #######################################################
+include("GreenFunc/GreenFunc.jl")
+using .GreenFunc
+# main module
+export GreenFunc
+export TimeDomain, ImTime, ReTime, ImFreq, ReFreq, DLRFreq
+export Green2DLR, toTau, toMatFreq, toDLR, dynamic, instant
 
 ##########################  Diagram Builder  #######################################################
 include("FeynmanDiagram/FeynmanDiagram.jl")
