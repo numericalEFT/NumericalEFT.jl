@@ -38,8 +38,8 @@ using StaticArrays, LinearAlgebra, Printf, Random, Statistics, JLD2, FileIO
 if isempty(ARGS)
     include("CompositeGrids/chebyshev.jl")
     include("CompositeGrids/grid.jl")
-    # include("CompositeGrids/interpolate.jl")
-    # include("CompositeGrids/io.jl")
+    include("CompositeGrids/interpolate.jl")
+    include("CompositeGrids/io.jl")
 else
     include(ARGS[1])
 end

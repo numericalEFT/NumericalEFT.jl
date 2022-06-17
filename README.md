@@ -45,7 +45,3 @@ This package has been registered. So, simply type import Pkg; Pkg.add("Numerical
 ## Questions and Contributions
 
 Contributions are very welcome, as are feature requests and suggestions. Please open an issue if you encounter any problems.
-
-<!-- Example of Julia package to go along with [these notes](https://tlienart.github.io/pub/julia/dev-pkg2.html). -->
-<!-- https://travis-ci.org/github/kunyuan/QuantumStatistics.jl -->
-<!-- [![codecov](https://codecov.io/gh/kunyuan/QuantumStatistics.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/kunyuan/QuantumStatistics.jl) -->

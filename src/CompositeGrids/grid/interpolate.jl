@@ -3,7 +3,10 @@ Provide interpolation and integration.
 """
 module Interp
 
-using StaticArrays, FastGaussQuadrature, CompositeGrids
+# using StaticArrays, FastGaussQuadrature, CompositeGrids
+using StaticArrays, FastGaussQuadrature
+using ..SimpleG
+using ..CompositeG
 
 #include("chebyshev.jl")
 
@@ -60,21 +63,21 @@ end
 
 function findneighbor(::LinearInterp, xgrid, x)
     T = eltype(xgrid.grid)
-    xi0,xi1 = 0,0
-    if(x<=xgrid[firstindex(xgrid)])
-        xi0=1
-        xi1=2
-    elseif(x>=xgrid[lastindex(xgrid)])
-        xi0=lastindex(xgrid)-1
-        xi1=xi0+1
+    xi0, xi1 = 0, 0
+    if (x <= xgrid[firstindex(xgrid)])
+        xi0 = 1
+        xi1 = 2
+    elseif (x >= xgrid[lastindex(xgrid)])
+        xi0 = lastindex(xgrid) - 1
+        xi1 = xi0 + 1
     else
-        xi0=floor(xgrid,x)
-        xi1=xi0+1
+        xi0 = floor(xgrid, x)
+        xi1 = xi0 + 1
     end
 
-    x0,x1 = xgrid[xi0], xgrid[xi1]
+    x0, x1 = xgrid[xi0], xgrid[xi1]
 
-    return LinearNeighbor{T}(xi0:xi1, [x0,x1], x)
+    return LinearNeighbor{T}(xi0:xi1, [x0, x1], x)
 end
 
 function findneighbor(::ChebInterp, xgrid, x)
@@ -85,11 +88,11 @@ end
 function findneighbor(::CompositeInterp, xgrid, x)
     if CompositeG.getbottomtype(xgrid) <: SimpleG.BaryCheb
         T = eltype(xgrid.grid)
-        curr=xgrid
+        curr = xgrid
         xi0 = 1
-        while !(typeof(curr)<:SimpleG.BaryCheb)
+        while !(typeof(curr) <: SimpleG.BaryCheb)
             i = floor(curr.panel, x)
-            xi0 += curr.inits[i]-1
+            xi0 += curr.inits[i] - 1
             curr = curr.subgrids[i]
         end
         return ChebNeighbor{T}(xi0:(curr.size-1+xi0), curr.grid, curr.weight, x)
@@ -145,15 +148,15 @@ Interpolate with given neighbor and sliced data. Assume data already sliced on g
 - axis: axis sliced and to be interpolated
 """
 function interpsliced(neighbor, data; axis=1)
-    return dropdims(mapslices(u->_interpsliced(neighbor, u), data, dims=axis), dims=axis)
+    return dropdims(mapslices(u -> _interpsliced(neighbor, u), data, dims=axis), dims=axis)
 end
 
 function interpsliced(neighbor, data::AbstractMatrix; axis=1)
     # trying to make it type stable for matrix
     if axis == 1
-        return map(u->_interpsliced(neighbor,u), eachcol(data))
+        return map(u -> _interpsliced(neighbor, u), eachcol(data))
     elseif axis == 2
-        return map(u->_interpsliced(neighbor,u), eachrow(data))
+        return map(u -> _interpsliced(neighbor, u), eachrow(data))
     else
         throw(DomainError(axis, "axis should be 1 or 2 for Matrix"))
     end
@@ -179,7 +182,7 @@ function _interpsliced(neighbor::LinearNeighbor, data)
 
     g = d0 * dx1 + d1 * dx0
 
-    gx = g / (dx0 + dx1) 
+    gx = g / (dx0 + dx1)
     return gx
 end
 
@@ -226,7 +229,7 @@ function linearND(data, xgrids, xs)
         #     end
         # end
         # return result
-        return [prod(xs .^ digits(i-1, base=2, pad=length(xs)) ) for i in 1:2^length(xs)]
+        return [prod(xs .^ digits(i - 1, base=2, pad=length(xs))) for i in 1:2^length(xs)]
     end
     @inline function f(as, xs)
         # dim = length(xs)
@@ -244,23 +247,23 @@ function linearND(data, xgrids, xs)
     # find grid points below and above xs
     xis = zeros(Int, (dim, 2))
     for i in 1:dim
-        xi0,xi1 = 0,0
-        x=xs[i]
-        if(x<=xgrids[i].grid[firstindex(xgrids[i])])
-            xi0=1
-            xi1=2
-        elseif(x>=xgrids[i].grid[lastindex(xgrids[i])])
-            xi0=lastindex(xgrid)-1
-            xi1=xi0+1
+        xi0, xi1 = 0, 0
+        x = xs[i]
+        if (x <= xgrids[i].grid[firstindex(xgrids[i])])
+            xi0 = 1
+            xi1 = 2
+        elseif (x >= xgrids[i].grid[lastindex(xgrids[i])])
+            xi0 = lastindex(xgrid) - 1
+            xi1 = xi0 + 1
         else
-            xi0=floor(xgrids[i],xs[i])
-            xi1=xi0+1
+            xi0 = floor(xgrids[i], xs[i])
+            xi1 = xi0 + 1
         end
-        xis[i,1], xis[i,2] = xi0, xi1
+        xis[i, 1], xis[i, 2] = xi0, xi1
     end
 
     # data value at nearby grid points
-    datas = [data[[xis[j , 1+digits(i-1,base=2,pad=dim)[j]]  for j in 1:dim]...] for i in 1:2^dim]
+    datas = [data[[xis[j, 1+digits(i - 1, base=2, pad=dim)[j]] for j in 1:dim]...] for i in 1:2^dim]
     # datas = zeros(Float64, 2^dim)
     # for i in 1:2^dim
     #     datas[i] = data[[xis[j , 1+digits(i,base=2,pad=dim)[j]]  for j in 1:dim]...]
@@ -269,13 +272,13 @@ function linearND(data, xgrids, xs)
     # create x matrix
     xmat = ones(Float64, (2^dim, 2^dim))
     for i in 1:2^dim
-        ii = digits(i-1, base=2,pad=dim)
+        ii = digits(i - 1, base=2, pad=dim)
         xxs = [xgrids[j][xis[j, 1+ii[j]]] for j in 1:dim]
         xmat[:, i] = enumX(xxs)
     end
 
     xtran = copy(transpose(xmat))
-    as = xtran\datas
+    as = xtran \ datas
     #println(xtran)
     #println(as)
     #println(xtran*as)
@@ -287,14 +290,14 @@ end
 
 @inline function linearND(data::Matrix, xgrids, xs)
     # for 2d, use linear2D
-    @assert length(xgrids)==length(xs)==2
-    return linear2D(data, xgrids[1],xgrids[2],xs[1],xs[2])
+    @assert length(xgrids) == length(xs) == 2
+    return linear2D(data, xgrids[1], xgrids[2], xs[1], xs[2])
 end
 
 @inline function linearND(data::Vector, xgrids, xs)
     # for 2d, use linear2D
-    @assert length(xgrids)==length(xs)==1
-    return linear2D(data, xgrids[1],xs[1])
+    @assert length(xgrids) == length(xs) == 1
+    return linear2D(data, xgrids[1], xs[1])
 end
 
 """
@@ -324,27 +327,27 @@ linear interpolation of data(x, y)
     # xi0, yi0 = floor(xgrid, x), floor(ygrid, y)
     # xi1, yi1 = xi0 + 1, yi0 + 1
 
-    xi0,xi1,yi0,yi1 = 0,0,0,0
-    if(x<=xarray[firstindex(xgrid)])
-        xi0=1
-        xi1=2
-    elseif(x>=xarray[lastindex(xgrid)])
-        xi0=lastindex(xgrid)-1
-        xi1=xi0+1
+    xi0, xi1, yi0, yi1 = 0, 0, 0, 0
+    if (x <= xarray[firstindex(xgrid)])
+        xi0 = 1
+        xi1 = 2
+    elseif (x >= xarray[lastindex(xgrid)])
+        xi0 = lastindex(xgrid) - 1
+        xi1 = xi0 + 1
     else
-        xi0=floor(xgrid,x)
-        xi1=xi0+1
+        xi0 = floor(xgrid, x)
+        xi1 = xi0 + 1
     end
 
-    if(y<=yarray[firstindex(ygrid)])
-        yi0=1
-        yi1=2
-    elseif(y>=yarray[lastindex(ygrid)])
-        yi0=lastindex(ygrid)-1
-        yi1=yi0+1
+    if (y <= yarray[firstindex(ygrid)])
+        yi0 = 1
+        yi1 = 2
+    elseif (y >= yarray[lastindex(ygrid)])
+        yi0 = lastindex(ygrid) - 1
+        yi1 = yi0 + 1
     else
-        yi0=floor(ygrid,y)
-        yi1=yi0+1
+        yi0 = floor(ygrid, y)
+        yi1 = yi0 + 1
     end
 
     dx0, dx1 = x - xarray[xi0], xarray[xi1] - x
@@ -374,16 +377,16 @@ linear interpolation of data(x)
 
     xarray = xgrid.grid
 
-    xi0,xi1 = 0,0
-    if(x<=xarray[firstindex(xgrid)])
-        xi0=1
-        xi1=2
-    elseif(x>=xarray[lastindex(xgrid)])
-        xi0=lastindex(xgrid)-1
-        xi1=xi0+1
+    xi0, xi1 = 0, 0
+    if (x <= xarray[firstindex(xgrid)])
+        xi0 = 1
+        xi1 = 2
+    elseif (x >= xarray[lastindex(xgrid)])
+        xi0 = lastindex(xgrid) - 1
+        xi1 = xi0 + 1
     else
-        xi0=floor(xgrid,x)
-        xi1=xi0+1
+        xi0 = floor(xgrid, x)
+        xi1 = xi0 + 1
     end
 
     dx0, dx1 = x - xarray[xi0], xarray[xi1] - x
@@ -392,7 +395,7 @@ linear interpolation of data(x)
 
     g = d0 * dx1 + d1 * dx0
 
-    gx = g / (dx0 + dx1) 
+    gx = g / (dx0 + dx1)
     return gx
 end
 
@@ -410,21 +413,21 @@ For 1D data, return a number; for multiple dimension, reduce the given axis.
 - method: by default use optimized method; use linear interp if Interp.LinearInterp()
 """
 function interp1D(data, xgrid::T, x; axis=1, method=InterpStyle(T)) where {T}
-    return dropdims(mapslices(u->interp1D(method, u, xgrid, x), data, dims=axis), dims=axis)
+    return dropdims(mapslices(u -> interp1D(method, u, xgrid, x), data, dims=axis), dims=axis)
 end
 
 function interp1D(data::AbstractMatrix, xgrid::T, x; axis=1, method=InterpStyle(T)) where {T}
     # trying to make it type stable for matrix
     if axis == 1
-        return map(u->interp1D(method, u, xgrid, x), eachcol(data))
+        return map(u -> interp1D(method, u, xgrid, x), eachcol(data))
     elseif axis == 2
-        return map(u->interp1D(method, u, xgrid, x), eachrow(data))
+        return map(u -> interp1D(method, u, xgrid, x), eachrow(data))
     else
         throw(DomainError(axis, "axis should be 1 or 2 for Matrix"))
     end
 end
 
-function interp1D(data::AbstractVector, xgrid::T, x;axis=1, method=InterpStyle(T)) where {DT,T}
+function interp1D(data::AbstractVector, xgrid::T, x; axis=1, method=InterpStyle(T)) where {DT,T}
     return interp1D(method, data, xgrid, x)
 end
 
@@ -438,7 +441,7 @@ linear interpolation of data(x), use floor and linear1D
 - data: one-dimensional array of data
 - x: x
 """
-function interp1D(::LinearInterp,data, xgrid, x)
+function interp1D(::LinearInterp, data, xgrid, x)
     return linear1D(data, xgrid, x)
 end
 
@@ -467,9 +470,9 @@ first floor on panel to find subgrid, then call interp1D on subgrid
 - data: one-dimensional array of data
 - x: x
 """
-function interp1D(::CompositeInterp,data, xgrid, x)
+function interp1D(::CompositeInterp, data, xgrid, x)
     i = floor(xgrid.panel, x)
-    head, tail = xgrid.inits[i], xgrid.inits[i]+xgrid.subgrids[i].size-1
+    head, tail = xgrid.inits[i], xgrid.inits[i] + xgrid.subgrids[i].size - 1
     return interp1D(view(data, head:tail), xgrid.subgrids[i], x)
 end
 
@@ -487,7 +490,7 @@ For ND data, do interpolation of data(grid[1:end]) at given axis, return data of
 - method: by default use optimized method; use linear interp if :linear
 """
 function interp1DGrid(data, xgrid::T, grid; axis=1, method=InterpStyle(T)) where {T}
-    return mapslices(u->interp1DGrid(method, u, xgrid, grid), data, dims=axis)
+    return mapslices(u -> interp1DGrid(method, u, xgrid, grid), data, dims=axis)
 end
 
 function interp1DGrid(data::AbstractVector, xgrid::T, grid; axis=1, method=InterpStyle(T)) where {T}
@@ -533,17 +536,17 @@ function interp1DGrid(::CompositeInterp, data, xgrid, grid)
 
     init, curr = 1, 1
     for pi in 1:xgrid.panel.size-1
-        if grid[init]< xgrid.panel[pi+1]
-            head, tail = xgrid.inits[pi], xgrid.inits[pi]+xgrid.subgrids[pi].size-1
-            while grid[curr]<xgrid.panel[pi+1] && curr<length(grid)
+        if grid[init] < xgrid.panel[pi+1]
+            head, tail = xgrid.inits[pi], xgrid.inits[pi] + xgrid.subgrids[pi].size - 1
+            while grid[curr] < xgrid.panel[pi+1] && curr < length(grid)
                 curr += 1
             end
-            if grid[curr]<xgrid.panel[pi+1] && curr==length(grid)
-                @assert xgrid.subgrids[pi].bound[1]<=grid[init]<=grid[curr]<=xgrid.subgrids[pi].bound[2]
+            if grid[curr] < xgrid.panel[pi+1] && curr == length(grid)
+                @assert xgrid.subgrids[pi].bound[1] <= grid[init] <= grid[curr] <= xgrid.subgrids[pi].bound[2]
                 ff[init:curr] = interp1DGrid(view(data, head:tail), xgrid.subgrids[pi], view(grid, init:curr))
                 return ff
             else
-                @assert xgrid.subgrids[pi].bound[1]<=grid[init]<=grid[curr-1]<=xgrid.subgrids[pi].bound[2]
+                @assert xgrid.subgrids[pi].bound[1] <= grid[init] <= grid[curr-1] <= xgrid.subgrids[pi].bound[2]
                 ff[init:curr-1] = interp1DGrid(view(data, head:tail), xgrid.subgrids[pi], view(grid, init:curr-1))
             end
             # println(view(data, head:tail))
@@ -587,14 +590,14 @@ For 1D data, return a number; for multiple dimension, reduce the given axis.
 - axis: axis to be integrated in data
 """
 function integrate1D(data, xgrid::T; axis=1) where {T}
-    return dropdims(mapslices(u->integrate1D(IntegrateStyle(T), u, xgrid), data, dims=axis), dims=axis)
+    return dropdims(mapslices(u -> integrate1D(IntegrateStyle(T), u, xgrid), data, dims=axis), dims=axis)
 end
 
 function integrate1D(data::AbstractMatrix, xgrid::T; axis=1) where {T}
     if axis == 1
-        return map(u->integrate1D(IntegrateStyle(T), u, xgrid), eachcol(data))
+        return map(u -> integrate1D(IntegrateStyle(T), u, xgrid), eachcol(data))
     elseif axis == 2
-        return map(u->integrate1D(IntegrateStyle(T), u, xgrid), eachrow(data))
+        return map(u -> integrate1D(IntegrateStyle(T), u, xgrid), eachrow(data))
     else
         throw(DomainError(axis, "axis should be 1 or 2 for Matrix"))
     end
@@ -619,14 +622,14 @@ function integrate1D(::NoIntegrate, data, xgrid)
 
     grid = xgrid.grid
     for i in 1:xgrid.size
-        if i==1
-            weight = 0.5*(grid[2]-xgrid.bound[1])
-        elseif i==xgrid.size
-            weight = 0.5*(xgrid.bound[2]-grid[end-1])
+        if i == 1
+            weight = 0.5 * (grid[2] - xgrid.bound[1])
+        elseif i == xgrid.size
+            weight = 0.5 * (xgrid.bound[2] - grid[end-1])
         else
-            weight = 0.5*(grid[i+1]-grid[i-1])
+            weight = 0.5 * (grid[i+1] - grid[i-1])
         end
-        result += data[i]*weight
+        result += data[i] * weight
     end
     return result
 end
@@ -645,7 +648,7 @@ function integrate1D(::WeightIntegrate, data, xgrid)
     result = eltype(data)(0.0)
 
     for i in 1:xgrid.size
-        result += data[i]*xgrid.weight[i]
+        result += data[i] * xgrid.weight[i]
     end
     return result
 end
@@ -662,7 +665,7 @@ works for grids that have integration weight stored
 """
 function integrate1D(::ChebIntegrate, data, xgrid)
     a, b = xgrid.bound[1], xgrid.bound[2]
-    return SimpleG.chebint(xgrid.size, -1.0, 1.0, data, xgrid.invVandermonde)*(b-a)/2.0
+    return SimpleG.chebint(xgrid.size, -1.0, 1.0, data, xgrid.invVandermonde) * (b - a) / 2.0
 end
 
 """
@@ -679,8 +682,8 @@ function integrate1D(::CompositeIntegrate, data, xgrid)
     result = eltype(data)(0.0)
 
     for pi in 1:xgrid.panel.size-1
-        head, tail = xgrid.inits[pi], xgrid.inits[pi]+xgrid.subgrids[pi].size-1
-        result += integrate1D( view(data, head:tail),xgrid.subgrids[pi])
+        head, tail = xgrid.inits[pi], xgrid.inits[pi] + xgrid.subgrids[pi].size - 1
+        result += integrate1D(view(data, head:tail), xgrid.subgrids[pi])
         currgrid = xgrid.subgrids[pi]
     end
     return result
@@ -700,14 +703,14 @@ For 1D data, return a number; for multiple dimension, reduce the given axis.
 - axis: axis to be integrated in data
 """
 function integrate1D(data, xgrid::T, range; axis=1) where {T}
-    return dropdims(mapslices(u->integrate1D(IntegrateStyle(T), u, xgrid, range), data, dims=axis), dims=axis)
+    return dropdims(mapslices(u -> integrate1D(IntegrateStyle(T), u, xgrid, range), data, dims=axis), dims=axis)
 end
 
 function integrate1D(data::AbstractMatrix, xgrid::T, range; axis=1) where {T}
     if axis == 1
-        return map(u->integrate1D(IntegrateStyle(T), u, xgrid, range), eachcol(data))
+        return map(u -> integrate1D(IntegrateStyle(T), u, xgrid, range), eachcol(data))
     elseif axis == 2
-        return map(u->integrate1D(IntegrateStyle(T), u, xgrid, range), eachrow(data))
+        return map(u -> integrate1D(IntegrateStyle(T), u, xgrid, range), eachrow(data))
     else
         throw(DomainError(axis, "axis should be 1 or 2 for Matrix"))
     end
@@ -718,11 +721,11 @@ function integrate1D(data::AbstractVector, xgrid::T, range; axis=1) where {T}
 end
 
 @inline function trapezoidInt(data, grid, range)
-    return (0.5*(range[1]+range[2])*(data[2]-data[1]) - grid[1]*data[2] + grid[2]*data[1])/(grid[2]-grid[1])*(range[2]-range[1])
+    return (0.5 * (range[1] + range[2]) * (data[2] - data[1]) - grid[1] * data[2] + grid[2] * data[1]) / (grid[2] - grid[1]) * (range[2] - range[1])
 end
 
 function integrate1D(::NoIntegrate, data, xgrid, range)
-    sign, x1, x2 = (range[1]<range[2]) ? (1.0, range[1], range[2]) : (-1.0, range[2], range[1])
+    sign, x1, x2 = (range[1] < range[2]) ? (1.0, range[1], range[2]) : (-1.0, range[2], range[1])
     @assert xgrid.bound[1] <= x1 <= x2 <= xgrid.bound[2]
     xi1, xi2 = floor(xgrid, x1), floor(xgrid, x2)
 
@@ -731,26 +734,26 @@ function integrate1D(::NoIntegrate, data, xgrid, range)
     grid = xgrid.grid
     # g[xi1], x1, g[xi1+1], g[xi1+2], ... , g[xi2], x2
     if xi1 == xi2
-        result += trapezoidInt(view(data, xi1:xi1+1),view(grid, xi1:xi1+1),[x1, x2])
+        result += trapezoidInt(view(data, xi1:xi1+1), view(grid, xi1:xi1+1), [x1, x2])
     else
         for i in xi1:xi2
-            if i==xi1
-                result += trapezoidInt(view(data, i:i+1),view(grid, i:i+1),[x1,grid[i+1]])
-            elseif i==xi2
-                result += trapezoidInt(view(data, i:i+1),view(grid, i:i+1),[grid[i],x2])
+            if i == xi1
+                result += trapezoidInt(view(data, i:i+1), view(grid, i:i+1), [x1, grid[i+1]])
+            elseif i == xi2
+                result += trapezoidInt(view(data, i:i+1), view(grid, i:i+1), [grid[i], x2])
             else
-                result += 0.5*(data[i]+data[i+1])*(grid[i+1]-grid[i])
+                result += 0.5 * (data[i] + data[i+1]) * (grid[i+1] - grid[i])
             end
         end
     end
-    return result*sign
+    return result * sign
 end
 
 function integrate1D(::ChebIntegrate, data, xgrid, range)
     a, b = xgrid.bound[1], xgrid.bound[2]
     x1, x2 = range[1], range[2]
-    c1, c2 = (2x1-a-b)/(b-a), (2x2-a-b)/(b-a)
-    return SimpleG.chebint(xgrid.size, c1, c2, data, xgrid.invVandermonde)*(b-a)/2.0
+    c1, c2 = (2x1 - a - b) / (b - a), (2x2 - a - b) / (b - a)
+    return SimpleG.chebint(xgrid.size, c1, c2, data, xgrid.invVandermonde) * (b - a) / 2.0
 end
 
 function integrate1D(::WeightIntegrate, data, xgrid, range)
@@ -776,28 +779,28 @@ function integrate1D(::WeightIntegrate, data, xgrid, range)
 end
 
 function integrate1D(::CompositeIntegrate, data, xgrid, range)
-    sign, x1, x2 = (range[1]<range[2]) ? (1.0, range[1], range[2]) : (-1.0, range[2], range[1])
+    sign, x1, x2 = (range[1] < range[2]) ? (1.0, range[1], range[2]) : (-1.0, range[2], range[1])
     @assert xgrid.bound[1] <= x1 <= x2 <= xgrid.bound[2]
     pi1, pi2 = floor(xgrid.panel, x1), floor(xgrid.panel, x2)
 
     result = eltype(data)(0.0)
-    if pi1==pi2
+    if pi1 == pi2
         pi = pi1
-        head, tail = xgrid.inits[pi], xgrid.inits[pi]+xgrid.subgrids[pi].size-1
-        result += integrate1D(view(data, head:tail), xgrid.subgrids[pi], [x1,x2])
+        head, tail = xgrid.inits[pi], xgrid.inits[pi] + xgrid.subgrids[pi].size - 1
+        result += integrate1D(view(data, head:tail), xgrid.subgrids[pi], [x1, x2])
     else
         for pi in pi1:pi2
-            head, tail = xgrid.inits[pi], xgrid.inits[pi]+xgrid.subgrids[pi].size-1
+            head, tail = xgrid.inits[pi], xgrid.inits[pi] + xgrid.subgrids[pi].size - 1
             if pi == pi1
-                result += integrate1D(view(data, head:tail), xgrid.subgrids[pi], [x1,xgrid.subgrids[pi].bound[2]])
+                result += integrate1D(view(data, head:tail), xgrid.subgrids[pi], [x1, xgrid.subgrids[pi].bound[2]])
             elseif pi == pi2
-                result += integrate1D(view(data, head:tail), xgrid.subgrids[pi], [xgrid.subgrids[pi].bound[1],x2])
+                result += integrate1D(view(data, head:tail), xgrid.subgrids[pi], [xgrid.subgrids[pi].bound[1], x2])
             else
-                result += integrate1D( view(data, head:tail),xgrid.subgrids[pi])
+                result += integrate1D(view(data, head:tail), xgrid.subgrids[pi])
             end
         end
     end
-    return result*sign
+    return result * sign
 end
 
 abstract type DifferentiateStyle end
@@ -825,38 +828,38 @@ For 1D data, return a number; for multiple dimension, reduce the given axis.
 - axis: axis to be differentiated in data
 """
 function differentiate1D(data, xgrid::T, x; axis=1) where {T}
-    return dropdims(mapslices(u->differentiate1D(DifferentiateStyle(T), u, xgrid, x), data, dims=axis), dims=axis)
+    return dropdims(mapslices(u -> differentiate1D(DifferentiateStyle(T), u, xgrid, x), data, dims=axis), dims=axis)
 end
 
 function differentiate1D(data::AbstractMatrix, xgrid::T, x; axis=1) where {T}
     if axis == 1
-        return map(u->differentiate1D(DifferentiateStyle(T), u, xgrid,x), eachcol(data))
+        return map(u -> differentiate1D(DifferentiateStyle(T), u, xgrid, x), eachcol(data))
     elseif axis == 2
-        return map(u->differentiate1D(DifferentiateStyle(T), u, xgrid,x), eachrow(data))
+        return map(u -> differentiate1D(DifferentiateStyle(T), u, xgrid, x), eachrow(data))
     else
         throw(DomainError(axis, "axis should be 1 or 2 for Matrix"))
     end
 end
 
 function differentiate1D(data::AbstractVector, xgrid::T, x; axis=1) where {T}
-    return differentiate1D(DifferentiateStyle(T), data, xgrid,x)
+    return differentiate1D(DifferentiateStyle(T), data, xgrid, x)
 end
 
 function differentiate1D(::NoDifferentiate, data, xgrid, x)
     #simple numerical differentiate
     xi = floor(xgrid, x)
-    return (data[xi+1]-data[xi])/(xgrid[xi+1]-xgrid[xi])
+    return (data[xi+1] - data[xi]) / (xgrid[xi+1] - xgrid[xi])
 end
 
 function differentiate1D(::ChebDifferentiate, data, xgrid, x)
     a, b = xgrid.bound[1], xgrid.bound[2]
-    c = (2x-a-b)/(b-a)
-    return SimpleG.chebdiff(xgrid.size, c, data, xgrid.invVandermonde)/(b-a)*2.0
+    c = (2x - a - b) / (b - a)
+    return SimpleG.chebdiff(xgrid.size, c, data, xgrid.invVandermonde) / (b - a) * 2.0
 end
 
 function differentiate1D(::CompositeDifferentiate, data, xgrid, x)
     i = floor(xgrid.panel, x)
-    head, tail = xgrid.inits[i], xgrid.inits[i]+xgrid.subgrids[i].size-1
+    head, tail = xgrid.inits[i], xgrid.inits[i] + xgrid.subgrids[i].size - 1
     return differentiate1D(view(data, head:tail), xgrid.subgrids[i], x)
 end
 
