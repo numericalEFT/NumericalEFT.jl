@@ -33,6 +33,8 @@ Most of the components have been published as independent packages, so that user
 
 - [GreenFunc.jl](https://github.com/numericalEFT/GreenFunc.jl): A container for generic Green's functions.
 
+- [Atom.jl](https://github.com/numericalEFT/Atom.jl): A small-scale exact diagonalization solver to calculate the Many-body Green's functions of a small cluster of Hubbard-type atoms.
+
 <!-- - Fast elementary math functions. Some of them are adapted from the package [Yeppp.jl](https://github.com/JuliaMath/Yeppp.jl). It supports more generic array types than the original package. -->
 
 
