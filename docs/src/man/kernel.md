@@ -38,7 +38,7 @@ K(τ, ω) = \frac{e^{-ωτ}}{1+e^{-ωβ}}
 ```
 - Matusbara frequency 
 ```math
-K(τ, iω_n) = -\frac{1}{iω_n-ω},
+K(iω_n, ω) = -\frac{1}{iω_n-ω},
 ```
 
 
@@ -52,7 +52,7 @@ K(τ, ω) = \frac{e^{-ωτ}}{1+e^{-ωβ}}
 ```
 - Matusbara frequency 
 ```math
-K(τ, iω_n) = -\frac{1}{iω_n-ω}\frac{1-e^{-ωβ}}{1+e^{-ωβ}},
+K(iω_n, ω) = -\frac{1}{iω_n-ω}\frac{1-e^{-ωβ}}{1+e^{-ωβ}},
 ```
 
 # Fermion with the Particle-hole Symmetry 
