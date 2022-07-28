@@ -8,11 +8,11 @@ Documentation for [Lehmann.jl](https://github.com/numericaleft/Lehmann.jl).
 
 This package provides subroutines to represent and manuipulate Green's functions in the imaginary-time or in the Matsubara-frequency domain. 
 
-Imaginary-time Green's functions encode the thermodynamic properites of quantum many-body systems. At low temperature, they are typically very singular and hard to deal with in numerical calculations. 
+Imaginary-time Green's functions encode the thermodynamic properties of quantum many-body systems. At low temperature, they are typically very singular and hard to deal with in numerical calculations. 
 
 The physical Green's functions always have the analytic structure specified by the Lehmann representation,
 ```math
-G(\tau)=-\int_{-\infty}^{\infty} K(\tau, \omega) \rho(\omega) d \omega
+G(\tau)=\int_{-\infty}^{\infty} K(\tau, \omega) \rho(\omega) d \omega
 ```
 where $\tau$ is the imaginary time, $\omega$ is the real frequency. While the spectral density $\rho(\omega)$ depends on the details of the quantum many-body system, the convolution kernel $K(\tau, \omega)$ is universal and is roughly an exponential function $\exp(-\omega \tau)$. 
 
