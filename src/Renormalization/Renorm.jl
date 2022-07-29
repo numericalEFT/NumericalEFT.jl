@@ -1,6 +1,7 @@
 module Renorm
 using DataFrames
 using DelimitedFiles
+using StaticArrays
 export CompositeOrder
 # using PyCall
 # export mergeInteraction, fromFile, toFile, appendDict, chemicalpotential
@@ -18,14 +19,27 @@ export CompositeOrder
 #     end
 # end
 
-struct CompositeOrder
+"""
+    struct CompositeOrder
+
+composite orders (order and a list of counterterm orders), we will represent with (order; ct1, ct2, ...)
+
+# Arguments
+order::Int      : main order
+ct::Vector{Int} : counterterm orders
+
+You may create it from a list of integers. The first integer is the main order, and the rest are counterterm orders.
+For example,
+CompositeOrder([1, 2, 3]) will create an object with main order 1 and counterterm order [2, 3].
+"""
+struct CompositeOrder{N}
     order::Int
-    ct::Vector{Int} #counterterm
+    ct::SVector{N,Int} #counterterm
     function CompositeOrder(order::Int, ct::AbstractVector)
         @assert 0 <= order <= 9
         @assert all(x -> (0 <= x <= 9), ct)
         @assert length(ct) <= 9
-        return new(order, ct)
+        return new{length(ct)}(order, ct)
     end
     function CompositeOrder(orders::AbstractVector)
         return CompositeOrder(orders[1], orders[2:end])
@@ -69,18 +83,26 @@ end
 
 
 """
-Merge interaction order and the main order
-(normal_order, G_order, W_order) --> (normal+W_order, G_order)
+    function merge(data::Dict{CompositeOrder,T}, axes) where {T}
+
+Merge counterterm order and the main order
+For example, to merge the counterterm with axes = 2
+(main_order; G_order, W_order) --> (main_order + W_order; G_order)
 """
-function mergeCT(data::Dict{CompositeOrder,T}, orderList::AbstractVector, weight=ones(length(orderList))) where {T}
-    N = length(keys(data)[1])
+function merge(data::Dict{CompositeOrder{N},T}, axes) where {N,T}
+    # N = length(keys(data)[1])
     # @assert all(x -> length(x) == N, keys(data)) # check the length of each key is the same
     # @assert all(x -> x <= N, orderList) # check the order exists
-    res = Dict{Vector{Int},eltype(vals(data))}()
+    axes = collect(axes)
+    @assert N > length(axes)
+    res = Dict{CompositeOrder{N - length(axes)},T}()
     for (p, val) in data
         # @assert length(p) == 3
         # println(p)
-        mp = (p[1] + p[3], p[2])
+        total = p.order + sum(p.ct[axes])
+        ct = collect(p.ct)
+        deleteat!(ct, axes)
+        mp = CompositeOrder(total, ct)
         if haskey(res, mp)
             res[mp] += val
         else
@@ -88,10 +110,6 @@ function mergeCT(data::Dict{CompositeOrder,T}, orderList::AbstractVector, weight
         end
     end
     return res
-    # else # nothing to merge
-    #     @warn("Invalid dataset merge. Dict with same length of keys expected.")
-    #     return data
-    # end
 end
 
 end
