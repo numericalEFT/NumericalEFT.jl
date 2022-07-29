@@ -21,11 +21,15 @@
         o011 = CompositeOrder(0, [1, 1])
         o200 = CompositeOrder(2, [0, 0])
         data = Dict(o100 => rand(), o101 => rand(), o011 => rand(), o200 => rand())
-        # println(data)
+
         d = Renorm.merge(data, 2)
-        # println(d)
         @test d[CompositeOrder([1, 0])] ≈ data[o100]
         @test d[CompositeOrder([1, 1])] ≈ data[o011]
         @test d[CompositeOrder([2, 0])] ≈ data[o101] + data[o200]
+
+        dd = Renorm.merge(data, [1, 2])
+        @test dd[CompositeOrder([1])] ≈ data[o100]
+        @test dd[CompositeOrder([2])] ≈ data[o101] + data[o011] + data[o200]
+
     end
 end

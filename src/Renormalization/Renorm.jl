@@ -94,7 +94,7 @@ function merge(data::Dict{CompositeOrder{N},T}, axes) where {N,T}
     # @assert all(x -> length(x) == N, keys(data)) # check the length of each key is the same
     # @assert all(x -> x <= N, orderList) # check the order exists
     axes = collect(axes)
-    @assert N > length(axes)
+    @assert N >= length(axes)
     res = Dict{CompositeOrder{N - length(axes)},T}()
     for (p, val) in data
         # @assert length(p) == 3
