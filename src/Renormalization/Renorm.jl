@@ -46,6 +46,18 @@ struct CompositeOrder
     end
 end
 
+function Base.:(==)(a::CompositeOrder, b::CompositeOrder)
+    return (a.order == b.order) && (a.ct == b.ct)
+end
+
+function Base.:(==)(a::CompositeOrder, b::Union{AbstractVector,Tuple})
+    return (a.order == b[1]) && (a.ct == collect(b[2:end]))
+end
+
+function Base.:(==)(b::Union{AbstractVector,Tuple}, a::CompositeOrder)
+    return (a.order == b[1]) && (a.ct == collect(b[2:end]))
+end
+
 function short(order::CompositeOrder)
     @assert length(order.ct) <= 9
     total = Int64(0)

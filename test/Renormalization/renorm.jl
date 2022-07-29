@@ -8,4 +8,8 @@
     @test Renorm.short(order) == n
     @test Renorm.short(CompositeOrder(n)) == n
     @test Renorm.short(CompositeOrder("$n")) == n
+
+    @test order == [o, c1, c2]
+    @test order == (o, c1, c2)
+    @test order != [o, c1, c2, 2]
 end
