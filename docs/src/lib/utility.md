@@ -1,7 +1,7 @@
 # Utility
 
-This module provides the utility subroutines for other DLR modules.
+This module provides some utility subroutines.
 
 ```@autodocs
-Modules = [Lehmann.Interp]
+Modules = [NumericalEFT.Utility]
 ```

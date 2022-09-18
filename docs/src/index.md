@@ -19,7 +19,7 @@ Potential applications of Numerical EFT are the electron liquids in real materia
 
 The package ``NumericalEFT.jl`` is a collection of several independent components, which are organized in the following infrastructure: 
 
-![NumericalEFT](docs/src/assets/numericalEFT2.svg)
+![NumericalEFT](assets/numericalEFT2.svg)
 
 Most of the components have been published as independent packages, you can test or use them separately. The packages are still fast envolving, but many of them are production ready.
 
