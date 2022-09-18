@@ -85,9 +85,4 @@ using .Atom
 export Atom
 # export Hilbert
 
-include("Renormalization/Renorm.jl")
-using .Renorm
-export Renorm
-export CompositeOrder
-
 end # module
