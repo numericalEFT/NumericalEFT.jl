@@ -20,13 +20,13 @@ makedocs(
             "MCIntegration"=>"readme/MCIntegration.md",
             "CompositeGrids"=>"readme/CompositeGrids.md",
             "GreenFunc"=>"readme/GreenFunc.md",
-            "Atom"=>"readme/Atom.md",
+            # "Atom"=>"readme/Atom.md",
         ],
         "Manual" => Any[
             "Discrete Lehmann Representation"=>"man/DLR.md",
             "Lehmann representation convention"=>"man/kernel.md",
-            "Monte Carlo integrator"=>"man/MC.md",
-            "Important Sampling"=>"man/important_sampling.md",
+            # "Monte Carlo integrator"=>"man/MC.md",
+            # "Important Sampling"=>"man/important_sampling.md",
         ],
         "API reference" => Any[
             "lib/Lehmann.md",
@@ -34,7 +34,7 @@ makedocs(
             "lib/MCintegration.md",
             "lib/compositegrids.md",
             "lib/greenfunc.md",
-            "lib/atom.md",
+            # "lib/atom.md",
             "lib/utility.md",
             "lib/fastmath.md",
         ]
