@@ -9,11 +9,13 @@ Numerical effective field theory toolbox for quantum many-body problem.
 
 ## Motivation
 
-Collective modes of quantum many-body systems are often well described by weakly-interacting quantum fields. Effective field theory (EFT) is a framework to systematically study such problems. EFT has been widely used in high-energy physics, nuclear physics and condensed matter physics. 
+Effective field theory (EFT) models the correlations functions of quanutm many-body systems with an effective action defined below certain energy/momentum scale. EFT has been widely used in high-energy physics, nuclear physics and condensed matter physics. 
 
-For quantum material applications, EFTs are often too complicated to calculate with bare hands. It motivates us to develop this numerical package.
+We create this package to extend the conventional EFT to a new frontier, namely to systematically model the quantum fields with spooky interactions with a distance. Originally, EFT is developed assuming __the principle of locality__, which states that an object is influenced directly only by its immediate surroundings. If one observes a long-range interaction between two particles (say, the Coulomb interaction between two electrons), then such interaction must be mediated by an intermediate particle called a gauge boson (the photon in the previous example). 
 
-Potential applications of Numerical EFT are the electron liquids in real materials, chiral EFT in neutron-rich matter, and all kinds of emergent low-energy field theories in lattice models.
+All known theories of the elementary particles in our universe are local theories, but it doesn't mean the local EFT rules everything. Below the energy scales that are most relevant for human life, the speed of light can be safely assumed to be infinite, so that the effective physical laws are governed by an absolute Newtonian time. In those systems, an event at one point can cause a simultaneous result at another point. The EFTs describe such systems are then non-local.
+
+Nonlocal and nonrelativistic EFTs are typically much more difficult to deal with than the conventional EFTs. One of the major difficulites is how to make predictions with such theories. It is often not possible anymore to calculate the observables analytically. We thus develop this numerical package to solve the problem and make nonlocal EFT a practical tool for real-world applications, including the electron liquids in real materials, chiral EFT in neutron-rich matter, and all kinds of emergent low-energy field theories in lattice models.
 
 ## Features
 
