@@ -4,6 +4,9 @@ using StaticArrays
 include("old/grid.jl")
 export Grid
 
+include("grid/chebyshev.jl")
+export BaryChebTools
+
 include("grid/simple.jl")
 const SimpleGrid = SimpleG # alias for older convention
 const AbstractGrid, OpenGrid, ClosedGrid = SimpleGrid.AbstractGrid, SimpleGrid.OpenGrid, SimpleGrid.ClosedGrid

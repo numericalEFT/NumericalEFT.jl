@@ -20,7 +20,7 @@ function notProper(para, K)
     if Proper in para.filter
         transferLoop = para.transferLoop
         @assert isempty(transferLoop) == false "Please initialize para.transferLoop to check proper diagrams."
-        if transferLoop ≈ K
+        if transferLoop[1:length(K)] ≈ K #transfer loop may have higher dimension than K, then only compare the first K elements
             return true
         end
     end
@@ -29,7 +29,8 @@ end
 
 # check if G exist without creating objects in the pool
 function isValidG(filter, innerLoopNum::Int)
-    if (NoFock in filter) && (innerLoopNum == 1)
+    #one-loop diagram could be either Fock or Hartree. If both are filtered, then nothing left
+    if ((NoFock in filter) && (NoHartree in filter)) && (innerLoopNum == 1)
         return false
     end
 
@@ -40,8 +41,8 @@ function isValidG(filter, innerLoopNum::Int)
     return true
 end
 
-function isValidG(para::GenericPara)
-    @assert para.diagType == GreenDiag
+function isValidG(para::DiagPara)
+    @assert para.type == GreenDiag
     return isValidG(para.filter, para.innerLoopNum)
 end
 
@@ -54,7 +55,8 @@ function isValidSigma(filter, innerLoopNum::Int, subdiagram::Bool)
         return false
     end
 
-    if subdiagram && (NoFock in filter) && innerLoopNum == 1
+    #one-loop diagram could be either Fock or Hartree. If both are filtered, then nothing left
+    if subdiagram && ((NoFock in filter) && (NoHartree in filter)) && innerLoopNum == 1
         return false
     end
 

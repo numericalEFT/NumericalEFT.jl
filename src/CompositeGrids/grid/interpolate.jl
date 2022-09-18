@@ -8,6 +8,7 @@ using StaticArrays, FastGaussQuadrature
 using ..SimpleG
 using ..CompositeG
 
+using ..BaryChebTools
 #include("chebyshev.jl")
 
 # include("simple.jl")
@@ -188,7 +189,7 @@ end
 
 function _interpsliced(neighbor::ChebNeighbor, data)
     # data should be sliced priorly
-    return SimpleG.barycheb(length(neighbor.grid), neighbor.x, data, neighbor.weight, neighbor.grid)
+    return BaryChebTools.barycheb(length(neighbor.grid), neighbor.x, data, neighbor.weight, neighbor.grid)
 end
 
 
@@ -456,7 +457,7 @@ linear interpolation of data(x), barycheb for BaryCheb grid
 - x: x
 """
 function interp1D(::ChebInterp, data, xgrid, x)
-    return SimpleG.barycheb(xgrid.size, x, data, xgrid.weight, xgrid.grid)
+    return BaryChebTools.barycheb(xgrid.size, x, data, xgrid.weight, xgrid.grid)
 end
 
 """
@@ -665,7 +666,7 @@ works for grids that have integration weight stored
 """
 function integrate1D(::ChebIntegrate, data, xgrid)
     a, b = xgrid.bound[1], xgrid.bound[2]
-    return SimpleG.chebint(xgrid.size, -1.0, 1.0, data, xgrid.invVandermonde) * (b - a) / 2.0
+    return BaryChebTools.chebint(xgrid.size, -1.0, 1.0, data, xgrid.invVandermonde) * (b - a) / 2.0
 end
 
 """
@@ -753,7 +754,7 @@ function integrate1D(::ChebIntegrate, data, xgrid, range)
     a, b = xgrid.bound[1], xgrid.bound[2]
     x1, x2 = range[1], range[2]
     c1, c2 = (2x1 - a - b) / (b - a), (2x2 - a - b) / (b - a)
-    return SimpleG.chebint(xgrid.size, c1, c2, data, xgrid.invVandermonde) * (b - a) / 2.0
+    return BaryChebTools.chebint(xgrid.size, c1, c2, data, xgrid.invVandermonde) * (b - a) / 2.0
 end
 
 function integrate1D(::WeightIntegrate, data, xgrid, range)
@@ -854,7 +855,7 @@ end
 function differentiate1D(::ChebDifferentiate, data, xgrid, x)
     a, b = xgrid.bound[1], xgrid.bound[2]
     c = (2x - a - b) / (b - a)
-    return SimpleG.chebdiff(xgrid.size, c, data, xgrid.invVandermonde) / (b - a) * 2.0
+    return BaryChebTools.chebdiff(xgrid.size, c, data, xgrid.invVandermonde) / (b - a) * 2.0
 end
 
 function differentiate1D(::CompositeDifferentiate, data, xgrid, x)
@@ -862,5 +863,51 @@ function differentiate1D(::CompositeDifferentiate, data, xgrid, x)
     head, tail = xgrid.inits[i], xgrid.inits[i] + xgrid.subgrids[i].size - 1
     return differentiate1D(view(data, head:tail), xgrid.subgrids[i], x)
 end
+
+# locate and volume for monte carlo
+
+"""
+    function locate(grid, x)
+
+return the index of grid point closest to x.
+Useful for Monte Carlo algorithm when variable x is continuous
+while histogram is stored on grid.
+
+#Arguments:
+- grid: one-dimensional grid of x
+- x: point to locate
+"""
+function locate(grid::AbstractGrid, x)
+    @assert x >= grid.bound[1] && x <= grid.bound[2]
+    i = floor(grid, x)
+    return abs(x-grid[i])<abs(x-grid[i+1]) ? i : (i+1)
+end
+
+"""
+    function volume(grid, i)
+
+return the volume of grid point i.
+The volume is defined as the length/area/volume/... of histogram bar
+represented by grid point i.
+In 1D grids of this package, it is defined as the length of interval
+between (grid[i-1]+grid[i])/2 and (grid[i]+grid[i+1])/2, and for edge points
+one side is replaced by boundary points.
+When index i is omitted, the length of the whole grid is returned.
+It is guaranteed that volume(grid)==sum(volume(grid, i) for i in 1:length(grid)).
+
+#Arguments:
+- grid: one-dimensional grid
+- i: index of grid point
+"""
+function volume(grid::AbstractGrid, i)
+    if i != 1 && i != length(grid)
+        return (grid[i+1]-grid[i-1])/2
+    elseif i == 1
+        return (grid[i+1]+grid[i])/2 - grid.bound[1]
+    else
+        return grid.bound[2]-(grid[i]+grid[i-1])/2
+    end
+end
+volume(grid::AbstractGrid) = grid.bound[2] - grid.bound[1]
 
 end
