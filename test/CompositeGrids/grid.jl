@@ -36,6 +36,11 @@
 
         @test floor(arbitrary, arbitrary[end]) == arbitrary.size-1
         @test floor(arbitrary, 1.0) == arbitrary.size-1
+
+        arb2 = SimpleGrid.Arbitrary{Float64}([1.0, ])
+        @test floor(arb2, 0.0) == 1
+        @test floor(arb2, 1.0) == 1
+        @test floor(arb2, 2.0) == 1
     end
 
     @testset "UniformGrid" begin

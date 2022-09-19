@@ -66,14 +66,14 @@ SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, gr
         isFermi = true
         Euv = 1000.0
 
-        green_linear = Green2DLR{Float64}(:green, GreenFunc.IMTIME, β, isFermi, Euv, sgrid)
+        green_linear = Green2DLR{ComplexF64}(:green, GreenFunc.IMFREQ, β, isFermi, Euv, sgrid)
         rtol = green_linear.dlrGrid.rtol
         green_dum = zeros(Float64, (green_linear.color, green_linear.color, green_linear.spaceGrid.size, green_linear.timeGrid.size))
         for (ti, t) in enumerate(green_linear.timeGrid)
             for (qi, q) in enumerate(green_linear.spaceGrid)
                 for (c1i, c1) in enumerate(color_n)
                     for (c2i, c2) in enumerate(color_n)
-                        green_dum[c1i, c2i, qi, ti] = t * q
+                        green_dum[c1i, c2i, qi, ti] = (2*t+1)*π/β * q
                     end
                 end
             end
@@ -90,17 +90,16 @@ SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, gr
         end
 
         green_linear.instant = green_dum_ins
-
-        τ = 0.5
+        τ = 5
         x = 0.3
-        interp_dym = dynamic(green_linear, τ, x, 1, 1)
-        @test interp_dym - τ * x < 1e-8
-        interp_ins = instant(green_linear, x, 1, 1)
-        @test interp_ins - x < 1e-8
-        interp_ins = dynamic(green_linear, τ, x, 1, 1, GreenFunc.DEFAULTINTERP, GreenFunc.DEFAULTINTERP)
-        @test interp_ins - x < 1e-8
-        interp_ins = dynamic(green_linear, τ, x, 1, 1, GreenFunc.DLRINTERP, GreenFunc.DEFAULTINTERP)
-        @test interp_ins - x < 1e-8
+        interp_dym = dynamic(green_linear, τ, x)
+        @test abs(interp_dym -  (2*τ+1)*π/β* x)< 5e-8
+        interp_ins = instant(green_linear, x)
+        @test abs(interp_ins - x) < 5e-8
+        interp_dym = dynamic(green_linear, τ, x, GreenFunc.DEFAULTINTERP, GreenFunc.DEFAULTINTERP)
+        @test abs(interp_dym - (2*τ+1)*π/β * x) < 5e-8
+        interp_dym = dynamic(green_linear, τ, x, GreenFunc.DLRINTERP, GreenFunc.DEFAULTINTERP)
+        @test abs(interp_dym - (2*τ+1)*π/β * x) < 5e-6
     end
 end
 

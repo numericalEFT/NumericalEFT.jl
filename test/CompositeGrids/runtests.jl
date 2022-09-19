@@ -6,6 +6,7 @@ if isempty(ARGS)
     include("grid.jl")
     include("interpolate.jl")
     include("io.jl")
+    include("mc.jl")
 else
     include(ARGS[1])
 end

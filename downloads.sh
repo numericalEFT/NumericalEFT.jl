@@ -28,7 +28,7 @@ mv ./temp/src ./src/CompositeGrids
 mv ./temp/test ./test/CompositeGrids
 mv ./temp/docs/src/man/* ./docs/src/man/
 mv ./temp/docs/src/assets/* ./docs/src/assets/
-mv ./temp/README.org ./docs/src/readme/CompositeGrids.md
+mv ./temp/README.md ./docs/src/readme/CompositeGrids.md
 rm -rf temp
 
 # You need to mannually change "using Lehmann" and "using CompositeGrids" to "using ..Lehmann" and "using ..CompositeGrids" in GreenFunc.jl
