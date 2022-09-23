@@ -19,7 +19,7 @@ Nonlocal and nonrelativistic EFTs are typically much more difficult to deal with
 
 The package ``NumericalEFT.jl`` is a collection of several independent components, which are organized in the following infrastructure: 
 
-![NumericalEFT](docs/src/assets/numericalEFT2.svg)
+![NumericalEFT](docs/src/assets/numericalEFT_clickable.svg)
 
 Most of the components have been published as independent packages, and you can test or use them separately. The packages are still fast-evolving, but many are production-ready.
 
