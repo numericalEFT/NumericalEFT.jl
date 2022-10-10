@@ -6,6 +6,9 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
+    env:
+      JULIA_PYTHONCALL_EXE: "/usr/bin/python3"
+      # test for PythonCall needs python, solution from https://github.com/cjdoris/PythonCall.jl/issues/120
     strategy:
       fail-fast: false
       matrix:
