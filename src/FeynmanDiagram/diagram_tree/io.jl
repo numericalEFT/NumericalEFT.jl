@@ -176,7 +176,7 @@ end
 function plot_tree(diag::Diagram; verbose=0, maxdepth=6)
 
     # pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__) #comment this line if no need to load local python module
-    ete = PyCall.pyimport("ete3")
+    ete = pyimport("ete3")
 
     function treeview(node, level, t=ete.Tree(name=" "))
         if level > maxdepth

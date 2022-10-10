@@ -3,33 +3,78 @@ using FastGaussQuadrature, Printf
 rtol(x, y) = maximum(abs.(x - y)) / maximum(abs.(x))
 
 # SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, grid, type, dlr.symmetry, rtol = dlr.rtol, degree = 24, regularized = true)
-SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr, type, grid, degree = 24, regularized = true)
+SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr, type, grid, degree=24, regularized=true)
 
 function MultiPole(dlr, grid, type)
     Euv = dlr.Euv
     poles = [-Euv, -0.2 * Euv, 0.0, 0.8 * Euv, Euv]
     # return Sample.MultiPole(dlr.β, dlr.isFermi, grid, type, poles, dlr.symmetry; regularized = true)
-    return Sample.MultiPole(dlr, type, poles, grid; regularized = true)
+    return Sample.MultiPole(dlr, type, poles, grid; regularized=true)
 end
 
-function compare(case, a, b, eps, requiredratio, para = "")
+function compare(case, a, b, eps, requiredratio, para="")
     err = rtol(a, b)
     ratio = isfinite(err) ? Int(round(err / eps)) : 0
     if ratio > 50
-        printstyled("$case, $para err: ", color = :white)
-        printstyled("$(round(err, sigdigits=3)) = $ratio x rtol\n", color = :green)
+        printstyled("$case, $para err: ", color=:white)
+        printstyled("$(round(err, sigdigits=3)) = $ratio x rtol\n", color=:green)
     end
     @test rtol(a, b) .< requiredratio * eps # dlr should represent the Green's function up to accuracy of the order eps
 end
 
-function compare_atol(case, a, b, atol, para = "")
+function compare_atol(case, a, b, atol, para="")
     err = rtol(a, b)
-    err = isfinite(err) ? round(err, sigdigits = 3) : 0
+    err = isfinite(err) ? round(err, sigdigits=3) : 0
     if err > 100 * atol
-        printstyled("$case, $para err: ", color = :white)
-        printstyled("$err = $(Int(round(err/atol))) x atol\n", color = :blue)
+        printstyled("$case, $para err: ", color=:white)
+        printstyled("$err = $(Int(round(err/atol))) x atol\n", color=:blue)
     end
-    @test rtol(a, b) .< 5000 * atol # dlr should represent the Green's function up to accuracy of the order eps
+    @test rtol(a, b) .< 6000 * atol # dlr should represent the Green's function up to accuracy of the order eps
+end
+
+@testset "Operation Utility" begin
+    ########## test _matrix_tensor_dot  #################
+    # middle
+    a = rand(5, 4)
+    b = rand(3, 4, 6)
+    c = Lehmann._matrix_tensor_dot(a, b, 2)
+    @inferred Lehmann._matrix_tensor_dot(a, b, 2)
+
+    @test size(c) == (3, 5, 6)
+
+    _b, psize = Lehmann._tensor2matrix(b, Val(2))
+    _c = a * _b
+    _c = Lehmann._matrix2tensor(_c, psize, Val(2))
+
+    @test c ≈ _c
+
+    # left
+    a = rand(5, 4)
+    b = rand(4, 3, 6)
+    c = Lehmann._matrix_tensor_dot(a, b, 1)
+    @inferred Lehmann._matrix_tensor_dot(a, b, 1)
+
+    @test size(c) == (5, 3, 6)
+
+    _b, psize = Lehmann._tensor2matrix(b, Val(1))
+    _c = a * _b
+    _c = Lehmann._matrix2tensor(_c, psize, Val(1))
+
+    @test c ≈ _c
+
+    # right
+    a = rand(5, 4)
+    b = rand(3, 6, 4)
+    c = Lehmann._matrix_tensor_dot(a, b, 3)
+    @inferred Lehmann._matrix_tensor_dot(a, b, 3)
+
+    @test size(c) == (3, 6, 5)
+
+    _b, psize = Lehmann._tensor2matrix(b, Val(3))
+    _c = a * _b
+    _c = Lehmann._matrix2tensor(_c, psize, Val(3))
+
+    @test c ≈ _c
 end
 
 @testset "Correlator Representation" begin
@@ -53,7 +98,9 @@ end
 
         ########################## imaginary-time to dlr #######################################
         coeff = tau2dlr(dlr, Gdlr)
+        @test size(dlr.kernel_τ) == (length(dlr.τ), length(dlr.ω))
         Gfitted = dlr2tau(dlr, coeff, τSample)
+        @test size(dlr.kernel_τ) == (length(dlr.τ), length(dlr.ω))
         compare("dlr τ → dlr → generic τ $case", Gsample, Gfitted, eps, 100, para)
         # for (ti, t) in enumerate(τSample)
         #     @printf("%32.19g    %32.19g   %32.19g   %32.19g\n", t / β, Gsample[1, ti],  Gfitted[1, ti], Gsample[1, ti] - Gfitted[1, ti])
@@ -101,11 +148,11 @@ end
         atol = eps
         noise = atol * rand(eltype(Gsample), length(Gsample))
         GNoisy = Gsample .+ noise
-        compare_atol("noisy generic τ → dlr → τ $case", tau2tau(dlr, GNoisy, dlr.τ, τSample; error = abs.(noise)), Gdlr, atol, para)
+        compare_atol("noisy generic τ → dlr → τ $case", tau2tau(dlr, GNoisy, dlr.τ, τSample; error=abs.(noise)), Gdlr, atol, para)
 
         noise = atol * rand(eltype(Gnsample), length(Gnsample))
         GnNoisy = Gnsample .+ noise
-        compare_atol("noisy generic iω → dlr → iω $case", matfreq2matfreq(dlr, GnNoisy, dlr.n, nSample, error = abs.(noise)), Gndlr, atol, para)
+        compare_atol("noisy generic iω → dlr → iω $case", matfreq2matfreq(dlr, GnNoisy, dlr.n, nSample, error=abs.(noise)), Gndlr, atol, para)
     end
 
     # the accuracy greatly drops beyond Λ >= 1e8 and rtol<=1e-6
@@ -130,25 +177,53 @@ end
 @testset "Tensor ↔ Matrix Mapping" begin
     a = rand(3)
     acopy = deepcopy(a)
-    b, psize = Lehmann._tensor2matrix(a, 1)
-    anew = Lehmann._matrix2tensor(b, psize, 1)
+    b, psize = Lehmann._tensor2matrix(a, Val(1))
+    anew = Lehmann._matrix2tensor(b, psize, Val(1))
     @test acopy ≈ anew
 
     a = rand(3, 4)
     acopy = deepcopy(a)
     for axis = 1:2
-        b, psize = Lehmann._tensor2matrix(a, axis)
-        anew = Lehmann._matrix2tensor(b, psize, axis)
+        b, psize = Lehmann._tensor2matrix(a, Val(axis))
+        anew = Lehmann._matrix2tensor(b, psize, Val(axis))
         @test acopy ≈ anew
     end
 
     a = rand(3, 4, 5)
     acopy = deepcopy(a)
     for axis = 1:3
-        b, psize = Lehmann._tensor2matrix(a, axis)
-        anew = Lehmann._matrix2tensor(b, psize, axis)
+        b, psize = Lehmann._tensor2matrix(a, Val(axis))
+        anew = Lehmann._matrix2tensor(b, psize, Val(axis))
         @test acopy ≈ anew
     end
+
+    #### _tensor2matrix and _matrix2tensor type stability ############
+    a = rand(5)
+    _a, psize = Lehmann._tensor2matrix(a, Val(1))
+    __a = Lehmann._matrix2tensor(_a, psize, Val(1))
+    @test a ≈ __a
+    @inferred Lehmann._tensor2matrix(a, Val(1))
+    @inferred Lehmann._matrix2tensor(_a, psize, Val(1))
+
+    a = rand(3, 4, 5)
+    _a, psize = Lehmann._tensor2matrix(a, Val(2))
+    __a = Lehmann._matrix2tensor(_a, psize, Val(2))
+    @test a ≈ __a
+    @inferred Lehmann._tensor2matrix(a, Val(2))
+    @inferred Lehmann._matrix2tensor(_a, psize, Val(2))
+
+    _a, psize = Lehmann._tensor2matrix(a, Val(1))
+    __a = Lehmann._matrix2tensor(_a, psize, Val(1))
+    @test a ≈ __a
+    @inferred Lehmann._tensor2matrix(a, Val(1))
+    @inferred Lehmann._matrix2tensor(_a, psize, Val(1))
+
+    _a, psize = Lehmann._tensor2matrix(a, Val(3))
+    __a = Lehmann._matrix2tensor(_a, psize, Val(3))
+    @test a ≈ __a
+    @inferred Lehmann._tensor2matrix(a, Val(3))
+    @inferred Lehmann._matrix2tensor(_a, psize, Val(3))
+
 end
 
 @testset "Tensor DLR" begin
@@ -185,24 +260,48 @@ end
     tensorGn_copy = tensorGn
 
     compare("τ ↔ iω tensor", tau2matfreq(dlr, Gτ_copy), Gn, eps, 1000.0, para)
+    @inferred tau2matfreq(dlr, Gτ_copy)
     @test Gτ ≈ Gτ_copy #make sure there is no side effect on G
     compare("iω ↔ τ tensor", matfreq2tau(dlr, Gn_copy), Gτ, eps, 1000.0, para)
+    @inferred matfreq2tau(dlr, Gn_copy)
     @test Gn ≈ Gn_copy #make sure there is no side effect on G
 
-    compare("τ ↔ iω tensor", tau2matfreq(dlr, Gτ_copy; sumrule = weight), Gn, eps, 1000.0, para)
+    compare("τ ↔ iω tensor", tau2matfreq(dlr, Gτ_copy; sumrule=weight), Gn, eps, 1000.0, para)
     @test Gτ ≈ Gτ_copy #make sure there is no side effect on G
-    compare("iω ↔ τ tensor", matfreq2tau(dlr, Gn_copy; sumrule = weight), Gτ, eps, 1000.0, para)
+    compare("iω ↔ τ tensor", matfreq2tau(dlr, Gn_copy; sumrule=weight), Gτ, eps, 1000.0, para)
     @test Gn ≈ Gn_copy #make sure there is no side effect on G
 
-    compare("τ ↔ iω tensor", tau2matfreq(dlr, tensorGτ_copy; axis = 3), tensorGn, eps, 1000.0, para)
+    compare("τ ↔ iω tensor", tau2matfreq(dlr, tensorGτ_copy; axis=3), tensorGn, eps, 1000.0, para)
+    # println(typeof(tensorGτ_copy))
+    # @inferred tau2matfreq(dlr, tensorGτ_copy; axis=3)
     @test tensorGτ ≈ tensorGτ_copy #make sure there is no side effect on G
-    compare("iω ↔ τ tensor", matfreq2tau(dlr, tensorGn_copy; axis = 3), tensorGτ, eps, 1000.0, para)
+    compare("iω ↔ τ tensor", matfreq2tau(dlr, tensorGn_copy; axis=3), tensorGτ, eps, 1000.0, para)
+    # @inferred matfreq2tau(dlr, tensorGn_copy; axis=3)
     @test tensorGn ≈ tensorGn_copy #make sure there is no side effect on G
 
-    compare("τ ↔ iω tensor", tau2matfreq(dlr, tensorGτ_copy; axis = 3, sumrule = sumrule_τ), tensorGn, eps, 1000.0, para)
+
+    compare("τ ↔ iω tensor", tau2matfreq(dlr, tensorGτ_copy; axis=3, sumrule=sumrule_τ), tensorGn, eps, 1000.0, para)
+    # @inferred tau2matfreq(dlr, tensorGτ_copy; axis=3)
     @test tensorGτ ≈ tensorGτ_copy #make sure there is no side effect on G
-    compare("iω ↔ τ tensor", matfreq2tau(dlr, tensorGn_copy; axis = 3, sumrule = sumrule_n), tensorGτ, eps, 1000.0, para)
+    compare("iω ↔ τ tensor", matfreq2tau(dlr, tensorGn_copy; axis=3, sumrule=sumrule_n), tensorGτ, eps, 1000.0, para)
+    # @inferred matfreq2tau(dlr, tensorGn_copy; axis=3)
     @test tensorGn ≈ tensorGn_copy #make sure there is no side effect on G
+
+    tensor = zeros(128, 128, length(dlr))
+    tau2matfreq(dlr, tensor; axis=3)
+    coeff = tau2dlr(dlr, tensor; axis=3)
+    dlr2matfreq(dlr, coeff; axis=3)
+
+    # @inferred tau2dlr(dlr, tensor; axis=3)
+    # @inferred dlr2matfreq(dlr, coeff; axis=3)
+
+    tensor = zeros(128, 128, length(dlr))
+    println("tau2matfreq timing:")
+    @time tau2matfreq(dlr, tensor; axis=3)
+    println("tau2dlr timing:")
+    @time coeff = tau2dlr(dlr, tensor; axis=3)
+    println("dlr2matfreq timing:")
+    @time dlr2matfreq(dlr, coeff; axis=3)
 
 end
 
@@ -211,7 +310,7 @@ end
     kernel = zeros(4, 2)
     kernel[:, 1] = [1.0, 1.0, 1.0, 1.0]
     kernel[:, 2] = [1.0, 2.0, 3.0, 4.0]
-    dlrGrid = DLRGrid(β = 10.0, isFermi = true)
+    dlrGrid = DLRGrid(β=10.0, isFermi=true)
     coeff = Lehmann._weightedLeastSqureFit(dlrGrid, Gτ, nothing, kernel, nothing)
     @test coeff ≈ [3.5, 1.4]
 end
@@ -232,11 +331,11 @@ end
     Euv, β, rtol = 1.5, 110.0, 4.3e-8
 
     #save dlr to a local file
-    dlr = Lehmann.DLRGrid(Euv, β, rtol, true; rebuild = true, folder = folder, verbose = false)
+    dlr = Lehmann.DLRGrid(Euv, β, rtol, true; rebuild=true, folder=folder, verbose=false)
     file = finddlr(folder, ".dlr")
     @test isnothing(file) == false
     #load dlr from the local file
-    dlr_load = Lehmann.DLRGrid(Euv, β, rtol, true; rebuild = false, folder = folder, verbose = false)
+    dlr_load = Lehmann.DLRGrid(Euv, β, rtol, true; rebuild=false, folder=folder, verbose=false)
     @test dlr_load.τ ≈ dlr.τ
     @test dlr_load.n ≈ dlr.n
     @test dlr_load.ω ≈ dlr.ω
@@ -249,8 +348,8 @@ end
 end
 
 @testset "JLD2 IO" begin
-    dlr = DLRGrid(isFermi = true, beta = 10.0)
-    save("test.jld2", Dict("dlr" => dlr), compress = true)
+    dlr = DLRGrid(isFermi=true, beta=10.0)
+    save("test.jld2", Dict("dlr" => dlr), compress=true)
     dlr_new = load("test.jld2")["dlr"]
     println(dlr_new)
     @test dlr.isFermi == dlr_new.isFermi

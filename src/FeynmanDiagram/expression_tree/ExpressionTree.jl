@@ -4,7 +4,7 @@ using ..DiagTree
 # using Unrolled
 # using InteractiveUtils
 
-using Printf, PyCall
+using Printf, PythonCall
 
 const ADD, MUL = 1, 2
 export ADD, MUL

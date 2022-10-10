@@ -157,3 +157,4 @@ Integration over 1D grid is also provided. For most of simple grids it's given b
 optimized. For composite grids it's again recursively done so that the method depends on the type of lowest level grids.
 
 A detailed manual can be found [here](https://numericaleft.github.io/CompositeGrids.jl/dev/lib/interpolate/).
+

@@ -31,6 +31,15 @@ mv ./temp/docs/src/assets/* ./docs/src/assets/
 mv ./temp/README.md ./docs/src/readme/CompositeGrids.md
 rm -rf temp
 
+rm -r ./src/BrillouinZoneMeshes
+rm -r ./test/BrillouinZoneMeshes
+git clone https://github.com/numericalEFT/BrillouinZoneMeshes.jl.git temp
+mv ./temp/src ./src/BrillouinZoneMeshes
+mv ./temp/test ./test/BrillouinZoneMeshes
+mv ./temp/docs/src/man/* ./docs/src/man/
+mv ./temp/README.md ./docs/src/readme/BrillouinZoneMeshes.md
+rm -rf temp
+
 # You need to mannually change "using Lehmann" and "using CompositeGrids" to "using ..Lehmann" and "using ..CompositeGrids" in GreenFunc.jl
 rm -r ./src/GreenFunc
 rm -r ./test/GreenFunc

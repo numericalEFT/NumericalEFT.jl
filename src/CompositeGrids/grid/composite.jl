@@ -30,7 +30,7 @@ create Composite grid from panel and subgrids.
 if the boundary grid point of two neighbor subgrids are too close, they will be combined
 in the whole grid.
 """
-struct Composite{T<:AbstractFloat,PG,SG} <: SimpleG.ClosedGrid
+struct Composite{T<:AbstractFloat,PG,SG} <: SimpleG.ClosedGrid{T}
     bound::SVector{2,T}
     size::Int
     grid::Vector{T}
@@ -75,6 +75,22 @@ struct Composite{T<:AbstractFloat,PG,SG} <: SimpleG.ClosedGrid
         return new{T,PG,SG}(bound, size, grid, panel, subgrids, inits)
     end
 
+end
+
+function Base.show(io::IO, grid::Composite; isSimplified=false)
+    if isSimplified
+        print(io,
+            "$(typeof(grid)): 1D Composite Grid with $(grid.size) grid points.\n"
+        )
+    else
+        print(io,
+            "$(typeof(grid)): 1D Log Grid\n"
+            * "- bound: $(grid.bound)\n"
+            * "- size: $(grid.size)\n"
+            * "- grid: $(grid.grid)\n"
+            * "- panel: $(typeof(grid.panel))\n"
+        )
+    end
 end
 
 # function that returns the bottom type of the grid

@@ -37,6 +37,9 @@ include("CompositeGrids/CompositeGrids.jl")
 # export SimpleG, SimpleGrid, AbstractGrid, OpenGrid, ClosedGrid, denseindex
 # export CompositeG, CompositeGrid
 
+include("BrillouinZoneMeshes/BrillouinZoneMeshes.jl")
+@reexport using .BrillouinZoneMeshes
+
 ##########################  Green's function  #######################################################
 include("GreenFunc/GreenFunc.jl")
 @reexport using .GreenFunc

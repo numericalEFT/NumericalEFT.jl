@@ -108,7 +108,6 @@ SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, gr
         end
         green_linear.dynamic = green_dum 
         green_linear.instant = green_dum_ins
-        println(green_linear.timeGrid.grid)
         τ = 5
         x = 0.3
         interp_dym = dynamic(green_linear, τ, x)

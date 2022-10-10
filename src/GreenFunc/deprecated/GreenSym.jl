@@ -377,7 +377,7 @@ function _dynamic(TIM, SIM; green::Union{Green2DLR{DT,TT,TGT,SGT},GreenSym2DLR{D
         error("Dynamic Green's function can not be empty!")
     else
         spaceNeighbor = CompositeGrids.Interp.findneighbor(SIM, green.spaceGrid, space)
-        println(TIM)
+        #println(TIM)
         if green.timeType == ImFreq && TIM != DLRInterp
             timeGrid = (green.timeGrid.grid * 2 .+ 1) * π / green.β
             comTimeGrid = CompositeGrids.SimpleG.Arbitrary{eltype(timeGrid)}(timeGrid)

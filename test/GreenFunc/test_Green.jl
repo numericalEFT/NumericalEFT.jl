@@ -1,4 +1,4 @@
-SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, grid, type, dlr.symmetry; rtol = dlr.rtol, degree = 24, regularized = true)
+SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, grid, type, dlr.symmetry; rtol=dlr.rtol, degree=24, regularized=true)
 
 @testset "GreenFunc" begin
     # @testset "Green2" begin
@@ -35,23 +35,23 @@ SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, gr
         green_freq.dynamic = green_dum
         green_tau = toTau(green_freq)
         err = maximum(abs.(green_tau.dynamic[1, 1, 1, :] .- Gτ))
-        printstyled("SemiCircle Fourier ωn->τ $err\n", color = :white)
+        printstyled("SemiCircle Fourier ωn->τ $err\n", color=:white)
         @test err < 50 * rtol
 
         green_freq_compare = toMatFreq(green_tau)
         err = maximum(abs.(green_freq_compare.dynamic[1, 1, 1, :] .- Gn))
-        printstyled("SemiCircle Fourier τ->ωn $err\n", color = :white)
+        printstyled("SemiCircle Fourier τ->ωn $err\n", color=:white)
         @test err < 50 * rtol
 
         green_dlr = toDLR(green_freq)
         green_tau = toTau(green_dlr)
         err = maximum(abs.(green_tau.dynamic[1, 1, 1, :] .- Gτ))
-        printstyled("SemiCircle Fourier ωn->dlr->τ $err\n", color = :white)
+        printstyled("SemiCircle Fourier ωn->dlr->τ $err\n", color=:white)
         @test err < 50 * rtol
 
         #test JLD2
         ############# FileIO API #################
-        save("example.jld2", Dict("green" => green_freq), compress = true)
+        save("example.jld2", Dict("green" => green_freq), compress=true)
         d = load("example.jld2")
         green_read = d["green"]
         @test green_read.dynamic == green_freq.dynamic
@@ -73,7 +73,7 @@ SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, gr
             for (qi, q) in enumerate(green_linear.spaceGrid)
                 for (c1i, c1) in enumerate(color_n)
                     for (c2i, c2) in enumerate(color_n)
-                        green_dum[c1i, c2i, qi, ti] = (2*t+1)*π/β * q
+                        green_dum[c1i, c2i, qi, ti] = (2 * t + 1) * π / β * q
                     end
                 end
             end
@@ -93,13 +93,13 @@ SemiCircle(dlr, grid, type) = Sample.SemiCircle(dlr.Euv, dlr.β, dlr.isFermi, gr
         τ = 5
         x = 0.3
         interp_dym = dynamic(green_linear, τ, x)
-        @test abs(interp_dym -  (2*τ+1)*π/β* x)< 5e-8
+        @test abs(interp_dym - (2 * τ + 1) * π / β * x) < 5e-8
         interp_ins = instant(green_linear, x)
         @test abs(interp_ins - x) < 5e-8
         interp_dym = dynamic(green_linear, τ, x, GreenFunc.DEFAULTINTERP, GreenFunc.DEFAULTINTERP)
-        @test abs(interp_dym - (2*τ+1)*π/β * x) < 5e-8
+        @test abs(interp_dym - (2 * τ + 1) * π / β * x) < 5e-8
         interp_dym = dynamic(green_linear, τ, x, GreenFunc.DLRINTERP, GreenFunc.DEFAULTINTERP)
-        @test abs(interp_dym - (2*τ+1)*π/β * x) < 5e-6
+        @test abs(interp_dym - (2 * τ + 1) * π / β * x) < 5e-6
     end
 end
 

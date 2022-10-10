@@ -13,7 +13,7 @@ MCIntegration.jl provides several Monte Carlo algorithms to calculate regular/si
 The following examples demonstrate the basic usage of this package. 
 
 ## One-dimensional integral
-We first show an example of highly singular integral. The following command evaluates ∫_0^1 log(x)/√x dx = 4.
+We first show an example of highly singular integral. The following command evaluates $\int_0^1 \frac{\operatorname{log}(x)}{\sqrt{x}} dx = 4$.
 ```julia
 julia> res = integrate((x, c)->log(x[1])/sqrt(x[1]), solver=:vegas) 
 Integral 1 = -3.997980772652019 ± 0.0013607691354676158   (chi2/dof = 1.93)
@@ -122,7 +122,7 @@ julia> plt = plot(grid, res.mean[1], yerror = res.stdev[1], xlabel="R", label="c
 
 julia> plot!(plt, grid, res.mean[2], yerror = res.stdev[2], label="sphere")
 ```
-![histogram](../assets/circle_sphere.png?raw=true "Circle and Sphere")
+![histogram](docs/src/assets/circle_sphere.png?raw=true "Circle and Sphere")
 
 # Algorithm
 

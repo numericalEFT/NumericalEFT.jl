@@ -1,6 +1,7 @@
 module DiagTree
 using AbstractTrees
-using Printf, PyCall, DataFrames
+# using Printf, PyCall, DataFrames
+using Printf, PythonCall, DataFrames
 
 @enum TwoBodyChannel Alli = 1 PHr PHEr PPr AnyChan
 @enum Permutation Di = 1 Ex DiEx

@@ -1,5 +1,5 @@
 module Benchmark
-using StaticArrays, PyCall
+using StaticArrays, PythonCall
 using AbstractTrees
 using Parameters, Combinatorics
 

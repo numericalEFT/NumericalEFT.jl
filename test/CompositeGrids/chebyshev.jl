@@ -1,14 +1,14 @@
 @testset "BaryCheb" begin
-    println("Testing BaryCheb")
+    # println("Testing BaryCheb")
 
     @testset "1D BaryCheb Tools" begin
         n = 4
         x, w = BaryChebTools.barychebinit(n)
-        println(x)
-        println(w)
+        # println(x)
+        # println(w)
 
         f(t) = t
-        F(t) = 0.5*t^2
+        F(t) = 0.5 * t^2
 
         data = f.(x)
 
@@ -17,14 +17,14 @@
 
         # test integrate
         vmat = BaryChebTools.vandermonde(x)
-        println("vandermonde:",vmat)
+        # println("vandermonde:",vmat)
         invmat = inv(transpose(vmat))
-        println("invmat:",invmat)
+        # println("invmat:",invmat)
         x1, x2 = -0.4, 0.0
         b = BaryChebTools.weightcoef(x2, 1, n) - BaryChebTools.weightcoef(x1, 1, n)
-        println("b:",b)
+        # println("b:",b)
         intw = BaryChebTools.calcweight(invmat, b)
-        println("intw:",intw)
+        # println("intw:",intw)
         @test sum(intw .* data) ≈ F(x2) - F(x1)
         @test BaryChebTools.chebint(n, x1, x2, data, invmat) ≈ F(x2) - F(x1)
     end
@@ -34,7 +34,7 @@
         bc = BaryChebTools.BaryCheb1D(n)
 
         f(t) = t
-        F(t) = 0.5*t^2
+        F(t) = 0.5 * t^2
 
         data = f.(bc.x)
 
@@ -62,9 +62,9 @@
             end
         end
 
-        @test isapprox(BaryChebTools.barychebND(n, [0.5, 0.5], data, w, x, DIM), f(0.5, 0.5), rtol = 1e-10)
-        @test isapprox(BaryChebTools.barychebND(n, [x[2], 0.5], data, w, x, DIM), f(x[2], 0.5), rtol = 1e-10)
-        @test isapprox(BaryChebTools.barychebND(n, [x[2], x[1]], data, w, x, DIM), f(x[2], x[1]), rtol = 1e-10)
+        @test isapprox(BaryChebTools.barychebND(n, [0.5, 0.5], data, w, x, DIM), f(0.5, 0.5), rtol=1e-10)
+        @test isapprox(BaryChebTools.barychebND(n, [x[2], 0.5], data, w, x, DIM), f(x[2], 0.5), rtol=1e-10)
+        @test isapprox(BaryChebTools.barychebND(n, [x[2], x[1]], data, w, x, DIM), f(x[2], x[1]), rtol=1e-10)
     end
 
     @testset "ND BaryCheb" begin
@@ -84,13 +84,13 @@
             end
         end
 
-        @test isapprox(BaryChebTools.interpND(data, bc, [0.4, 0.7]), f(0.4, 0.7), rtol = 1e-10)
-        @test isapprox(BaryChebTools.interpND(data, bc, [bc.x[2], 0.5]), f(bc.x[2], 0.5), rtol = 1e-10)
-        @test isapprox(BaryChebTools.interpND(data, bc, [bc.x[2], bc.x[1]]), f(bc.x[2], bc.x[1]), rtol = 1e-10)
+        @test isapprox(BaryChebTools.interpND(data, bc, [0.4, 0.7]), f(0.4, 0.7), rtol=1e-10)
+        @test isapprox(BaryChebTools.interpND(data, bc, [bc.x[2], 0.5]), f(bc.x[2], 0.5), rtol=1e-10)
+        @test isapprox(BaryChebTools.interpND(data, bc, [bc.x[2], bc.x[1]]), f(bc.x[2], bc.x[1]), rtol=1e-10)
 
         x1s = [0.0, 0.0]
         x2s = [0.4, 0.7]
-        @test isapprox(BaryChebTools.integrateND(data, bc, x1s, x2s), F(x2s...), rtol = 1e-6)
+        @test isapprox(BaryChebTools.integrateND(data, bc, x1s, x2s), F(x2s...), rtol=1e-6)
     end
 
 end

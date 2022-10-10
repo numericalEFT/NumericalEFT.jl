@@ -48,7 +48,7 @@ end
 function showTree(tree::ExpressionTree, _root::Int; verbose=0, depth=999)
 
     # pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__) #comment this line if no need to load local python module
-    ete = PyCall.pyimport("ete3")
+    ete = pyimport("ete3")
 
     function name_para(p)
         name = (p.name == :none) ? "" : " $(p.name)"

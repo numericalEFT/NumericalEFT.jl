@@ -26,6 +26,7 @@ export Continuous, Discrete, CompositeVar
 
 include("statistics.jl")
 export Result
+
 include("configuration.jl")
 export Configuration
 

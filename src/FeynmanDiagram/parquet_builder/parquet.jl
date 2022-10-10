@@ -1,5 +1,5 @@
 module Parquet
-using StaticArrays, PyCall
+using StaticArrays, PythonCall
 using AbstractTrees
 using Parameters, Combinatorics
 using DataFrames

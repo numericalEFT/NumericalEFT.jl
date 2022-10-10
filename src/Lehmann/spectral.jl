@@ -18,7 +18,7 @@ Compute the imaginary-time kernel of different type.
 - `β`: the inverse temperature 
 - `regularized`: use regularized kernel or not
 """
-@inline function kernelT(::Val{isFermi}, ::Val{symmetry}, τ::T, ω::T, β::T, regularized::Bool = false) where {T<:AbstractFloat,isFermi,symmetry}
+@inline function kernelT(::Val{isFermi}, ::Val{symmetry}, τ::T, ω::T, β::T, regularized::Bool=false) where {T<:AbstractFloat,isFermi,symmetry}
     if symmetry == :none
         if regularized
             return isFermi ? kernelFermiT(τ, ω, β) : kernelBoseT_regular(τ, ω, β)
@@ -38,11 +38,11 @@ end
 
 Compute kernel with given τ and ω grids.
 """
-function kernelT(isFermi, symmetry, τGrid::AbstractVector{T}, ωGrid::AbstractVector{T}, β::T, regularized::Bool = false; type = T) where {T<:AbstractFloat}
-    kernel = zeros(type, (length(τGrid), length(ωGrid)))
+function kernelT(::Type{T}, isFermi, symmetry, τGrid::AbstractVector{T}, ωGrid::AbstractVector{T}, β::T, regularized::Bool=false) where {T<:AbstractFloat}
+    kernel = zeros(T, (length(τGrid), length(ωGrid)))
     for (τi, τ) in enumerate(τGrid)
         for (ωi, ω) in enumerate(ωGrid)
-            kernel[τi, ωi] = kernelT(isFermi, symmetry, τ, ω, β, regularized)
+            kernel[τi, ωi] = kernelT(isFermi, symmetry, T(τ), T(ω), T(β), regularized)
         end
     end
     return kernel
@@ -164,7 +164,7 @@ K(τ) = e^{-ω|τ|}+e^{-ω(β-|τ|)}
 - `ω`: frequency, ω>=0
 - `β`: the inverse temperature 
 """
-@inline function kernelFermiT_PH(τ::T, ω::T, β = T(1)) where {T<:AbstractFloat}
+@inline function kernelFermiT_PH(τ::T, ω::T, β=T(1)) where {T<:AbstractFloat}
     (-β < τ <= β) || error("τ must be (0, β]")
     (ω >= 0) || error("ω must be >=0")
     τ = abs(τ)
@@ -184,7 +184,7 @@ K(τ) = e^{-ω|τ|}+e^{-ω(β-|τ|)}
 - `ω`: frequency, ω>=0
 - `β`: the inverse temperature 
 """
-@inline function kernelBoseT_PH(τ::T, ω::T, β = T(1)) where {T<:AbstractFloat}
+@inline function kernelBoseT_PH(τ::T, ω::T, β=T(1)) where {T<:AbstractFloat}
     (-β < τ <= β) || error("τ must be (0, β]")
     (ω >= 0) || error("ω must be >=0")
     τ = abs(τ)
@@ -245,7 +245,7 @@ Compute the imaginary-time kernel of different type. Assume ``k_B T/\\hbar=1``
 - `β`: the inverse temperature 
 - `regularized`: use regularized kernel or not
 """
-@inline function kernelΩ(::Val{isFermi}, ::Val{symmetry}, n::Int, ω::T, β::T, regularized::Bool = false) where {T<:AbstractFloat,isFermi,symmetry}
+@inline function kernelΩ(::Val{isFermi}, ::Val{symmetry}, n::Int, ω::T, β::T, regularized::Bool=false) where {T<:AbstractFloat,isFermi,symmetry}
     if symmetry == :none
         if regularized
             return isFermi ? kernelFermiΩ(n, ω, β) : kernelBoseΩ_regular(n, ω, β)
@@ -266,12 +266,17 @@ end
 
 Compute kernel matrix with given ωn (integer!) and ω grids.
 """
-function kernelΩ(isFermi, symmetry, nGrid::Vector{Int}, ωGrid::Vector{T}, β::T, regularized::Bool = false; type = Complex{T}) where {T<:AbstractFloat}
+function kernelΩ(::Type{T}, ::Val{isFermi}, ::Val{symmetry}, nGrid::AbstractVector{Int}, ωGrid::AbstractVector{T}, β::T, regularized::Bool=false) where {T<:AbstractFloat,isFermi,symmetry}
     # println(type)
-    kernel = zeros(type, (length(nGrid), length(ωGrid)))
+    if (symmetry == :none) || (symmetry == :ph && isFermi == true) || (symmetry == :pha && isFermi == false)
+        kernel = zeros(Complex{T}, (length(nGrid), length(ωGrid)))
+    else
+        kernel = zeros(T, (length(nGrid), length(ωGrid)))
+    end
+    # println(symmetry, ", ", isFermi)
     for (ni, n) in enumerate(nGrid)
         for (ωi, ω) in enumerate(ωGrid)
-            kernel[ni, ωi] = kernelΩ(isFermi, symmetry, n, ω, β, regularized)
+            kernel[ni, ωi] = kernelΩ(Val(isFermi), Val(symmetry), n, T(ω), T(β), regularized)
         end
     end
     return kernel
