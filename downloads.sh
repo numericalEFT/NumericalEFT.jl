@@ -18,6 +18,7 @@ mv ./temp/src ./src/MCIntegration
 mv ./temp/test ./test/MCIntegration
 mv ./temp/docs/src/man/* ./docs/src/man/
 mv ./temp/docs/src/assets/* ./docs/src/assets/
+mv ./temp/docs/src/assets/* ./docs/src/readme/MCIntegration
 mv ./temp/README.md ./docs/src/readme/MCIntegration.md
 rm -rf temp
 
@@ -56,7 +57,7 @@ rm -r ./test/FeynmanDiagram
 git clone https://github.com/numericalEFT/FeynmanDiagram.jl.git temp
 mv ./temp/src ./src/FeynmanDiagram
 mv ./temp/test ./test/FeynmanDiagram
-mv ./temp/assets/* ./docs/src/readme/assets/
+mv ./temp/assets/* ./docs/src/readme/FeynmanDiagram/
 mv ./temp/docs/src/man/* ./docs/src/man/
 mv ./temp/docs/src/assets/* ./docs/src/assets/
 # mv ./temp/docs/src/lib/* ./docs/src/lib/
