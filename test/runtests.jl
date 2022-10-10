@@ -70,18 +70,48 @@ if isempty(ARGS)
     # include("Renormalization/renorm.jl")
     #include("interpolate.jl")
 
-    let
-        using BrillouinZoneMeshes.AbstractTrees
-        using BrillouinZoneMeshes.GridTree
-        using BrillouinZoneMeshes.BaseMesh
-        using BrillouinZoneMeshes.BaryCheb
+    # let
+    #     using BrillouinZoneMeshes.AbstractTrees
+    #     using BrillouinZoneMeshes.GridTree
+    #     using BrillouinZoneMeshes.BaseMesh
+    #     using BrillouinZoneMeshes.BaryCheb
+    #     include("BrillouinZoneMeshes/tree.jl")
+    #     include("BrillouinZoneMeshes/basemesh.jl")
+    #     include("BrillouinZoneMeshes/barycheb.jl")
+    #     # include("BrillouinZoneMeshes/mc.jl") #locate and volume is not properly handled in BZmeshes
+    # end
+else
+    include(ARGS[1])
+end
+
+module _Test_BrillouinZoneMeshes
+
+using NumericalEFT
+using BrillouinZoneMeshes.AbstractTrees
+using BrillouinZoneMeshes.GridTree
+using BrillouinZoneMeshes.BaseMesh
+using BrillouinZoneMeshes.BaryCheb
+# using BrillouinZoneMeshes.TreeMeshes
+# using BrillouinZoneMeshes.BaseMesh
+# using BrillouinZoneMeshes.BaryCheb
+# using BrillouinZoneMeshes.SymMaps
+using LinearAlgebra, Random
+using Test
+@testset "BrillouinZoneMeshes.jl" begin
+    if isempty(ARGS)
+        # include("barycheb.jl")
+        # include("BaseMesh.jl")
+        # include("TreeMeshes.jl")
+        # include("mc.jl")
         include("BrillouinZoneMeshes/tree.jl")
         include("BrillouinZoneMeshes/basemesh.jl")
         include("BrillouinZoneMeshes/barycheb.jl")
         # include("BrillouinZoneMeshes/mc.jl") #locate and volume is not properly handled in BZmeshes
+    else
+        include(ARGS[1])
     end
-else
-    include(ARGS[1])
+end
+
 end
 
 ########## Atom #####################
