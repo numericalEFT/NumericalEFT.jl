@@ -87,10 +87,10 @@ end
 module _Test_BrillouinZoneMeshes
 
 using NumericalEFT
-using BrillouinZoneMeshes.AbstractTrees
-using BrillouinZoneMeshes.GridTree
-using BrillouinZoneMeshes.BaseMesh
-using BrillouinZoneMeshes.BaryCheb
+using .BrillouinZoneMeshes.AbstractTrees
+using .BrillouinZoneMeshes.GridTree
+using .BrillouinZoneMeshes.BaseMesh
+using .BrillouinZoneMeshes.BaryCheb
 # using BrillouinZoneMeshes.TreeMeshes
 # using BrillouinZoneMeshes.BaseMesh
 # using BrillouinZoneMeshes.BaryCheb
