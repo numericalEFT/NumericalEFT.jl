@@ -15,12 +15,6 @@ using AbstractTrees
 ######### CompositeGrids ##################
 using Statistics, FileIO
 
-######## BrillouinZoneMeshes ###############
-# using BrillouinZoneMeshes.AbstractTrees
-# using BrillouinZoneMeshes.GridTree
-# using BrillouinZoneMeshes.BaseMesh
-# using BrillouinZoneMeshes.BaryCheb
-
 function check(mean, error, expect, ratio=7.0)
     # println(mean, error)
     for ei in eachindex(expect)
@@ -64,10 +58,6 @@ if isempty(ARGS)
     include("CompositeGrids/interpolate.jl")
     include("CompositeGrids/io.jl")
 
-    # include("BrillouinZoneMeshes/tree.jl")
-    # include("BrillouinZoneMeshes/basemesh.jl")
-    # include("BrillouinZoneMeshes/barycheb.jl")
-    # include("BrillouinZoneMeshes/mc.jl") #locate and volume is not properly handled in BZmeshes
 
     # include("GreenFunc/test_Green.jl")
     #include("interpolate.jl")
@@ -79,6 +69,17 @@ if isempty(ARGS)
 
     # include("Renormalization/renorm.jl")
     #include("interpolate.jl")
+
+    let
+        using BrillouinZoneMeshes.AbstractTrees
+        using BrillouinZoneMeshes.GridTree
+        using BrillouinZoneMeshes.BaseMesh
+        using BrillouinZoneMeshes.BaryCheb
+        include("BrillouinZoneMeshes/tree.jl")
+        include("BrillouinZoneMeshes/basemesh.jl")
+        include("BrillouinZoneMeshes/barycheb.jl")
+        # include("BrillouinZoneMeshes/mc.jl") #locate and volume is not properly handled in BZmeshes
+    end
 else
     include(ARGS[1])
 end
